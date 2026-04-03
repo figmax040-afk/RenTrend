@@ -1,10 +1,17 @@
 import { useState } from "react";
 import { useNavigate } from "react-router";
-import { Mail, Lock, ArrowLeft, Globe } from "lucide-react";
+import { Mail, Lock, ArrowLeft, Globe, AlertCircle } from "lucide-react";
 import { useI18n } from "../components/i18n";
 import { IMAGES } from "../components/data";
 import { ImageWithFallback } from "../components/figma/ImageWithFallback";
+import { createClient } from "@supabase/supabase-js";
+
 const logoImg = "https://placehold.co/400x300?text=RenTrend";
+
+const supabase = createClient(
+  import.meta.env.VITE_SUPABASE_URL,
+  import.meta.env.VITE_SUPABASE_ANON_KEY
+);
 
 /* ── Shared hero banner ── */
 function AuthHero() {
@@ -15,9 +22,7 @@ function AuthHero() {
         alt="Home electronics"
         className="w-full h-full object-cover"
       />
-      {/* Gradient overlay */}
       <div className="absolute inset-0 bg-gradient-to-b from-[#1E6B1E]/60 to-[#1E6B1E]/10" />
-      {/* Logo centred on the image */}
       <div className="absolute inset-0 flex items-center justify-center">
         <img src={logoImg} alt="RenTrend" className="h-20 w-auto object-contain drop-shadow-lg" />
       </div>
@@ -31,10 +36,31 @@ export function SignUp() {
   const { t, lang, setLang } = useI18n();
   const [email,    setEmail]    = useState("");
   const [password, setPassword] = useState("");
+  const [loading,  setLoading]  = useState(false);
+  const [error,    setError]    = useState("");
+
+  async function handleSignUp() {
+    setError("");
+    if (!email || !password) {
+      setError("Please enter your email and password.");
+      return;
+    }
+    if (password.length < 6) {
+      setError("Password must be at least 6 characters.");
+      return;
+    }
+    setLoading(true);
+    const { error: signUpError } = await supabase.auth.signUp({ email, password });
+    setLoading(false);
+    if (signUpError) {
+      setError(signUpError.message);
+    } else {
+      navigate("/home");
+    }
+  }
 
   return (
     <div className="min-h-screen bg-[#F9FAFB] flex flex-col">
-      {/* Top bar */}
       <div className="flex items-center justify-between p-4 absolute top-0 left-0 right-0 z-10">
         <button onClick={() => navigate("/")} className="w-8 h-8 rounded-full bg-white/80 flex items-center justify-center text-[#1E6B1E]">
           <ArrowLeft size={18} />
@@ -47,13 +73,18 @@ export function SignUp() {
         </button>
       </div>
 
-      {/* Hero */}
       <AuthHero />
 
-      {/* Form */}
       <div className="flex-1 flex flex-col px-6 max-w-md mx-auto w-full pt-6">
         <h1 className="text-[#1B3D1B] mb-1" style={{ fontSize: 26 }}>{t("signUp")}</h1>
         <p className="text-[#6B7280] text-sm mb-6">{t("verifyStudent")}</p>
+
+        {error && (
+          <div className="flex items-center gap-2 bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-xl mb-4">
+            <AlertCircle size={16} />
+            {error}
+          </div>
+        )}
 
         <div className="space-y-4">
           <div className="relative">
@@ -80,30 +111,17 @@ export function SignUp() {
           </div>
 
           <button
-            onClick={() => navigate("/home")}
-            className="w-full py-3 bg-[#1E6B1E] text-white rounded-xl hover:bg-[#155215] transition-colors"
+            onClick={handleSignUp}
+            disabled={loading}
+            className="w-full py-3 bg-[#1E6B1E] text-white rounded-xl hover:bg-[#155215] transition-colors disabled:opacity-60"
           >
-            {t("signUp")}
-          </button>
-
-          <div className="relative flex items-center my-2">
-            <div className="flex-1 h-px bg-[#E5E7EB]" />
-            <span className="px-3 text-xs text-[#6B7280]">or</span>
-            <div className="flex-1 h-px bg-[#E5E7EB]" />
-          </div>
-
-          <button className="w-full py-3 bg-white border border-[#E5E7EB] rounded-xl text-sm text-[#1F2937] hover:bg-[#F0F7F0] transition-colors">
-            {t("googleSignIn")}
+            {loading ? "Creating account..." : t("signUp")}
           </button>
         </div>
 
         <p className="text-center text-sm text-[#6B7280] mt-6">
           {t("hasAccount")}{" "}
-          <button
-            onClick={() => navigate("/login")}
-            className="text-[#1E6B1E]"
-            style={{ fontWeight: 500 }}
-          >
+          <button onClick={() => navigate("/login")} className="text-[#1E6B1E]" style={{ fontWeight: 500 }}>
             {t("logIn")}
           </button>
         </p>
@@ -118,10 +136,27 @@ export function Login() {
   const { t, lang, setLang } = useI18n();
   const [email,    setEmail]    = useState("");
   const [password, setPassword] = useState("");
+  const [loading,  setLoading]  = useState(false);
+  const [error,    setError]    = useState("");
+
+  async function handleLogin() {
+    setError("");
+    if (!email || !password) {
+      setError("Please enter your email and password.");
+      return;
+    }
+    setLoading(true);
+    const { error: loginError } = await supabase.auth.signInWithPassword({ email, password });
+    setLoading(false);
+    if (loginError) {
+      setError(loginError.message);
+    } else {
+      navigate("/home");
+    }
+  }
 
   return (
     <div className="min-h-screen bg-[#F9FAFB] flex flex-col">
-      {/* Top bar */}
       <div className="flex items-center justify-between p-4 absolute top-0 left-0 right-0 z-10">
         <button onClick={() => navigate("/")} className="w-8 h-8 rounded-full bg-white/80 flex items-center justify-center text-[#1E6B1E]">
           <ArrowLeft size={18} />
@@ -134,12 +169,17 @@ export function Login() {
         </button>
       </div>
 
-      {/* Hero */}
       <AuthHero />
 
-      {/* Form */}
       <div className="flex-1 flex flex-col px-6 max-w-md mx-auto w-full pt-6">
         <h1 className="text-[#1B3D1B] mb-6" style={{ fontSize: 26 }}>{t("logIn")}</h1>
+
+        {error && (
+          <div className="flex items-center gap-2 bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-xl mb-4">
+            <AlertCircle size={16} />
+            {error}
+          </div>
+        )}
 
         <div className="space-y-4">
           <div className="relative">
@@ -169,30 +209,17 @@ export function Login() {
           </div>
 
           <button
-            onClick={() => navigate("/home")}
-            className="w-full py-3 bg-[#1E6B1E] text-white rounded-xl hover:bg-[#155215] transition-colors"
+            onClick={handleLogin}
+            disabled={loading}
+            className="w-full py-3 bg-[#1E6B1E] text-white rounded-xl hover:bg-[#155215] transition-colors disabled:opacity-60"
           >
-            {t("logIn")}
-          </button>
-
-          <div className="relative flex items-center my-2">
-            <div className="flex-1 h-px bg-[#E5E7EB]" />
-            <span className="px-3 text-xs text-[#6B7280]">or</span>
-            <div className="flex-1 h-px bg-[#E5E7EB]" />
-          </div>
-
-          <button className="w-full py-3 bg-white border border-[#E5E7EB] rounded-xl text-sm text-[#1F2937] hover:bg-[#F0F7F0] transition-colors">
-            {t("googleSignIn")}
+            {loading ? "Logging in..." : t("logIn")}
           </button>
         </div>
 
         <p className="text-center text-sm text-[#6B7280] mt-6">
           {t("noAccount")}{" "}
-          <button
-            onClick={() => navigate("/signup")}
-            className="text-[#1E6B1E]"
-            style={{ fontWeight: 500 }}
-          >
+          <button onClick={() => navigate("/signup")} className="text-[#1E6B1E]" style={{ fontWeight: 500 }}>
             {t("signUp")}
           </button>
         </p>
