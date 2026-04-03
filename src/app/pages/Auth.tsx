@@ -4,7 +4,7 @@ import { Mail, Lock, ArrowLeft, Globe } from "lucide-react";
 import { useI18n } from "../components/i18n";
 import { IMAGES } from "../components/data";
 import { ImageWithFallback } from "../components/figma/ImageWithFallback";
-import logoImg from "https://placehold.co/400x300?text=RenTrend";
+const logoImg = "https://placehold.co/400x300?text=RenTrend";
 
 /* ── Shared hero banner ── */
 function AuthHero() {
