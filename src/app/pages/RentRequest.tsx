@@ -8,6 +8,7 @@ import { supabase } from "../../lib/supabase";
 
 type ListingSummary = {
   id: string | number;
+  owner_id: string | null;
   title: string;
   titleZh: string;
   image: string;
@@ -36,40 +37,52 @@ export function RentRequest() {
     if (!id) return;
     const numericId = Number(id);
 
-    if (!isNaN(numericId)) {
-      const found = mockListings.find((l) => l.id === numericId);
-      if (found) {
-        setListing({
-          id: found.id, title: found.title, titleZh: found.titleZh,
-          image: found.image, price: found.price, deposit: found.deposit,
-          university: found.university, universityZh: found.universityZh,
-        });
-      }
-      setLoading(false);
-      return;
-    }
+    async function load() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { navigate("/login"); return; }
 
-    supabase
-      .from("listings")
-      .select("id, title, title_zh, image_url, price_per_day, deposit, university")
-      .eq("id", id)
-      .single()
-      .then(({ data }) => {
-        if (data) {
+      if (!isNaN(numericId)) {
+        const found = mockListings.find((l) => l.id === numericId);
+        if (found) {
           setListing({
-            id: data.id,
-            title: data.title,
-            titleZh: data.title_zh ?? data.title,
-            image: data.image_url ?? IMAGES.kettle,
-            price: data.price_per_day,
-            deposit: data.deposit ?? 0,
-            university: data.university ?? "—",
-            universityZh: data.university ?? "—",
+            id: found.id, owner_id: null,
+            title: found.title, titleZh: found.titleZh,
+            image: found.image, price: found.price, deposit: found.deposit,
+            university: found.university, universityZh: found.universityZh,
           });
         }
         setLoading(false);
-      });
-  }, [id]);
+        return;
+      }
+
+      const { data } = await supabase
+        .from("listings")
+        .select("id, owner_id, title, title_zh, image_url, price_per_day, deposit, university")
+        .eq("id", id)
+        .single();
+
+      if (data) {
+        if (data.owner_id === user.id) {
+          navigate("/my-listings");
+          return;
+        }
+        setListing({
+          id: data.id,
+          owner_id: data.owner_id,
+          title: data.title,
+          titleZh: data.title_zh ?? data.title,
+          image: data.image_url ?? IMAGES.kettle,
+          price: data.price_per_day,
+          deposit: data.deposit ?? 0,
+          university: data.university ?? "—",
+          universityZh: data.university ?? "—",
+        });
+      }
+      setLoading(false);
+    }
+
+    load();
+  }, [id, navigate]);
 
   async function handleSubmit() {
     if (!listing || !startDate || !endDate || !agreed) return;
@@ -108,6 +121,8 @@ export function RentRequest() {
   }
 
   if (!listing) return null;
+
+  const today = new Date().toISOString().split("T")[0];
 
   const days = startDate && endDate
     ? Math.max(1, Math.ceil((new Date(endDate).getTime() - new Date(startDate).getTime()) / 86400000))
@@ -152,11 +167,11 @@ export function RentRequest() {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-sm text-[#6B7280]">{t("startDate")}</label>
-              <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="w-full mt-1 px-4 py-2.5 rounded-xl border border-[#E5E7EB] bg-white text-sm" />
+              <input type="date" value={startDate} min={today} onChange={(e) => setStartDate(e.target.value)} className="w-full mt-1 px-4 py-2.5 rounded-xl border border-[#E5E7EB] bg-white text-sm" />
             </div>
             <div>
               <label className="text-sm text-[#6B7280]">{t("endDate")}</label>
-              <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="w-full mt-1 px-4 py-2.5 rounded-xl border border-[#E5E7EB] bg-white text-sm" />
+              <input type="date" value={endDate} min={startDate || today} onChange={(e) => setEndDate(e.target.value)} className="w-full mt-1 px-4 py-2.5 rounded-xl border border-[#E5E7EB] bg-white text-sm" />
             </div>
           </div>
 

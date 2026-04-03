@@ -79,7 +79,7 @@ export function Profile() {
 
       {/* Menu */}
       <div className="bg-white rounded-xl border border-[#E5E7EB] divide-y divide-[#E5E7EB]">
-        <MenuItem icon={Edit} label={t("editProfile")} onClick={() => {}} />
+        <MenuItem icon={Edit} label={t("editProfile")} onClick={() => navigate("/edit-profile")} />
         <MenuItem icon={BarChart3} label={t("admin")} onClick={() => navigate("/admin")} />
         <div className="flex items-center justify-between px-4 py-3">
           <div className="flex items-center gap-3">
@@ -94,7 +94,7 @@ export function Profile() {
           </button>
         </div>
         <MenuItem icon={Bell} label={t("notifications")} onClick={() => {}} toggle />
-        <MenuItem icon={Mail} label={t("emailPrefs")} onClick={() => {}} />
+        <MenuItem icon={Mail} label={t("emailPrefs")} onClick={() => navigate("/email-preferences")} />
       </div>
 
       {/* Log out */}

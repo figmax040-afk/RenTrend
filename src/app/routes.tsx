@@ -11,7 +11,13 @@ import { Recycle } from "./pages/Recycle";
 import { MyRequests } from "./pages/MyRequests";
 import { MyListings } from "./pages/MyListings";
 import { Profile } from "./pages/Profile";
+import { EditProfile } from "./pages/EditProfile";
+import { EmailPreferences } from "./pages/EmailPreferences";
 import { Admin } from "./pages/Admin";
+import { AdminListings } from "./pages/AdminListings";
+import { AdminApprovals } from "./pages/AdminApprovals";
+import { AdminRequests } from "./pages/AdminRequests";
+import { AdminRecycling } from "./pages/AdminRecycling";
 
 export const router = createBrowserRouter([
   { path: "/", Component: Onboarding },
@@ -30,7 +36,13 @@ export const router = createBrowserRouter([
       { path: "/my-requests", Component: MyRequests },
       { path: "/my-listings", Component: MyListings },
       { path: "/profile", Component: Profile },
+      { path: "/edit-profile", Component: EditProfile },
+      { path: "/email-preferences", Component: EmailPreferences },
       { path: "/admin", Component: Admin },
+      { path: "/admin/listings", Component: AdminListings },
+      { path: "/admin/approvals", Component: AdminApprovals },
+      { path: "/admin/requests", Component: AdminRequests },
+      { path: "/admin/recycling", Component: AdminRecycling },
     ],
   },
 ]);

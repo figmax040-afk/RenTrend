@@ -59,6 +59,7 @@ const mockReviews: Record<number, Review[]> = {
 
 type NormalizedListing = {
   id: string | number;
+  owner_id: string | null;
   title: string;
   titleZh: string;
   image: string;
@@ -104,9 +105,17 @@ export function ListingDetail() {
   const [saved,     setSaved]     = useState(false);
   const [listing,   setListing]   = useState<NormalizedListing | null>(null);
   const [loading,   setLoading]   = useState(true);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [copied,    setCopied]    = useState(false);
 
   useEffect(() => {
     if (!id) return;
+
+    // Get current user for owner detection
+    supabase.auth.getUser().then(({ data }) => {
+      setCurrentUserId(data.user?.id ?? null);
+    });
+
     const numericId = Number(id);
 
     if (!isNaN(numericId)) {
@@ -114,7 +123,8 @@ export function ListingDetail() {
       const found = mockListings.find((l) => l.id === numericId);
       if (found) {
         setListing({
-          id: found.id, title: found.title, titleZh: found.titleZh,
+          id: found.id, owner_id: null,
+          title: found.title, titleZh: found.titleZh,
           image: found.image, price: found.price,
           weeklyPrice: found.weeklyPrice, monthlyPrice: found.monthlyPrice,
           deposit: found.deposit, distance: found.distance, distanceZh: found.distanceZh,
@@ -139,6 +149,7 @@ export function ListingDetail() {
         if (data) {
           setListing({
             id: data.id,
+            owner_id: data.owner_id ?? null,
             title: data.title,
             titleZh: data.title_zh ?? data.title,
             image: data.image_url ?? IMAGES.kettle,
@@ -175,6 +186,20 @@ export function ListingDetail() {
 
   if (!listing) return <div className="p-8 text-center text-[#6B7280]">Not found</div>;
 
+  const isOwner = !!currentUserId && !!listing.owner_id && currentUserId === listing.owner_id;
+
+  async function handleShare() {
+    const url = window.location.href;
+    const title = lang === "zh" ? listing.titleZh : listing.title;
+    if (navigator.share) {
+      await navigator.share({ title, text: `Check out this listing on RenTrend: ${title}`, url });
+    } else {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  }
+
   const numericMockId = typeof listing.id === "number" ? listing.id : null;
   const reviews = numericMockId ? (mockReviews[numericMockId] ?? []) : [];
   const avgRating = reviews.length
@@ -197,7 +222,7 @@ export function ListingDetail() {
             <ArrowLeft size={18} />
           </button>
           <div className="flex gap-2">
-            <button className="w-9 h-9 bg-white/90 rounded-full flex items-center justify-center shadow">
+            <button onClick={handleShare} className="w-9 h-9 bg-white/90 rounded-full flex items-center justify-center shadow">
               <Share2 size={16} />
             </button>
             <button
@@ -350,12 +375,21 @@ export function ListingDetail() {
 
       {/* ── Sticky CTA ── */}
       <div className="fixed bottom-0 left-0 right-0 md:sticky bg-white border-t border-[#E5E7EB] px-4 py-3 flex gap-3 max-w-2xl mx-auto">
-        <button
-          className="flex-1 py-3 bg-[#1E6B1E] text-white rounded-xl hover:bg-[#155215] transition-colors"
-          onClick={() => navigate(`/rent/${listing.id}`)}
-        >
-          {t("requestToRent")}
-        </button>
+        {isOwner ? (
+          <button
+            className="flex-1 py-3 bg-[#1E6B1E] text-white rounded-xl hover:bg-[#155215] transition-colors"
+            onClick={() => navigate("/my-listings")}
+          >
+            Manage Listing
+          </button>
+        ) : (
+          <button
+            className="flex-1 py-3 bg-[#1E6B1E] text-white rounded-xl hover:bg-[#155215] transition-colors"
+            onClick={() => navigate(`/rent/${listing.id}`)}
+          >
+            {t("requestToRent")}
+          </button>
+        )}
         <button
           onClick={() => setSaved(!saved)}
           className={`px-4 py-3 border rounded-xl transition-colors ${
@@ -367,6 +401,13 @@ export function ListingDetail() {
           <Heart size={18} className={saved ? "fill-red-500" : ""} />
         </button>
       </div>
+
+      {/* ── Link copied toast ── */}
+      {copied && (
+        <div className="fixed bottom-20 left-1/2 -translate-x-1/2 bg-[#1E6B1E] text-white text-sm px-4 py-2 rounded-xl shadow-lg z-50 whitespace-nowrap">
+          Link copied!
+        </div>
+      )}
     </div>
   );
 }
