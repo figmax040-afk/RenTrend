@@ -4,7 +4,7 @@ import { Heart, MapPin } from "lucide-react";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
 
 interface ListingCardProps {
-  id: number;
+  id: string | number;
   image: string;
   title: string;
   price: number;

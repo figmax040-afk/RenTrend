@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 import { ArrowLeft, Camera, ChefHat, Monitor, Sofa, Camera as CameraIcon, Wind, MoreHorizontal, CheckCircle } from "lucide-react";
 import { useI18n } from "../components/i18n";
+import { supabase } from "../../lib/supabase";
 
 const catIcons = [
   { key: "kitchen", icon: ChefHat },
@@ -30,6 +31,43 @@ export function CreateListing() {
   const [avail, setAvail] = useState(true);
   const [location, setLocation] = useState("");
   const [published, setPublished] = useState(false);
+  const [publishing, setPublishing] = useState(false);
+  const [publishError, setPublishError] = useState("");
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!user) navigate("/login");
+    });
+  }, [navigate]);
+
+  async function handlePublish() {
+    setPublishError("");
+    setPublishing(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { navigate("/login"); return; }
+
+    const { error } = await supabase.from("listings").insert({
+      owner_id: user.id,
+      title,
+      category: cat,
+      condition: t(cond),
+      description: desc,
+      price_per_day: Number(daily),
+      price_weekly: weekly ? Number(weekly) : null,
+      price_monthly: monthly ? Number(monthly) : null,
+      deposit: deposit ? Number(deposit) : null,
+      district: location || null,
+      is_active: avail,
+      currency: "HKD",
+    });
+
+    setPublishing(false);
+    if (error) {
+      setPublishError(error.message);
+    } else {
+      setPublished(true);
+    }
+  }
 
   if (published) {
     return (
@@ -165,7 +203,16 @@ export function CreateListing() {
               <p className="text-[#6B7280]">{location}</p>
               {desc && <p className="text-[#6B7280]">{desc}</p>}
             </div>
-            <button onClick={() => setPublished(true)} className="w-full py-3 bg-[#1E6B1E] text-white rounded-xl">{t("publishListing")}</button>
+            {publishError && (
+              <p className="text-sm text-red-600 bg-red-50 border border-red-200 px-4 py-3 rounded-xl">{publishError}</p>
+            )}
+            <button
+              onClick={handlePublish}
+              disabled={publishing}
+              className="w-full py-3 bg-[#1E6B1E] text-white rounded-xl disabled:opacity-60"
+            >
+              {publishing ? "Publishing..." : t("publishListing")}
+            </button>
             <button onClick={() => navigate("/home")} className="w-full py-3 border border-[#E5E7EB] rounded-xl text-sm text-[#6B7280]">{t("saveAsDraft")}</button>
           </div>
         )}

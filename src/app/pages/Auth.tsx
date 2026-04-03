@@ -4,14 +4,9 @@ import { Mail, Lock, ArrowLeft, Globe, AlertCircle, User, Phone, MailCheck } fro
 import { useI18n } from "../components/i18n";
 import { IMAGES } from "../components/data";
 import { ImageWithFallback } from "../components/figma/ImageWithFallback";
-import { createClient } from "@supabase/supabase-js";
+import { supabase } from "../../lib/supabase";
 
 const logoImg = "https://placehold.co/400x300?text=RenTrend";
-
-const supabase = createClient(
-  import.meta.env.VITE_SUPABASE_URL,
-  import.meta.env.VITE_SUPABASE_ANON_KEY
-);
 
 /* ── Shared hero banner ── */
 function AuthHero() {

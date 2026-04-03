@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router";
 import { ArrowLeft, Share2, Heart, MapPin, Shield, ChevronDown, ChevronUp, Star, MessageCircle } from "lucide-react";
 import { useI18n } from "../components/i18n";
-import { listings } from "../components/data";
+import { listings as mockListings, IMAGES } from "../components/data";
 import { ImageWithFallback } from "../components/figma/ImageWithFallback";
+import { supabase } from "../../lib/supabase";
 
 /* ── Mock review data ── */
 interface Review {
@@ -56,6 +57,30 @@ const mockReviews: Record<number, Review[]> = {
   ],
 };
 
+type NormalizedListing = {
+  id: string | number;
+  title: string;
+  titleZh: string;
+  image: string;
+  price: number;
+  weeklyPrice: number;
+  monthlyPrice: number;
+  deposit: number;
+  distance: string;
+  distanceZh: string;
+  category: string;
+  categoryZh: string;
+  condition: string;
+  conditionZh: string;
+  description: string;
+  descriptionZh: string;
+  owner: string;
+  university: string;
+  universityZh: string;
+  memberSince: string;
+  available: boolean;
+};
+
 function StarRow({ rating }: { rating: number }) {
   return (
     <div className="flex gap-0.5">
@@ -77,11 +102,81 @@ export function ListingDetail() {
   const [priceMode, setPriceMode] = useState<"day" | "week" | "month">("day");
   const [showDesc,  setShowDesc]  = useState(false);
   const [saved,     setSaved]     = useState(false);
+  const [listing,   setListing]   = useState<NormalizedListing | null>(null);
+  const [loading,   setLoading]   = useState(true);
 
-  const listing = listings.find((l) => l.id === Number(id));
+  useEffect(() => {
+    if (!id) return;
+    const numericId = Number(id);
+
+    if (!isNaN(numericId)) {
+      // Mock data lookup
+      const found = mockListings.find((l) => l.id === numericId);
+      if (found) {
+        setListing({
+          id: found.id, title: found.title, titleZh: found.titleZh,
+          image: found.image, price: found.price,
+          weeklyPrice: found.weeklyPrice, monthlyPrice: found.monthlyPrice,
+          deposit: found.deposit, distance: found.distance, distanceZh: found.distanceZh,
+          category: found.category, categoryZh: found.categoryZh,
+          condition: found.condition, conditionZh: found.conditionZh,
+          description: found.description, descriptionZh: found.descriptionZh,
+          owner: found.owner, university: found.university, universityZh: found.universityZh,
+          memberSince: found.memberSince, available: found.available,
+        });
+      }
+      setLoading(false);
+      return;
+    }
+
+    // UUID — fetch from Supabase
+    supabase
+      .from("listings")
+      .select("*")
+      .eq("id", id)
+      .single()
+      .then(({ data }) => {
+        if (data) {
+          setListing({
+            id: data.id,
+            title: data.title,
+            titleZh: data.title_zh ?? data.title,
+            image: data.image_url ?? IMAGES.kettle,
+            price: data.price_per_day,
+            weeklyPrice: data.price_weekly ?? Math.round(data.price_per_day * 6),
+            monthlyPrice: data.price_monthly ?? Math.round(data.price_per_day * 25),
+            deposit: data.deposit ?? 0,
+            distance: data.district ?? "Hong Kong",
+            distanceZh: data.district ?? "香港",
+            category: data.category,
+            categoryZh: data.category,
+            condition: data.condition ?? "Works perfectly",
+            conditionZh: data.condition_zh ?? data.condition ?? "運作完好",
+            description: data.description ?? "",
+            descriptionZh: data.description_zh ?? data.description ?? "",
+            owner: "—",
+            university: data.university ?? "—",
+            universityZh: data.university ?? "—",
+            memberSince: new Date(data.created_at).toLocaleDateString("en-US", { month: "short", year: "numeric" }),
+            available: data.is_active,
+          });
+        }
+        setLoading(false);
+      });
+  }, [id]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-16">
+        <div className="w-8 h-8 border-2 border-[#1E6B1E] border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
   if (!listing) return <div className="p-8 text-center text-[#6B7280]">Not found</div>;
 
-  const reviews   = mockReviews[listing.id] ?? [];
+  const numericMockId = typeof listing.id === "number" ? listing.id : null;
+  const reviews = numericMockId ? (mockReviews[numericMockId] ?? []) : [];
   const avgRating = reviews.length
     ? reviews.reduce((s, r) => s + r.rating, 0) / reviews.length
     : null;
@@ -231,7 +326,6 @@ export function ListingDetail() {
             <div className="space-y-3">
               {reviews.map((r) => (
                 <div key={r.id} className="p-3 rounded-xl bg-[#F9FAFB] border border-[#E5E7EB]">
-                  {/* Reviewer header */}
                   <div className="flex items-center gap-2 mb-2">
                     <div className="w-7 h-7 rounded-full bg-[#1E6B1E]/15 flex items-center justify-center text-[#1E6B1E] text-xs" style={{ fontWeight: 600 }}>
                       {r.author[0]}
@@ -244,7 +338,6 @@ export function ListingDetail() {
                     </div>
                     <StarRow rating={r.rating} />
                   </div>
-                  {/* Comment text */}
                   <p className="text-sm text-[#4B5563]">
                     {lang === "zh" ? r.commentZh : r.comment}
                   </p>

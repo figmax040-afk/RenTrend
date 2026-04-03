@@ -2,12 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 import { Shield, Edit, Bell, Mail, LogOut, Globe, ChevronRight, BarChart3 } from "lucide-react";
 import { useI18n } from "../components/i18n";
-import { createClient } from "@supabase/supabase-js";
-
-const supabase = createClient(
-  import.meta.env.VITE_SUPABASE_URL,
-  import.meta.env.VITE_SUPABASE_ANON_KEY
-);
+import { supabase } from "../../lib/supabase";
 
 export function Profile() {
   const navigate = useNavigate();

@@ -1,22 +1,74 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Search, SlidersHorizontal, X } from "lucide-react";
-import { useSearchParams } from "react-router";
+import { useNavigate, useSearchParams } from "react-router";
 import { useI18n } from "../components/i18n";
 import { ListingCard } from "../components/ListingCard";
-import { listings } from "../components/data";
+import { listings as mockListings, IMAGES } from "../components/data";
+import { supabase } from "../../lib/supabase";
+import { useAuth } from "../../lib/useAuth";
 
 const categoryKeys = ["kitchen", "electronics", "furniture", "camera", "cooling", "other"];
 
+type UiListing = {
+  id: string | number;
+  image: string;
+  title: string;
+  titleZh: string;
+  price: number;
+  distance: string;
+  distanceZh: string;
+  category: string;
+  categoryZh: string;
+  available: boolean;
+};
+
 export function Browse() {
   const { t, lang } = useI18n();
+  const navigate = useNavigate();
+  const { user, loading: authLoading } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const [query, setQuery] = useState("");
   const initialCat = searchParams.get("category");
   const [selectedCat, setSelectedCat] = useState<string | null>(initialCat);
   const [showFilter, setShowFilter] = useState(false);
   const [priceRange, setPriceRange] = useState(100);
+  const [allListings, setAllListings] = useState<UiListing[]>([]);
+  const [dataLoading, setDataLoading] = useState(true);
 
-  const filtered = listings.filter((l) => {
+  useEffect(() => {
+    if (authLoading) return;
+    if (!user) { navigate("/login"); return; }
+
+    supabase
+      .from("listings")
+      .select("id, title, title_zh, image_url, price_per_day, district, category, is_active")
+      .eq("is_active", true)
+      .then(({ data }) => {
+        if (data && data.length > 0) {
+          setAllListings(data.map((l) => ({
+            id: l.id,
+            image: l.image_url ?? IMAGES.kettle,
+            title: l.title,
+            titleZh: l.title_zh ?? l.title,
+            price: l.price_per_day,
+            distance: l.district ?? "HK",
+            distanceZh: l.district ?? "HK",
+            category: l.category,
+            categoryZh: l.category,
+            available: l.is_active,
+          })));
+        } else {
+          setAllListings(mockListings.map((l) => ({
+            id: l.id, image: l.image, title: l.title, titleZh: l.titleZh,
+            price: l.price, distance: l.distance, distanceZh: l.distanceZh,
+            category: l.category, categoryZh: l.categoryZh, available: l.available,
+          })));
+        }
+        setDataLoading(false);
+      });
+  }, [authLoading, user, navigate]);
+
+  const filtered = allListings.filter((l) => {
     const matchQ = query === "" || l.title.toLowerCase().includes(query.toLowerCase()) || l.titleZh.includes(query);
     const matchCat = !selectedCat || l.category.toLowerCase() === selectedCat;
     const matchPrice = l.price <= priceRange;
@@ -32,6 +84,14 @@ export function Browse() {
       setSearchParams({});
     }
   };
+
+  if (authLoading || dataLoading) {
+    return (
+      <div className="flex items-center justify-center py-16">
+        <div className="w-8 h-8 border-2 border-[#1E6B1E] border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-6xl mx-auto px-4 pt-4">
@@ -91,7 +151,7 @@ export function Browse() {
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
           {filtered.map((l) => (
             <ListingCard
-              key={l.id} id={l.id} image={l.image}
+              key={String(l.id)} id={l.id} image={l.image}
               title={lang === "zh" ? l.titleZh : l.title}
               price={l.price}
               distance={lang === "zh" ? l.distanceZh : l.distance}

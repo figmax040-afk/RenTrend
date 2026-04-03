@@ -1,9 +1,12 @@
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 import { Search, MapPin, ChefHat, Monitor, Sofa, Camera, Wind, MoreHorizontal } from "lucide-react";
 import { useI18n } from "../components/i18n";
 import { ListingCard } from "../components/ListingCard";
-import { listings, IMAGES } from "../components/data";
+import { listings as mockListings, IMAGES } from "../components/data";
 import { ImageWithFallback } from "../components/figma/ImageWithFallback";
+import { supabase } from "../../lib/supabase";
+import { useAuth } from "../../lib/useAuth";
 
 const categories = [
   { key: "kitchen", icon: ChefHat },
@@ -14,9 +17,70 @@ const categories = [
   { key: "other", icon: MoreHorizontal },
 ];
 
+type UiListing = {
+  id: string | number;
+  image: string;
+  title: string;
+  titleZh: string;
+  price: number;
+  distance: string;
+  distanceZh: string;
+  category: string;
+  categoryZh: string;
+  available: boolean;
+};
+
+function dbToUi(l: Record<string, any>): UiListing {
+  return {
+    id: l.id,
+    image: l.image_url ?? IMAGES.kettle,
+    title: l.title,
+    titleZh: l.title_zh ?? l.title,
+    price: l.price_per_day,
+    distance: l.district ?? "HK",
+    distanceZh: l.district ?? "HK",
+    category: l.category,
+    categoryZh: l.category,
+    available: l.is_active,
+  };
+}
+
 export function Home() {
   const navigate = useNavigate();
   const { t, lang } = useI18n();
+  const { user, loading: authLoading } = useAuth();
+  const [listings, setListings] = useState<UiListing[]>([]);
+  const [dataLoading, setDataLoading] = useState(true);
+
+  useEffect(() => {
+    if (authLoading) return;
+    if (!user) { navigate("/login"); return; }
+
+    supabase
+      .from("listings")
+      .select("id, title, title_zh, image_url, price_per_day, district, category, is_active")
+      .eq("is_active", true)
+      .then(({ data }) => {
+        if (data && data.length > 0) {
+          setListings(data.map(dbToUi));
+        } else {
+          setListings(mockListings.map((l) => ({
+            id: l.id, image: l.image, title: l.title, titleZh: l.titleZh,
+            price: l.price, distance: l.distance, distanceZh: l.distanceZh,
+            category: l.category, categoryZh: l.categoryZh, available: l.available,
+          })));
+        }
+        setDataLoading(false);
+      });
+  }, [authLoading, user, navigate]);
+
+  if (authLoading || dataLoading) {
+    return (
+      <div className="flex items-center justify-center py-16">
+        <div className="w-8 h-8 border-2 border-[#1E6B1E] border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-6xl mx-auto">
@@ -68,7 +132,7 @@ export function Home() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {listings.slice(0, 4).map((l) => (
             <ListingCard
-              key={l.id} id={l.id} image={l.image}
+              key={String(l.id)} id={l.id} image={l.image}
               title={lang === "zh" ? l.titleZh : l.title}
               price={l.price}
               distance={lang === "zh" ? l.distanceZh : l.distance}
@@ -83,7 +147,7 @@ export function Home() {
       <Section title={t("recentlyAdded")} onSeeAll={() => navigate("/browse")}>
         <div className="flex gap-3 overflow-x-auto pb-2">
           {listings.slice(2, 6).map((l) => (
-            <div key={l.id} className="min-w-[160px] max-w-[180px]">
+            <div key={String(l.id)} className="min-w-[160px] max-w-[180px]">
               <ListingCard
                 id={l.id} image={l.image}
                 title={lang === "zh" ? l.titleZh : l.title}
@@ -100,9 +164,9 @@ export function Home() {
       {/* Last Minute */}
       <Section title={t("lastMinute")} onSeeAll={() => navigate("/browse")}>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-          {listings.filter(l => l.available).slice(0, 3).map((l) => (
+          {listings.filter((l) => l.available).slice(0, 3).map((l) => (
             <ListingCard
-              key={l.id} id={l.id} image={l.image}
+              key={String(l.id)} id={l.id} image={l.image}
               title={lang === "zh" ? l.titleZh : l.title}
               price={l.price}
               distance={lang === "zh" ? l.distanceZh : l.distance}

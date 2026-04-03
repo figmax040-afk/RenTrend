@@ -1,15 +1,20 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 import { useI18n } from "../components/i18n";
-import { listings } from "../components/data";
 import { ImageWithFallback } from "../components/figma/ImageWithFallback";
 import { PlusCircle, MoreVertical, Bell } from "lucide-react";
+import { supabase } from "../../lib/supabase";
+import { useAuth } from "../../lib/useAuth";
+import { IMAGES } from "../components/data";
 
-const mockOwned = [
-  { listingId: 1, status: "active" as const, requestCount: 2 },
-  { listingId: 3, status: "active" as const, requestCount: 0 },
-  { listingId: 6, status: "unavailable" as const, requestCount: 0 },
-];
+type DbListing = {
+  id: string;
+  title: string;
+  title_zh: string | null;
+  image_url: string | null;
+  price_per_day: number;
+  is_active: boolean;
+};
 
 const mockIncoming = [
   { id: 1, renter: "Sarah K.", university: "HKU", universityZh: "香港大學", message: "I'm arriving next week and need a kettle!", dates: "Apr 5 – Apr 19", listingId: 1 },
@@ -19,10 +24,34 @@ const mockIncoming = [
 export function MyListings() {
   const navigate = useNavigate();
   const { t, lang } = useI18n();
+  const { user, loading: authLoading } = useAuth();
+  const [myListings, setMyListings] = useState<DbListing[]>([]);
+  const [dataLoading, setDataLoading] = useState(true);
   const [showIncoming, setShowIncoming] = useState(false);
   const [accepted, setAccepted] = useState<number[]>([]);
 
-  const statusColor = { active: "#22C55E", draft: "#F4A261", unavailable: "#6B7280" };
+  useEffect(() => {
+    if (authLoading) return;
+    if (!user) { navigate("/login"); return; }
+
+    supabase
+      .from("listings")
+      .select("id, title, title_zh, image_url, price_per_day, is_active")
+      .eq("owner_id", user.id)
+      .order("created_at", { ascending: false })
+      .then(({ data }) => {
+        setMyListings(data ?? []);
+        setDataLoading(false);
+      });
+  }, [authLoading, user, navigate]);
+
+  if (authLoading || dataLoading) {
+    return (
+      <div className="flex items-center justify-center py-16">
+        <div className="w-8 h-8 border-2 border-[#1E6B1E] border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   if (showIncoming) {
     return (
@@ -68,38 +97,54 @@ export function MyListings() {
           <PlusCircle size={14} />{t("createListing")}
         </button>
       </div>
-      <div className="space-y-3">
-        {mockOwned.map((o) => {
-          const listing = listings.find((l) => l.id === o.listingId)!;
-          return (
-            <div key={o.listingId} className="bg-white rounded-xl border border-[#E5E7EB] p-3 flex gap-3">
+
+      {myListings.length === 0 ? (
+        <div className="text-center py-16">
+          <p className="text-[#6B7280] text-sm mb-4">
+            {lang === "zh" ? "你還沒有刊登物品" : "You haven't listed anything yet"}
+          </p>
+          <button
+            onClick={() => navigate("/create")}
+            className="px-6 py-2.5 bg-[#1E6B1E] text-white rounded-xl text-sm"
+          >
+            {lang === "zh" ? "建立你的第一個刊登" : "Create your first listing"}
+          </button>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {myListings.map((listing) => (
+            <div key={listing.id} className="bg-white rounded-xl border border-[#E5E7EB] p-3 flex gap-3">
               <div className="relative">
-                <ImageWithFallback src={listing.image} alt="" className="w-20 h-20 rounded-lg object-cover" />
-                {o.requestCount > 0 && (
-                  <button onClick={() => setShowIncoming(true)} className="absolute -top-1 -right-1 w-5 h-5 bg-[#EF4444] text-white rounded-full flex items-center justify-center text-[10px]">
-                    {o.requestCount}
-                  </button>
-                )}
+                <ImageWithFallback
+                  src={listing.image_url ?? IMAGES.kettle}
+                  alt=""
+                  className="w-20 h-20 rounded-lg object-cover"
+                />
               </div>
               <div className="flex-1">
                 <div className="flex items-center justify-between">
-                  <p className="text-sm" style={{ fontWeight: 500 }}>{lang === "zh" ? listing.titleZh : listing.title}</p>
+                  <p className="text-sm" style={{ fontWeight: 500 }}>
+                    {lang === "zh" && listing.title_zh ? listing.title_zh : listing.title}
+                  </p>
                   <button className="text-[#6B7280]"><MoreVertical size={14} /></button>
                 </div>
-                <p className="text-xs text-[#1E6B1E]" style={{ fontWeight: 500 }}>HK${listing.price}/day</p>
+                <p className="text-xs text-[#1E6B1E]" style={{ fontWeight: 500 }}>HK${listing.price_per_day}/day</p>
                 <div className="flex items-center gap-2 mt-1">
-                  <span className="text-[10px] px-2 py-0.5 rounded-full" style={{ backgroundColor: statusColor[o.status] + "15", color: statusColor[o.status] }}>{t(o.status === "active" ? "active" : "unavailable")}</span>
-                  {o.requestCount > 0 && (
-                    <button onClick={() => setShowIncoming(true)} className="flex items-center gap-0.5 text-[10px] text-[#F4A261]">
-                      <Bell size={10} />{o.requestCount} {t("requests")}
-                    </button>
-                  )}
+                  <span
+                    className="text-[10px] px-2 py-0.5 rounded-full"
+                    style={{
+                      backgroundColor: listing.is_active ? "#22C55E15" : "#6B728015",
+                      color: listing.is_active ? "#22C55E" : "#6B7280",
+                    }}
+                  >
+                    {t(listing.is_active ? "active" : "unavailable")}
+                  </span>
                 </div>
               </div>
             </div>
-          );
-        })}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

@@ -1,25 +1,117 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router";
 import { ArrowLeft, CheckCircle } from "lucide-react";
 import { useI18n } from "../components/i18n";
-import { listings } from "../components/data";
+import { listings as mockListings, IMAGES } from "../components/data";
 import { ImageWithFallback } from "../components/figma/ImageWithFallback";
+import { supabase } from "../../lib/supabase";
+
+type ListingSummary = {
+  id: string | number;
+  title: string;
+  titleZh: string;
+  image: string;
+  price: number;
+  deposit: number;
+  university: string;
+  universityZh: string;
+};
 
 export function RentRequest() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { t, lang } = useI18n();
+  const [listing, setListing] = useState<ListingSummary | null>(null);
+  const [loading, setLoading] = useState(true);
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [msg, setMsg] = useState("");
   const [pickup, setPickup] = useState<"collect" | "deliver">("collect");
   const [agreed, setAgreed] = useState(false);
+  const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
+  const [submitError, setSubmitError] = useState("");
 
-  const listing = listings.find((l) => l.id === Number(id));
+  useEffect(() => {
+    if (!id) return;
+    const numericId = Number(id);
+
+    if (!isNaN(numericId)) {
+      const found = mockListings.find((l) => l.id === numericId);
+      if (found) {
+        setListing({
+          id: found.id, title: found.title, titleZh: found.titleZh,
+          image: found.image, price: found.price, deposit: found.deposit,
+          university: found.university, universityZh: found.universityZh,
+        });
+      }
+      setLoading(false);
+      return;
+    }
+
+    supabase
+      .from("listings")
+      .select("id, title, title_zh, image_url, price_per_day, deposit, university")
+      .eq("id", id)
+      .single()
+      .then(({ data }) => {
+        if (data) {
+          setListing({
+            id: data.id,
+            title: data.title,
+            titleZh: data.title_zh ?? data.title,
+            image: data.image_url ?? IMAGES.kettle,
+            price: data.price_per_day,
+            deposit: data.deposit ?? 0,
+            university: data.university ?? "—",
+            universityZh: data.university ?? "—",
+          });
+        }
+        setLoading(false);
+      });
+  }, [id]);
+
+  async function handleSubmit() {
+    if (!listing || !startDate || !endDate || !agreed) return;
+    setSubmitError("");
+    setSending(true);
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { navigate("/login"); return; }
+
+    const days = Math.max(1, Math.ceil((new Date(endDate).getTime() - new Date(startDate).getTime()) / 86400000));
+    const totalPrice = days * listing.price + listing.deposit;
+
+    const { error } = await supabase.from("requests").insert({
+      listing_id: listing.id,
+      renter_id: user.id,
+      start_date: startDate,
+      end_date: endDate,
+      total_price: totalPrice,
+      status: "pending",
+    });
+
+    setSending(false);
+    if (error) {
+      setSubmitError(error.message);
+    } else {
+      setSent(true);
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-16">
+        <div className="w-8 h-8 border-2 border-[#1E6B1E] border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
   if (!listing) return null;
 
-  const days = startDate && endDate ? Math.max(1, Math.ceil((new Date(endDate).getTime() - new Date(startDate).getTime()) / 86400000)) : 0;
+  const days = startDate && endDate
+    ? Math.max(1, Math.ceil((new Date(endDate).getTime() - new Date(startDate).getTime()) / 86400000))
+    : 0;
   const total = days * listing.price + listing.deposit;
 
   if (sent) {
@@ -120,13 +212,17 @@ export function RentRequest() {
             {t("agreeTerms")}
           </label>
 
+          {submitError && (
+            <p className="text-sm text-red-600 bg-red-50 border border-red-200 px-4 py-3 rounded-xl">{submitError}</p>
+          )}
+
           {/* Submit */}
           <button
-            onClick={() => setSent(true)}
-            disabled={!startDate || !endDate || !agreed}
+            onClick={handleSubmit}
+            disabled={!startDate || !endDate || !agreed || sending}
             className="w-full py-3 bg-[#1E6B1E] text-white rounded-xl disabled:opacity-40"
           >
-            {t("sendRequest")}
+            {sending ? "Sending..." : t("sendRequest")}
           </button>
         </div>
       </div>
