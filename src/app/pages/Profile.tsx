@@ -1,0 +1,73 @@
+import { useState } from "react";
+import { useNavigate } from "react-router";
+import { Shield, Edit, Bell, Mail, LogOut, Globe, ChevronRight, BarChart3 } from "lucide-react";
+import { useI18n } from "../components/i18n";
+
+export function Profile() {
+  const navigate = useNavigate();
+  const { t, lang, setLang } = useI18n();
+
+  return (
+    <div className="max-w-lg mx-auto px-4 pt-6">
+      <div className="flex flex-col items-center mb-6">
+        <div className="w-20 h-20 rounded-full bg-[#1E6B1E] flex items-center justify-center text-white text-2xl mb-3">J</div>
+        <h2 className="text-[#1F2937]">Jessica W.</h2>
+        <div className="flex items-center gap-1 mt-1">
+          <Shield size={12} className="text-[#22C55E]" />
+          <span className="text-xs text-[#22C55E]">{t("verified")} · HKU</span>
+        </div>
+        <span className="text-xs text-[#6B7280] mt-0.5">{t("memberSince")} Sep 2025</span>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3 mb-6">
+        <div className="bg-white rounded-xl border border-[#E5E7EB] p-4 text-center">
+          <p className="text-2xl text-[#1E6B1E]" style={{ fontWeight: 600 }}>3</p>
+          <p className="text-xs text-[#6B7280]">{t("itemsListed")}</p>
+        </div>
+        <div className="bg-white rounded-xl border border-[#E5E7EB] p-4 text-center">
+          <p className="text-2xl text-[#1E6B1E]" style={{ fontWeight: 600 }}>7</p>
+          <p className="text-xs text-[#6B7280]">{t("rentalsCompleted")}</p>
+        </div>
+      </div>
+
+      <div className="bg-white rounded-xl border border-[#E5E7EB] divide-y divide-[#E5E7EB]">
+        <MenuItem icon={Edit} label={t("editProfile")} onClick={() => {}} />
+        <MenuItem icon={BarChart3} label={t("admin")} onClick={() => navigate("/admin")} />
+        <div className="flex items-center justify-between px-4 py-3">
+          <div className="flex items-center gap-3">
+            <Globe size={18} className="text-[#6B7280]" />
+            <span className="text-sm">{t("language")}</span>
+          </div>
+          <button onClick={() => setLang(lang === "en" ? "zh" : "en")} className="px-3 py-1 rounded-full text-xs border border-[#E5E7EB] text-[#1E6B1E]">
+            {lang === "en" ? "中文" : "English"}
+          </button>
+        </div>
+        <MenuItem icon={Bell} label={t("notifications")} onClick={() => {}} toggle />
+        <MenuItem icon={Mail} label={t("emailPrefs")} onClick={() => {}} />
+      </div>
+
+      <button onClick={() => navigate("/")} className="w-full mt-6 py-3 border border-[#EF4444] text-[#EF4444] rounded-xl flex items-center justify-center gap-2 hover:bg-[#EF4444]/5">
+        <LogOut size={16} />{t("logOut")}
+      </button>
+    </div>
+  );
+}
+
+function MenuItem({ icon: Icon, label, onClick, toggle }: { icon: any; label: string; onClick: () => void; toggle?: boolean }) {
+  const [on, setOn] = useState(true);
+  return (
+    <button onClick={toggle ? () => setOn(!on) : onClick} className="w-full flex items-center justify-between px-4 py-3">
+      <div className="flex items-center gap-3">
+        <Icon size={18} className="text-[#6B7280]" />
+        <span className="text-sm">{label}</span>
+      </div>
+      {toggle ? (
+        <div className={`w-10 h-5 rounded-full transition-colors ${on ? "bg-[#1E6B1E]" : "bg-[#E5E7EB]"} relative`}>
+          <div className={`w-4 h-4 rounded-full bg-white absolute top-0.5 transition-all ${on ? "left-5" : "left-0.5"}`} />
+        </div>
+      ) : (
+        <ChevronRight size={16} className="text-[#6B7280]" />
+      )}
+    </button>
+  );
+}
