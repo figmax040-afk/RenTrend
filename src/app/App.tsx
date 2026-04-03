@@ -9,4 +9,3 @@ export default function App() {
     </I18nProvider>
   );
 }
-<Route path="/" element={<Navigate to="/home" />} />
