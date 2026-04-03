@@ -1,7 +1,7 @@
 import { Outlet, useNavigate, useLocation } from "react-router";
 import { Home, Search, PlusCircle, Package, User, Globe } from "lucide-react";
 import { useI18n } from "./i18n";
-import logoImg from "figma:asset/bd9047f3cfe66a474b36f7d8d76e6866cb376b44.png";
+import logoImg from "https://placehold.co/400x300?text=RenTrend";
 
 // Brand colour palette derived from the RenTrend logo greens
 // Primary: #1E6B1E  |  Hover: #155215  |  Light tint: rgba(30,107,30,0.1)

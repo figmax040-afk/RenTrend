@@ -4,7 +4,7 @@ import { ChevronRight, Recycle, Clock, Package, Globe } from "lucide-react";
 import { useI18n } from "../components/i18n";
 import { IMAGES } from "../components/data";
 import { ImageWithFallback } from "../components/figma/ImageWithFallback";
-import logoImg from "figma:asset/bd9047f3cfe66a474b36f7d8d76e6866cb376b44.png";
+import logoImg from "https://placehold.co/400x300?text=RenTrend";
 
 const slides = [
   { key: "slide1Title", icon: Package, color: "#1E6B1E" },
