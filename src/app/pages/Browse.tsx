@@ -1,11 +1,13 @@
-import { useState, useEffect } from "react";
-import { Search, SlidersHorizontal, X } from "lucide-react";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { Search, SlidersHorizontal, X, MapPin } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router";
 import { useI18n } from "../components/i18n";
 import { ListingCard } from "../components/ListingCard";
-import { listings as mockListings, IMAGES } from "../components/data";
+import { listings as mockListings } from "../components/data";
 import { supabase } from "../../lib/supabase";
 import { useAuth } from "../../lib/useAuth";
+
+declare global { interface Window { google: any; } }
 
 const categoryKeys = ["kitchen", "electronics", "furniture", "camera", "cooling", "other"];
 const conditionKeys = ["worksPerf", "minorIssues", "forParts"];
@@ -14,6 +16,8 @@ const conditionValues: Record<string, string> = {
   minorIssues: "Minor issues",
   forParts: "For parts",
 };
+
+type LocationFilter = { lat: number; lng: number; address: string };
 
 type UiListing = {
   id: string | number;
@@ -26,7 +30,17 @@ type UiListing = {
   available: boolean;
   brand: string;
   condition: string;
+  lat?: number | null;
+  lng?: number | null;
 };
+
+function distanceKm(lat1: number, lng1: number, lat2: number, lng2: number) {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLng = (lng2 - lng1) * Math.PI / 180;
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLng / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
 
 export function Browse() {
   const { t, lang } = useI18n();
@@ -41,11 +55,46 @@ export function Browse() {
   const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
   const [selectedConditions, setSelectedConditions] = useState<string[]>([]);
   const [availableOnly, setAvailableOnly] = useState(false);
-  const [selectedDistricts, setSelectedDistricts] = useState<string[]>([]);
+  const [locationFilter, setLocationFilter] = useState<LocationFilter | null>(null);
+  const [locationInputValue, setLocationInputValue] = useState("");
+  const locationInputRef = useRef<HTMLInputElement>(null);
   const [allListings, setAllListings] = useState<UiListing[]>([]);
   const [brands, setBrands] = useState<string[]>([]);
-  const [districts, setDistricts] = useState<string[]>([]);
   const [dataLoading, setDataLoading] = useState(true);
+
+  // Load Google Maps script
+  useEffect(() => {
+    if (window.google) { initAutocomplete(); return; }
+    const existing = document.querySelector('script[src*="maps.googleapis.com"]');
+    if (existing) {
+      existing.addEventListener("load", initAutocomplete);
+      return;
+    }
+    const script = document.createElement("script");
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${import.meta.env.VITE_GOOGLE_MAPS_API_KEY}&libraries=places`;
+    script.async = true;
+    script.onload = initAutocomplete;
+    document.head.appendChild(script);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const initAutocomplete = useCallback(() => {
+    if (!window.google || !locationInputRef.current) return;
+    const ac = new window.google.maps.places.Autocomplete(locationInputRef.current, {
+      componentRestrictions: { country: "hk" },
+      fields: ["formatted_address", "geometry", "name"],
+      types: ["establishment", "geocode"],
+    });
+    ac.addListener("place_changed", () => {
+      const place = ac.getPlace();
+      const address = place.formatted_address || place.name || "";
+      const lat = place.geometry?.location?.lat() ?? null;
+      const lng = place.geometry?.location?.lng() ?? null;
+      setLocationInputValue(address);
+      if (lat !== null && lng !== null) {
+        setLocationFilter({ lat, lng, address });
+      }
+    });
+  }, []);
 
   useEffect(() => {
     if (authLoading) return;
@@ -53,7 +102,7 @@ export function Browse() {
 
     supabase
       .from("listings")
-      .select("id, title, title_zh, image_url, price_per_day, district, category, is_active, created_at, brand, condition")
+      .select("id, title, title_zh, image_url, price_per_day, district, category, is_active, created_at, brand, condition, location_lat, location_lng")
       .eq("is_active", true)
       .order("created_at", { ascending: false })
       .then(({ data, error }) => {
@@ -73,13 +122,13 @@ export function Browse() {
             available: l.is_active,
             brand: l.brand ?? "",
             condition: l.condition ?? "",
+            lat: l.location_lat ?? null,
+            lng: l.location_lng ?? null,
           }));
           setAllListings(mapped);
 
           const uniqueBrands = [...new Set(mapped.map((l) => l.brand).filter(Boolean))].sort();
           setBrands(uniqueBrands);
-          const uniqueDistricts = [...new Set(mapped.map((l) => l.distance).filter(Boolean))].sort();
-          setDistricts(uniqueDistricts);
         } else {
           const mapped: UiListing[] = mockListings.map((l) => ({
             id: l.id, image: l.image, title: l.title, titleZh: l.titleZh,
@@ -100,9 +149,20 @@ export function Browse() {
     const matchBrand = selectedBrands.length === 0 || selectedBrands.includes(l.brand);
     const matchCond = selectedConditions.length === 0 || selectedConditions.includes(l.condition);
     const matchAvail = !availableOnly || l.available;
-    const matchDistrict = selectedDistricts.length === 0 || selectedDistricts.includes(l.distance);
-    return matchQ && matchCat && matchPrice && matchBrand && matchCond && matchAvail && matchDistrict;
+    const matchLocation = !locationFilter || !l.lat || !l.lng
+      ? true
+      : distanceKm(locationFilter.lat, locationFilter.lng, l.lat, l.lng) <= 3;
+    return matchQ && matchCat && matchPrice && matchBrand && matchCond && matchAvail && matchLocation;
   });
+
+  // Compute display distance for each card
+  function getDisplayDistance(l: UiListing): string {
+    if (locationFilter && l.lat && l.lng) {
+      const km = distanceKm(locationFilter.lat, locationFilter.lng, l.lat, l.lng);
+      return `${km.toFixed(1)} km away`;
+    }
+    return l.distance;
+  }
 
   const handleCatClick = (c: string) => {
     const next = selectedCat === c ? null : c;
@@ -119,7 +179,7 @@ export function Browse() {
     (selectedBrands.length > 0 ? 1 : 0) +
     (selectedConditions.length > 0 ? 1 : 0) +
     (availableOnly ? 1 : 0) +
-    (selectedDistricts.length > 0 ? 1 : 0)
+    (locationFilter ? 1 : 0)
   );
 
   function clearAll() {
@@ -127,7 +187,8 @@ export function Browse() {
     setSelectedBrands([]);
     setSelectedConditions([]);
     setAvailableOnly(false);
-    setSelectedDistricts([]);
+    setLocationFilter(null);
+    setLocationInputValue("");
   }
 
   if (authLoading || dataLoading) {
@@ -187,6 +248,36 @@ export function Browse() {
               )}
               <button onClick={() => setShowFilter(false)}><X size={16} className="text-[#6B7280]" /></button>
             </div>
+          </div>
+
+          {/* Location search */}
+          <div>
+            <label className="text-xs text-[#6B7280] block mb-2">Near location (within 3 km)</label>
+            <div className="relative">
+              <MapPin size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#6B7280]" />
+              <input
+                ref={locationInputRef}
+                type="text"
+                value={locationInputValue}
+                onChange={(e) => {
+                  setLocationInputValue(e.target.value);
+                  if (!e.target.value) setLocationFilter(null);
+                }}
+                placeholder="Search a location in Hong Kong..."
+                className="w-full pl-8 pr-8 py-2 rounded-xl border border-[#E5E7EB] bg-white text-sm focus:outline-none focus:border-[#1E6B1E]"
+              />
+              {locationFilter && (
+                <button
+                  onClick={() => { setLocationFilter(null); setLocationInputValue(""); }}
+                  className="absolute right-2 top-1/2 -translate-y-1/2"
+                >
+                  <X size={14} className="text-[#6B7280]" />
+                </button>
+              )}
+            </div>
+            {locationFilter && (
+              <p className="text-[10px] text-[#1E6B1E] mt-1">Filtering near: {locationFilter.address}</p>
+            )}
           </div>
 
           {/* Price */}
@@ -250,27 +341,6 @@ export function Browse() {
               </div>
             </div>
           )}
-
-          {/* District chips */}
-          {districts.length > 1 && (
-            <div>
-              <label className="text-xs text-[#6B7280] block mb-2">District</label>
-              <div className="flex flex-wrap gap-2">
-                {districts.map((district) => {
-                  const active = selectedDistricts.includes(district);
-                  return (
-                    <button
-                      key={district}
-                      onClick={() => setSelectedDistricts(toggleArr(selectedDistricts, district))}
-                      className={`px-3 py-1.5 rounded-full text-xs border transition-colors ${active ? "bg-[#1E6B1E] text-white border-[#1E6B1E]" : "bg-white text-[#6B7280] border-[#E5E7EB]"}`}
-                    >
-                      {district}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
         </div>
       )}
 
@@ -286,7 +356,7 @@ export function Browse() {
               key={String(l.id)} id={l.id} image={l.image}
               title={lang === "zh" ? l.titleZh : l.title}
               price={l.price}
-              distance={l.distance}
+              distance={getDisplayDistance(l)}
               category={l.category}
               available={l.available}
             />

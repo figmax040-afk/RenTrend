@@ -6,8 +6,6 @@ import { listings as mockListings, IMAGES } from "../components/data";
 import { ImageWithFallback } from "../components/figma/ImageWithFallback";
 import { supabase } from "../../lib/supabase";
 
-type DurationType = "daily" | "weekly" | "monthly";
-
 type ListingSummary = {
   id: string | number;
   owner_id: string | null;
@@ -22,13 +20,37 @@ type ListingSummary = {
   universityZh: string;
 };
 
+type PriceBreakdown = {
+  months: number;
+  weeks: number;
+  days: number;
+  total: number;
+};
+
+function calculateOptimalPrice(
+  totalDays: number,
+  priceDay: number,
+  priceWeek: number | null,
+  priceMonth: number | null
+): PriceBreakdown {
+  const pw = priceWeek && priceWeek > 0 ? priceWeek : 0;
+  const pm = priceMonth && priceMonth > 0 ? priceMonth : 0;
+
+  const months = pm > 0 ? Math.floor(totalDays / 30) : 0;
+  const remainingAfterMonths = totalDays - months * 30;
+  const weeks = pw > 0 ? Math.floor(remainingAfterMonths / 7) : 0;
+  const remainingDays = remainingAfterMonths - weeks * 7;
+
+  const total = months * pm + weeks * pw + remainingDays * priceDay;
+  return { months, weeks, days: remainingDays, total };
+}
+
 export function RentRequest() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { t, lang } = useI18n();
   const [listing, setListing] = useState<ListingSummary | null>(null);
   const [loading, setLoading] = useState(true);
-  const [durationType, setDurationType] = useState<DurationType>("daily");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [msg, setMsg] = useState("");
@@ -90,9 +112,6 @@ export function RentRequest() {
     load();
   }, [id, navigate]);
 
-  // When duration type changes, clear end date so user re-picks within constraints
-  useEffect(() => { setEndDate(""); }, [durationType]);
-
   async function handleSubmit() {
     if (!listing || !startDate || !endDate || !agreed) return;
     setSubmitError("");
@@ -101,13 +120,31 @@ export function RentRequest() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { navigate("/login"); return; }
 
+    const breakdown = calculateOptimalPrice(
+      totalDays,
+      listing.price,
+      listing.priceWeekly,
+      listing.priceMonthly
+    );
+
     const { error } = await supabase.from("requests").insert({
       listing_id: listing.id,
       renter_id: user.id,
       start_date: startDate,
       end_date: endDate,
-      total_price: total,
+      total_price: breakdown.total,
+      message: msg || null,
+      pickup_preference: pickup,
       status: "pending",
+      breakdown_json: {
+        months: breakdown.months,
+        weeks: breakdown.weeks,
+        days: breakdown.days,
+        total: breakdown.total,
+        priceMonth: listing.priceMonthly,
+        priceWeek: listing.priceWeekly,
+        priceDay: listing.price,
+      },
     });
 
     setSending(false);
@@ -126,43 +163,15 @@ export function RentRequest() {
 
   const today = new Date().toISOString().split("T")[0];
 
-  // Minimum end date based on duration type
-  function getMinEndDate(): string {
-    const base = startDate || today;
-    const d = new Date(base + "T00:00:00");
-    if (durationType === "weekly") d.setDate(d.getDate() + 6);
-    else if (durationType === "monthly") d.setDate(d.getDate() + 29);
-    return d.toISOString().split("T")[0];
-  }
-
-  const days = startDate && endDate
+  const totalDays = startDate && endDate
     ? Math.max(1, Math.ceil((new Date(endDate).getTime() - new Date(startDate).getTime()) / 86400000))
     : 0;
 
-  // Compute rental cost and label based on duration type
-  let rentalCost = 0;
-  let costLabel = "";
-  if (days > 0) {
-    if (durationType === "daily") {
-      rentalCost = days * listing.price;
-      costLabel = `HK$${listing.price} × ${days} ${t("duration")}`;
-    } else if (durationType === "weekly") {
-      const weeks = Math.max(1, Math.ceil(days / 7));
-      rentalCost = weeks * (listing.priceWeekly ?? 0);
-      costLabel = `HK$${listing.priceWeekly} × ${weeks} ${weeks === 1 ? "week" : "weeks"}`;
-    } else if (durationType === "monthly") {
-      const months = Math.max(1, Math.ceil(days / 30));
-      rentalCost = months * (listing.priceMonthly ?? 0);
-      costLabel = `HK$${listing.priceMonthly} × ${months} ${months === 1 ? "month" : "months"}`;
-    }
-  }
-  const total = rentalCost + listing.deposit;
+  const breakdown = totalDays > 0
+    ? calculateOptimalPrice(totalDays, listing.price, listing.priceWeekly, listing.priceMonthly)
+    : null;
 
-  const durationOptions: { key: DurationType; label: string; price: number | null }[] = [
-    { key: "daily",   label: "Daily",   price: listing.price },
-    { key: "weekly",  label: "Weekly",  price: listing.priceWeekly },
-    { key: "monthly", label: "Monthly", price: listing.priceMonthly },
-  ];
+  const grandTotal = breakdown ? breakdown.total + listing.deposit : 0;
 
   if (sent) {
     return (
@@ -198,36 +207,27 @@ export function RentRequest() {
         </div>
 
         <div className="space-y-4">
-          {/* Duration type selector */}
-          <div>
-            <label className="text-sm text-[#6B7280]">Rental period</label>
-            <div className="flex gap-2 mt-2">
-              {durationOptions.map(({ key, label, price }) => {
-                const unavailable = key !== "daily" && !price;
-                return (
-                  <button
-                    key={key}
-                    onClick={() => !unavailable && setDurationType(key)}
-                    disabled={unavailable}
-                    title={unavailable ? "Not available for this listing" : undefined}
-                    className={`flex-1 py-2.5 rounded-xl text-xs border transition-colors ${
-                      durationType === key
-                        ? "bg-[#1E6B1E] text-white border-[#1E6B1E]"
-                        : unavailable
-                        ? "bg-[#F9FAFB] text-[#D1D5DB] border-[#E5E7EB] cursor-not-allowed"
-                        : "bg-white text-[#6B7280] border-[#E5E7EB]"
-                    }`}
-                  >
-                    <span className="block">{label}</span>
-                    {price ? (
-                      <span className="block text-[10px] opacity-80">HK${price}/{key === "daily" ? "day" : key === "weekly" ? "wk" : "mo"}</span>
-                    ) : (
-                      <span className="block text-[10px]">N/A</span>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
+          {/* Pricing info pills */}
+          <div className="flex gap-2">
+            {[
+              { label: "day", value: listing.price },
+              { label: "week", value: listing.priceWeekly },
+              { label: "month", value: listing.priceMonthly },
+            ].map(({ label, value }) => (
+              <div
+                key={label}
+                className="flex-1 py-2 px-2 rounded-xl bg-[#F3F4F6] text-center"
+              >
+                {value ? (
+                  <span className="text-xs text-[#1E6B1E]" style={{ fontWeight: 600 }}>
+                    HK${value}
+                  </span>
+                ) : (
+                  <span className="text-xs text-[#9CA3AF]">—</span>
+                )}
+                <span className="block text-[10px] text-[#6B7280]">/{label}</span>
+              </div>
+            ))}
           </div>
 
           {/* Dates */}
@@ -247,32 +247,43 @@ export function RentRequest() {
               <input
                 type="date"
                 value={endDate}
-                min={getMinEndDate()}
+                min={startDate || today}
                 onChange={(e) => setEndDate(e.target.value)}
                 className="w-full mt-1 px-4 py-2.5 rounded-xl border border-[#E5E7EB] bg-white text-sm"
               />
             </div>
           </div>
-          {durationType !== "daily" && (
-            <p className="text-[10px] text-[#6B7280] -mt-2">
-              {durationType === "weekly" ? "Minimum 7 days (1 week)" : "Minimum 30 days (1 month)"}
-            </p>
-          )}
 
-          {/* Price breakdown */}
-          {days > 0 && (
-            <div className="p-3 rounded-xl bg-white border border-[#E5E7EB] text-sm space-y-1">
-              <div className="flex justify-between text-[#6B7280]">
-                <span>{costLabel}</span>
-                <span>HK${rentalCost}</span>
-              </div>
-              <div className="flex justify-between text-[#6B7280]">
-                <span>{t("deposit")}</span>
-                <span>HK${listing.deposit}</span>
-              </div>
-              <div className="flex justify-between pt-1 border-t border-[#E5E7EB]" style={{ fontWeight: 500 }}>
-                <span>{t("total")}</span>
-                <span className="text-[#1E6B1E]">HK${total}</span>
+          {/* Smart price breakdown */}
+          {breakdown && (
+            <div className="p-3 rounded-xl bg-white border border-[#E5E7EB] text-sm space-y-1.5">
+              {breakdown.months > 0 && (
+                <div className="flex justify-between text-[#6B7280]">
+                  <span>{breakdown.months} month{breakdown.months > 1 ? "s" : ""} × HK${listing.priceMonthly}</span>
+                  <span>HK${breakdown.months * (listing.priceMonthly ?? 0)}</span>
+                </div>
+              )}
+              {breakdown.weeks > 0 && (
+                <div className="flex justify-between text-[#6B7280]">
+                  <span>{breakdown.weeks} week{breakdown.weeks > 1 ? "s" : ""} × HK${listing.priceWeekly}</span>
+                  <span>HK${breakdown.weeks * (listing.priceWeekly ?? 0)}</span>
+                </div>
+              )}
+              {breakdown.days > 0 && (
+                <div className="flex justify-between text-[#6B7280]">
+                  <span>{breakdown.days} day{breakdown.days > 1 ? "s" : ""} × HK${listing.price}</span>
+                  <span>HK${breakdown.days * listing.price}</span>
+                </div>
+              )}
+              <div className="border-t border-[#E5E7EB] pt-1.5 space-y-1">
+                <div className="flex justify-between text-[#6B7280]">
+                  <span>{t("deposit")}</span>
+                  <span>HK${listing.deposit}</span>
+                </div>
+                <div className="flex justify-between" style={{ fontWeight: 600 }}>
+                  <span>{t("total")}</span>
+                  <span className="text-[#1E6B1E]">HK${grandTotal}</span>
+                </div>
               </div>
             </div>
           )}

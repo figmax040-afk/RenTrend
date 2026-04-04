@@ -58,12 +58,12 @@ export function Profile() {
         .eq("owner_id", user.id);
       setItemsListed(listedCount ?? 0);
 
-      // Rentals Completed (renter perspective)
+      // Rentals Completed (renter perspective — only truly completed)
       const { count: completedCount } = await supabase
         .from("requests")
         .select("id", { count: "exact", head: true })
         .eq("renter_id", user.id)
-        .eq("status", "accepted");
+        .eq("status", "completed");
       setRentalsCompleted(completedCount ?? 0);
 
       setLoading(false);

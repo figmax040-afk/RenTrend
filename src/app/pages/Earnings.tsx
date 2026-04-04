@@ -62,12 +62,12 @@ export function Earnings() {
       const listingMap: Record<string, string> = Object.fromEntries(listings.map((l) => [l.id, l.title]));
       const listingIds = listings.map((l) => l.id);
 
-      // 2. Get accepted/completed requests for those listings
+      // 2. Get completed requests for those listings
       const { data: reqData, error: rErr } = await supabase
         .from("requests")
         .select("id, listing_id, renter_id, start_date, end_date, total_price, created_at")
         .in("listing_id", listingIds)
-        .in("status", ["accepted", "completed"])
+        .eq("status", "completed")
         .order("created_at", { ascending: false });
 
       if (rErr) { setError(rErr.message); setLoading(false); return; }
@@ -162,7 +162,7 @@ export function Earnings() {
       )}
 
       {/* Summary cards */}
-      <div className="grid grid-cols-3 gap-2 mb-6">
+      <div className="grid grid-cols-3 gap-2 mb-1">
         {[
           { label: "Total Earned", value: `HK$${totalEarned}` },
           { label: "This Month", value: `HK$${thisMonth}` },
@@ -174,6 +174,10 @@ export function Earnings() {
           </div>
         ))}
       </div>
+
+      <p className="text-xs text-[#6B7280] text-center mt-1 mb-4">
+        Only completed rentals are counted. Active rentals will appear once finished.
+      </p>
 
       {/* Bar chart */}
       <div className="bg-white rounded-xl border border-[#E5E7EB] p-4 mb-6">
@@ -204,7 +208,7 @@ export function Earnings() {
         <p className="text-sm mb-3" style={{ fontWeight: 500 }}>Rental History</p>
         {rows.length === 0 ? (
           <div className="bg-white rounded-xl border border-[#E5E7EB] p-6 text-center">
-            <p className="text-sm text-[#6B7280]">No completed rentals yet — create a listing to start earning!</p>
+            <p className="text-sm text-[#6B7280]">Earnings will appear here once your first rental is completed</p>
             <button
               onClick={() => navigate("/create")}
               className="mt-3 px-5 py-2 bg-[#1E6B1E] text-white rounded-xl text-sm"

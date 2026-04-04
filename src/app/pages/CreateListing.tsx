@@ -4,6 +4,8 @@ import { ArrowLeft, Camera, X, ChefHat, Monitor, Sofa, Camera as CameraIcon, Win
 import { useI18n } from "../components/i18n";
 import { supabase } from "../../lib/supabase";
 
+declare global { interface Window { google: any; } }
+
 const catIcons = [
   { key: "kitchen", icon: ChefHat },
   { key: "electronics", icon: Monitor },
@@ -50,9 +52,12 @@ export function CreateListing() {
   const [monthly, setMonthly] = useState("");
   const [deposit, setDeposit] = useState("");
 
-  // Step 3 — Availability
-  const [avail, setAvail]       = useState(true);
-  const [location, setLocation] = useState("");
+  // Step 3 — Availability & Location
+  const [avail, setAvail]           = useState(true);
+  const [location, setLocation]     = useState("");
+  const [locationLat, setLocationLat] = useState<number | null>(null);
+  const [locationLng, setLocationLng] = useState<number | null>(null);
+  const locationInputRef = useRef<HTMLInputElement>(null);
 
   // Publish state
   const [published, setPublished]       = useState(false);
@@ -65,12 +70,54 @@ export function CreateListing() {
     });
   }, [navigate]);
 
+  // Load Google Maps script once
+  useEffect(() => {
+    if (window.google) return;
+    const existing = document.querySelector('script[src*="maps.googleapis.com"]');
+    if (existing) return;
+    const script = document.createElement("script");
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${import.meta.env.VITE_GOOGLE_MAPS_API_KEY}&libraries=places`;
+    script.async = true;
+    document.head.appendChild(script);
+  }, []);
+
+  // Init autocomplete when step 2 is active and input is mounted
+  useEffect(() => {
+    if (step !== 2) return;
+
+    function init() {
+      if (!window.google || !locationInputRef.current) return;
+      const ac = new window.google.maps.places.Autocomplete(locationInputRef.current, {
+        componentRestrictions: { country: "hk" },
+        fields: ["formatted_address", "geometry", "name"],
+        types: ["establishment", "geocode"],
+      });
+      ac.addListener("place_changed", () => {
+        const place = ac.getPlace();
+        const address = place.formatted_address || place.name || "";
+        setLocation(address);
+        setLocationLat(place.geometry?.location?.lat() ?? null);
+        setLocationLng(place.geometry?.location?.lng() ?? null);
+      });
+    }
+
+    if (window.google) {
+      init();
+    } else {
+      const interval = setInterval(() => {
+        if (window.google) {
+          clearInterval(interval);
+          init();
+        }
+      }, 200);
+      return () => clearInterval(interval);
+    }
+  }, [step]);
+
   async function handleFileSelect(index: number, file: File) {
-    // Clear previous error
     setUploadErrors((e) => { const n = [...e]; n[index] = null; return n; });
     setUploading((u) => { const n = [...u]; n[index] = true; return n; });
 
-    // Local preview immediately
     const previewUrl = URL.createObjectURL(file);
     setPhotos((p) => { const n = [...p]; n[index] = previewUrl; return n; });
 
@@ -120,6 +167,9 @@ export function CreateListing() {
       price_monthly: monthly ? Number(monthly) : null,
       deposit: deposit ? Number(deposit) : null,
       district: location || null,
+      location_address: location || null,
+      location_lat: locationLat,
+      location_lng: locationLng,
       is_active: avail,
       currency: "HKD",
       image_url: urls[0] ?? null,
@@ -349,14 +399,18 @@ export function CreateListing() {
             </div>
             <div>
               <label className="text-sm text-[#6B7280]">{t("location")}</label>
-              <select value={location} onChange={(e) => setLocation(e.target.value)} className="w-full mt-1 px-4 py-2.5 rounded-xl border border-[#E5E7EB] bg-white text-sm">
-                <option value="">Select area</option>
-                <option>HKU Main Campus</option>
-                <option>CUHK Shatin</option>
-                <option>HKUST Clear Water Bay</option>
-                <option>PolyU Hung Hom</option>
-                <option>CityU Kowloon Tong</option>
-              </select>
+              <input
+                ref={locationInputRef}
+                type="text"
+                value={location}
+                onChange={(e) => {
+                  setLocation(e.target.value);
+                  setLocationLat(null);
+                  setLocationLng(null);
+                }}
+                placeholder="Search for a location in Hong Kong..."
+                className="w-full mt-1 px-4 py-2.5 rounded-xl border border-[#E5E7EB] bg-white text-sm focus:outline-none focus:border-[#1E6B1E]"
+              />
             </div>
             <button onClick={() => setStep(3)} className="w-full py-3 bg-[#1E6B1E] text-white rounded-xl">{t("next")}</button>
           </div>
