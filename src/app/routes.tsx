@@ -11,6 +11,8 @@ import { CreateListing } from "./pages/CreateListing";
 import { Recycle } from "./pages/Recycle";
 import { MyRequests } from "./pages/MyRequests";
 import { MyListings } from "./pages/MyListings";
+import { ListingRequests } from "./pages/ListingRequests";
+import { RequestDetail } from "./pages/RequestDetail";
 import { Profile } from "./pages/Profile";
 import { EditProfile } from "./pages/EditProfile";
 import { EmailPreferences } from "./pages/EmailPreferences";
@@ -39,6 +41,8 @@ export const router = createBrowserRouter([
       { path: "/recycle", Component: Recycle },
       { path: "/my-requests", Component: MyRequests },
       { path: "/my-listings", Component: MyListings },
+      { path: "/my-listings/:listingId/requests", Component: ListingRequests },
+      { path: "/my-listings/:listingId/requests/:requestId", Component: RequestDetail },
       { path: "/profile", Component: Profile },
       { path: "/edit-profile", Component: EditProfile },
       { path: "/email-preferences", Component: EmailPreferences },

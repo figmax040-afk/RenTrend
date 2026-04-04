@@ -136,6 +136,18 @@ const translations: Record<string, Record<Lang, string>> = {
   incomingRequests: { en: "Incoming Requests", zh: "收到的請求" },
   accept: { en: "Accept", zh: "接受" },
   decline: { en: "Decline", zh: "拒絕" },
+  // Request management
+  listingRequests: { en: "Rental Requests", zh: "租用請求" },
+  viewRequest: { en: "View Request", zh: "查看請求" },
+  rentalPeriod: { en: "Rental Period", zh: "租用期間" },
+  rentersMessage: { en: "Message from renter", zh: "租客留言" },
+  acceptRequest: { en: "Accept Request", zh: "接受請求" },
+  acceptConfirm: { en: "Accept this request? All other pending requests will be automatically declined.", zh: "接受此請求？其他待處理請求將自動拒絕。" },
+  requestAccepted: { en: "Request accepted!", zh: "請求已接受！" },
+  alreadyAccepted: { en: "You have already accepted a request for this listing.", zh: "你已接受此刊登的一個請求。" },
+  renterCollects: { en: "Renter will collect", zh: "租客自取" },
+  ownerDelivers: { en: "Owner delivers", zh: "物主送貨" },
+  noRequests: { en: "No requests yet", zh: "暫無請求" },
   // Profile
   editProfile: { en: "Edit Profile", zh: "編輯資料" },
   settings: { en: "Settings", zh: "設定" },
