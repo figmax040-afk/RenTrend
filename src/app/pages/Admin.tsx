@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 import { useI18n } from "../components/i18n";
-import { Package, Clock, MessageSquare, Recycle } from "lucide-react";
+import { Clock, MessageSquare, Recycle } from "lucide-react";
 import { supabase } from "../../lib/supabase";
 
 type Stats = {
@@ -19,13 +19,12 @@ export function Admin() {
 
   useEffect(() => {
     async function fetchStats() {
-      const [listingsRes, pendingRes, requestsRes] = await Promise.all([
-        supabase.from("listings").select("id", { count: "exact", head: true }),
+      const [pendingRes, requestsRes] = await Promise.all([
         supabase.from("listings").select("id", { count: "exact", head: true }).eq("is_active", false),
         supabase.from("requests").select("id", { count: "exact", head: true }).eq("status", "pending"),
       ]);
       setStats({
-        totalListings: listingsRes.count ?? 0,
+        totalListings: 0,
         pendingApprovals: pendingRes.count ?? 0,
         openRequests: requestsRes.count ?? 0,
         recyclingSubmissions: 0,
@@ -36,7 +35,6 @@ export function Admin() {
   }, []);
 
   const statCards = [
-    { key: "totalListings",        icon: Package,       color: "#1E6B1E", route: "/admin/listings"  },
     { key: "pendingApprovals",     icon: Clock,         color: "#F4A261", route: "/admin/approvals" },
     { key: "openRequests",         icon: MessageSquare, color: "#22C55E", route: "/admin/requests"  },
     { key: "recyclingSubmissions", icon: Recycle,       color: "#6B7280", route: "/admin/recycling" },
@@ -46,7 +44,7 @@ export function Admin() {
     <div className="max-w-4xl mx-auto px-4 pt-6">
       <h2 className="text-[#1F2937] mb-4">{t("admin")}</h2>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+      <div className="grid grid-cols-3 gap-3 mb-6">
         {statCards.map((s) => {
           const Icon = s.icon;
           const value = stats[s.key as keyof Stats];

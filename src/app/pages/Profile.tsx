@@ -4,12 +4,20 @@ import { Shield, Edit, Bell, Mail, LogOut, Globe, ChevronRight, BarChart3 } from
 import { useI18n } from "../components/i18n";
 import { supabase } from "../../lib/supabase";
 
+type ProfileRow = {
+  name: string | null;
+  avatar_url: string | null;
+  phone: string | null;
+  university: string | null;
+};
+
 export function Profile() {
   const navigate = useNavigate();
   const { t, lang, setLang } = useI18n();
   const [email, setEmail] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [initials, setInitials] = useState("?");
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [memberSince, setMemberSince] = useState("");
   const [loading, setLoading] = useState(true);
   const [itemsListed, setItemsListed] = useState(0);
@@ -20,33 +28,43 @@ export function Profile() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { navigate("/login"); return; }
 
-      const email = user.email ?? "";
-      setEmail(email);
-
-      const name = user.user_metadata?.name || email.split("@")[0];
-      setDisplayName(name);
-      setInitials(name.charAt(0).toUpperCase());
+      const userEmail = user.email ?? "";
+      setEmail(userEmail);
 
       const date = new Date(user.created_at);
       setMemberSince(date.toLocaleDateString("en-US", { month: "short", year: "numeric" }));
 
-      // Fetch real stats
-      const { data: userListings, count: listedCount } = await supabase
-        .from("listings")
-        .select("id", { count: "exact" })
-        .eq("owner_id", user.id);
+      // Fetch profile row
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("name, avatar_url, phone, university")
+        .eq("id", user.id)
+        .single();
 
+      if (!profile) {
+        // Create profile row for new user
+        await supabase.from("profiles").upsert({ id: user.id });
+      }
+
+      const name = (profile?.name) || userEmail.split("@")[0];
+      setDisplayName(name);
+      setInitials(name.charAt(0).toUpperCase());
+      setAvatarUrl(profile?.avatar_url ?? null);
+
+      // Items Listed (owner)
+      const { count: listedCount } = await supabase
+        .from("listings")
+        .select("id", { count: "exact", head: true })
+        .eq("owner_id", user.id);
       setItemsListed(listedCount ?? 0);
 
-      const ids = (userListings ?? []).map((l) => l.id);
-      if (ids.length > 0) {
-        const { count: completedCount } = await supabase
-          .from("requests")
-          .select("id", { count: "exact", head: true })
-          .in("listing_id", ids)
-          .in("status", ["accepted", "completed"]);
-        setRentalsCompleted(completedCount ?? 0);
-      }
+      // Rentals Completed (renter perspective)
+      const { count: completedCount } = await supabase
+        .from("requests")
+        .select("id", { count: "exact", head: true })
+        .eq("renter_id", user.id)
+        .eq("status", "accepted");
+      setRentalsCompleted(completedCount ?? 0);
 
       setLoading(false);
     }
@@ -70,9 +88,17 @@ export function Profile() {
     <div className="max-w-lg mx-auto px-4 pt-6">
       {/* Avatar + name */}
       <div className="flex flex-col items-center mb-6">
-        <div className="w-20 h-20 rounded-full bg-[#1E6B1E] flex items-center justify-center text-white text-2xl mb-3">
-          {initials}
-        </div>
+        {avatarUrl ? (
+          <img
+            src={avatarUrl}
+            alt={displayName}
+            className="w-20 h-20 rounded-full object-cover mb-3"
+          />
+        ) : (
+          <div className="w-20 h-20 rounded-full bg-[#1E6B1E] flex items-center justify-center text-white text-2xl mb-3">
+            {initials}
+          </div>
+        )}
         <h2 className="text-[#1F2937]">{displayName}</h2>
         <p className="text-xs text-[#6B7280] mt-0.5">{email}</p>
         <div className="flex items-center gap-1 mt-1">
@@ -105,7 +131,7 @@ export function Profile() {
         <div className="flex items-center justify-between px-4 py-3">
           <div className="flex items-center gap-3">
             <Globe size={18} className="text-[#6B7280]" />
-            <span className="text-sm">{t("language")}</span>
+            <span className="text-sm font-medium">{t("language")}</span>
           </div>
           <button
             onClick={() => setLang(lang === "en" ? "zh" : "en")}

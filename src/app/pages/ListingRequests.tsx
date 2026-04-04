@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router";
 import { ArrowLeft, ChevronRight } from "lucide-react";
 import { useI18n } from "../components/i18n";
@@ -76,44 +76,63 @@ export function ListingRequests() {
   const [error, setError] = useState("");
   const [activeTab, setActiveTab] = useState<Tab>("pending");
 
-  useEffect(() => {
-    load();
-  }, [listingId]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  async function load() {
+  const load = useCallback(async () => {
     setLoading(true);
     setError("");
 
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { navigate("/login"); return; }
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { navigate("/login"); return; }
 
-    const { data: listingData, error: listingErr } = await supabase
-      .from("listings")
-      .select("id, title, title_zh, image_url, price_per_day, is_active")
-      .eq("id", listingId)
-      .eq("owner_id", user.id)
-      .single();
+      const { data: listingData, error: listingErr } = await supabase
+        .from("listings")
+        .select("id, title, title_zh, image_url, price_per_day, is_active")
+        .eq("id", listingId)
+        .eq("owner_id", user.id)
+        .single();
 
-    if (listingErr || !listingData) {
-      navigate("/my-listings");
-      return;
-    }
-    setListing(listingData);
+      if (listingErr || !listingData) {
+        navigate("/my-listings");
+        return;
+      }
+      setListing(listingData);
 
-    const { data: reqData, error: reqErr } = await supabase
-      .from("requests")
-      .select("*, profiles!renter_id(id, name, email)")
-      .eq("listing_id", listingId)
-      .order("created_at", { ascending: false });
+      // Step 1: fetch requests without nested join
+      const { data: reqData, error: reqErr } = await supabase
+        .from("requests")
+        .select("*")
+        .eq("listing_id", listingId)
+        .order("created_at", { ascending: false });
 
-    if (reqErr) {
+      if (reqErr) throw reqErr;
+
+      const rawRequests = reqData ?? [];
+
+      // Step 2: fetch renter profiles separately
+      const renterIds = [...new Set(rawRequests.map((r) => r.renter_id))];
+      const { data: profiles } = renterIds.length > 0
+        ? await supabase
+            .from("profiles")
+            .select("id, name, email")
+            .in("id", renterIds)
+        : { data: [] };
+
+      // Step 3: merge
+      const merged: Request[] = rawRequests.map((r) => ({
+        ...r,
+        profiles: (profiles ?? []).find((p) => p.id === r.renter_id) ?? null,
+      }));
+
+      setRequests(merged);
+    } catch (err: any) {
+      console.error("ListingRequests fetch error:", err);
       setError(lang === "zh" ? "載入請求時出錯" : "Failed to load requests.");
-    } else {
-      setRequests((reqData ?? []) as Request[]);
+    } finally {
+      setLoading(false);
     }
+  }, [listingId, navigate, lang]);
 
-    setLoading(false);
-  }
+  useEffect(() => { load(); }, [load]);
 
   const hasAccepted = requests.some((r) => r.status === "accepted");
 
@@ -138,6 +157,17 @@ export function ListingRequests() {
   }
 
   if (!listing) return null;
+
+  if (error) {
+    return (
+      <div className="max-w-lg mx-auto px-4 pt-8 text-center">
+        <p className="text-red-600 text-sm bg-red-50 border border-red-200 px-4 py-3 rounded-xl mb-3">{error}</p>
+        <button onClick={load} className="text-sm text-[#1E6B1E]">
+          {lang === "zh" ? "重試" : "Try again"}
+        </button>
+      </div>
+    );
+  }
 
   const listingTitle = lang === "zh" && listing.title_zh ? listing.title_zh : listing.title;
 
@@ -181,13 +211,6 @@ export function ListingRequests() {
           {lang === "zh"
             ? "你已接受此刊登的一個請求 — 其他請求已鎖定"
             : "You have accepted a request for this listing — other requests are locked"}
-        </div>
-      )}
-
-      {/* Error */}
-      {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-xl mb-4">
-          {error}
         </div>
       )}
 

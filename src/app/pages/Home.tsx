@@ -33,7 +33,7 @@ type UiListing = {
 function dbToUi(l: Record<string, any>): UiListing {
   return {
     id: l.id,
-    image: l.image_url ?? IMAGES.kettle,
+    image: l.image_url ?? "https://placehold.co/400x300?text=RenTrend",
     title: l.title,
     titleZh: l.title_zh ?? l.title,
     price: l.price_per_day,
@@ -60,7 +60,12 @@ export function Home() {
       .from("listings")
       .select("id, title, title_zh, image_url, price_per_day, district, category, is_active")
       .eq("is_active", true)
-      .then(({ data }) => {
+      .order("created_at", { ascending: false })
+      .then(({ data, error }) => {
+        if (error) {
+          console.error("Home fetch error:", error);
+        }
+
         if (data && data.length > 0) {
           setListings(data.map(dbToUi));
         } else {

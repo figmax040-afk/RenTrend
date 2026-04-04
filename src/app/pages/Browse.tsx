@@ -53,13 +53,18 @@ export function Browse() {
 
     supabase
       .from("listings")
-      .select("id, title, title_zh, image_url, price_per_day, district, category, is_active, brand, condition")
+      .select("id, title, title_zh, image_url, price_per_day, district, category, is_active, created_at, brand, condition")
       .eq("is_active", true)
-      .then(({ data }) => {
+      .order("created_at", { ascending: false })
+      .then(({ data, error }) => {
+        if (error) {
+          console.error("Browse fetch error:", error);
+        }
+
         if (data && data.length > 0) {
           const mapped: UiListing[] = data.map((l) => ({
             id: l.id,
-            image: l.image_url ?? IMAGES.kettle,
+            image: l.image_url ?? "https://placehold.co/400x300?text=RenTrend",
             title: l.title,
             titleZh: l.title_zh ?? l.title,
             price: l.price_per_day,

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router";
 import { ArrowLeft, Shield, CheckCircle, X } from "lucide-react";
 import { useI18n } from "../components/i18n";
@@ -56,65 +56,76 @@ export function RequestDetail() {
 
   const [listing, setListing] = useState<Listing | null>(null);
   const [request, setRequest] = useState<Request | null>(null);
-  const [allRequests, setAllRequests] = useState<Request[]>([]);
+  const [allRequests, setAllRequests] = useState<{ id: string; status: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [acting, setActing] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
 
-  useEffect(() => {
-    load();
-  }, [requestId]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  async function load() {
+  const load = useCallback(async () => {
     setLoading(true);
     setError("");
 
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { navigate("/login"); return; }
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { navigate("/login"); return; }
 
-    const { data: listingData, error: listingErr } = await supabase
-      .from("listings")
-      .select("id, title, title_zh, image_url, price_per_day")
-      .eq("id", listingId)
-      .eq("owner_id", user.id)
-      .single();
+      const { data: listingData, error: listingErr } = await supabase
+        .from("listings")
+        .select("id, title, title_zh, image_url, price_per_day")
+        .eq("id", listingId)
+        .eq("owner_id", user.id)
+        .single();
 
-    if (listingErr || !listingData) {
-      navigate("/my-listings");
-      return;
-    }
-    setListing(listingData);
+      if (listingErr || !listingData) {
+        navigate("/my-listings");
+        return;
+      }
+      setListing(listingData);
 
-    const { data: reqData, error: reqErr } = await supabase
-      .from("requests")
-      .select("*, profiles!renter_id(id, name, email, phone)")
-      .eq("id", requestId)
-      .single();
+      // Step 1: fetch request without nested join
+      const { data: reqData, error: reqErr } = await supabase
+        .from("requests")
+        .select("*")
+        .eq("id", requestId)
+        .single();
 
-    if (reqErr || !reqData) {
-      setError(lang === "zh" ? "找不到該請求" : "Request not found.");
+      if (reqErr || !reqData) {
+        setError(lang === "zh" ? "找不到該請求" : "Request not found.");
+        setLoading(false);
+        return;
+      }
+
+      // Step 2: fetch renter profile separately
+      const { data: profileData } = await supabase
+        .from("profiles")
+        .select("id, name, email, phone")
+        .eq("id", reqData.renter_id)
+        .single();
+
+      setRequest({ ...reqData, profiles: profileData ?? null } as Request);
+
+      // Fetch all requests for this listing (for one-acceptance rule)
+      const { data: allReqData } = await supabase
+        .from("requests")
+        .select("id, status")
+        .eq("listing_id", listingId);
+      setAllRequests((allReqData ?? []) as { id: string; status: string }[]);
+    } catch (err: any) {
+      console.error("RequestDetail fetch error:", err);
+      setError(lang === "zh" ? "載入請求時出錯" : "Failed to load request.");
+    } finally {
       setLoading(false);
-      return;
     }
-    setRequest(reqData as Request);
+  }, [requestId, listingId, navigate, lang]);
 
-    // Fetch all requests for this listing to enforce one-acceptance rule
-    const { data: allReqData } = await supabase
-      .from("requests")
-      .select("id, status")
-      .eq("listing_id", listingId);
-    setAllRequests((allReqData ?? []) as Request[]);
-
-    setLoading(false);
-  }
+  useEffect(() => { load(); }, [load]);
 
   async function handleAccept() {
     if (!request || !listingId) return;
     setActing(true);
     setShowConfirm(false);
 
-    // Accept this request
     const { error: acceptErr } = await supabase
       .from("requests")
       .update({ status: "accepted" })
@@ -126,7 +137,6 @@ export function RequestDetail() {
       return;
     }
 
-    // Reject all other pending requests for this listing
     await supabase
       .from("requests")
       .update({ status: "rejected" })
@@ -168,8 +178,16 @@ export function RequestDetail() {
   if (!listing || !request) {
     return (
       <div className="max-w-lg mx-auto px-4 pt-8 text-center">
-        <p className="text-[#6B7280] text-sm">{error || (lang === "zh" ? "找不到請求" : "Request not found.")}</p>
-        <button onClick={() => navigate(`/my-listings/${listingId}/requests`)} className="mt-4 text-[#1E6B1E] text-sm">
+        <p className="text-red-600 text-sm bg-red-50 border border-red-200 px-4 py-3 rounded-xl mb-3">
+          {error || (lang === "zh" ? "找不到請求" : "Request not found.")}
+        </p>
+        <button onClick={load} className="text-sm text-[#1E6B1E] mb-2 block">
+          {lang === "zh" ? "重試" : "Try again"}
+        </button>
+        <button
+          onClick={() => navigate(`/my-listings/${listingId}/requests`)}
+          className="text-sm text-[#6B7280]"
+        >
           ← {lang === "zh" ? "返回" : "Back"}
         </button>
       </div>
@@ -199,8 +217,11 @@ export function RequestDetail() {
 
       {/* Error banner */}
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-xl mb-4">
-          {error}
+        <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-xl mb-4 flex items-center justify-between">
+          <span>{error}</span>
+          <button onClick={load} className="text-xs text-[#1E6B1E] ml-3 shrink-0">
+            {lang === "zh" ? "重試" : "Try again"}
+          </button>
         </div>
       )}
 
@@ -243,7 +264,6 @@ export function RequestDetail() {
           </div>
         </div>
 
-        {/* Show phone prominently when accepted */}
         {request.status === "accepted" && request.profiles?.phone && (
           <div className="mt-3 pt-3 border-t border-[#E5E7EB]">
             <p className="text-xs text-[#6B7280] mb-1">{lang === "zh" ? "聯絡電話" : "Phone"}</p>

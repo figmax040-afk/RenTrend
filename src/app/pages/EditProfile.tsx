@@ -1,26 +1,32 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router";
-import { ArrowLeft, CheckCircle } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { supabase } from "../../lib/supabase";
 
 export function EditProfile() {
   const navigate = useNavigate();
+  const [userId, setUserId] = useState("");
   const [name, setName] = useState("");
   const [university, setUniversity] = useState("");
   const [phone, setPhone] = useState("");
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
+  const [uploadError, setUploadError] = useState("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     async function load() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { navigate("/login"); return; }
+      setUserId(user.id);
 
       const { data } = await supabase
         .from("profiles")
-        .select("name, university, phone")
+        .select("name, university, phone, avatar_url")
         .eq("id", user.id)
         .single();
 
@@ -28,11 +34,50 @@ export function EditProfile() {
         setName(data.name ?? "");
         setUniversity(data.university ?? "");
         setPhone(data.phone ?? "");
+        setAvatarUrl(data.avatar_url ?? null);
       }
       setLoading(false);
     }
     load();
   }, [navigate]);
+
+  async function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file || !userId) return;
+
+    setUploadError("");
+    setUploading(true);
+
+    const ext = file.name.split(".").pop()?.toLowerCase() ?? "jpg";
+    const path = `${userId}/avatar_${Date.now()}.${ext}`;
+
+    const { error: uploadErr } = await supabase.storage
+      .from("avatars")
+      .upload(path, file, { upsert: true });
+
+    if (uploadErr) {
+      setUploadError("Failed to upload photo. Please try again.");
+      setUploading(false);
+      return;
+    }
+
+    const { data: urlData } = supabase.storage.from("avatars").getPublicUrl(path);
+    const publicUrl = urlData.publicUrl;
+
+    const { error: updateErr } = await supabase
+      .from("profiles")
+      .upsert({ id: userId, avatar_url: publicUrl });
+
+    if (updateErr) {
+      setUploadError("Photo uploaded but failed to save. Please try again.");
+      setUploading(false);
+      return;
+    }
+
+    setAvatarUrl(publicUrl);
+    setAvatarPreview(publicUrl);
+    setUploading(false);
+  }
 
   async function handleSave() {
     setError("");
@@ -42,16 +87,24 @@ export function EditProfile() {
 
     const { error: upsertError } = await supabase
       .from("profiles")
-      .upsert({ id: user.id, name, university, phone });
+      .upsert({
+        id: user.id,
+        name,
+        phone,
+        university,
+        updated_at: new Date().toISOString(),
+      });
 
     setSaving(false);
     if (upsertError) {
       setError(upsertError.message);
     } else {
-      setSaved(true);
-      setTimeout(() => setSaved(false), 3000);
+      navigate("/profile");
     }
   }
+
+  const displayAvatar = avatarPreview ?? avatarUrl;
+  const initial = (name || "U").charAt(0).toUpperCase();
 
   if (loading) {
     return (
@@ -66,6 +119,44 @@ export function EditProfile() {
       <div className="flex items-center gap-3 mb-6">
         <button onClick={() => navigate("/profile")} className="text-[#6B7280]"><ArrowLeft size={20} /></button>
         <h2 className="text-[#1F2937]">Edit Profile</h2>
+      </div>
+
+      {/* Avatar upload */}
+      <div className="flex flex-col items-center mb-6">
+        <div className="relative">
+          {uploading ? (
+            <div className="w-20 h-20 rounded-full bg-[#E5E7EB] flex items-center justify-center">
+              <div className="w-6 h-6 border-2 border-[#1E6B1E] border-t-transparent rounded-full animate-spin" />
+            </div>
+          ) : displayAvatar ? (
+            <img
+              src={displayAvatar}
+              alt="Profile"
+              className="w-20 h-20 rounded-full object-cover"
+            />
+          ) : (
+            <div className="w-20 h-20 rounded-full bg-[#1E6B1E] flex items-center justify-center text-white text-2xl">
+              {initial}
+            </div>
+          )}
+        </div>
+        <button
+          onClick={() => fileInputRef.current?.click()}
+          disabled={uploading}
+          className="mt-2 text-sm text-[#1E6B1E] disabled:opacity-50"
+        >
+          Change photo
+        </button>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*,.heic,.heif"
+          className="hidden"
+          onChange={handleAvatarChange}
+        />
+        {uploadError && (
+          <p className="text-xs text-red-600 mt-1">{uploadError}</p>
+        )}
       </div>
 
       <div className="space-y-4">
@@ -108,13 +199,6 @@ export function EditProfile() {
 
         {error && (
           <p className="text-sm text-red-600 bg-red-50 border border-red-200 px-4 py-3 rounded-xl">{error}</p>
-        )}
-
-        {saved && (
-          <div className="flex items-center gap-2 bg-green-50 border border-green-200 text-green-700 text-sm px-4 py-3 rounded-xl">
-            <CheckCircle size={16} />
-            Profile saved!
-          </div>
         )}
 
         <button

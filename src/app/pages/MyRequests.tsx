@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router";
 import { useI18n } from "../components/i18n";
 import { ImageWithFallback } from "../components/figma/ImageWithFallback";
@@ -7,28 +7,26 @@ import { supabase } from "../../lib/supabase";
 
 const FALLBACK_IMAGE = "https://placehold.co/400x300?text=RenTrend";
 
-type OwnerProfile = {
-  name: string | null;
-  email: string | null;
-};
-
-type ListingWithOwner = {
+type EnrichedRequest = {
   id: string;
-  title: string;
-  image_url: string | null;
-  price_per_day: number;
-  deposit: number | null;
-  owner_id: string;
-  profiles: OwnerProfile | null;
-};
-
-type RequestRow = {
-  id: string;
+  listing_id: string;
   start_date: string;
   end_date: string;
   total_price: number;
-  status: "pending" | "accepted" | "rejected" | "completed" | "cancelled";
-  listings: ListingWithOwner | null;
+  status: string;
+  listing: {
+    id: string;
+    title: string;
+    image_url: string | null;
+    price_per_day: number;
+    deposit: number | null;
+    owner_id: string;
+  } | null;
+  owner: {
+    id: string;
+    name: string | null;
+    email: string | null;
+  } | null;
 };
 
 const tabs = ["active", "pending", "past"] as const;
@@ -47,42 +45,75 @@ function formatDateRange(start: string, end: string) {
   return `${fmt(start)} – ${fmt(end)}`;
 }
 
-function ownerDisplayName(profile: OwnerProfile | null): string {
-  if (profile?.name) return profile.name;
-  if (profile?.email) return profile.email.split("@")[0];
+function ownerDisplayName(owner: { name: string | null; email: string | null } | null): string {
+  if (owner?.name) return owner.name;
+  if (owner?.email) return owner.email.split("@")[0];
   return "Owner";
 }
 
 export function MyRequests() {
   const { t, lang } = useI18n();
   const navigate = useNavigate();
-  const [requests, setRequests] = useState<RequestRow[]>([]);
+  const [requests, setRequests] = useState<EnrichedRequest[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const [tab, setTab] = useState<(typeof tabs)[number]>("active");
 
-  useEffect(() => {
-    async function load() {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) {
-        navigate("/login");
-        return;
-      }
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError("");
 
-      const { data } = await supabase
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { navigate("/login"); return; }
+
+      // Step 1: fetch requests
+      const { data: rawRequests, error: reqErr } = await supabase
         .from("requests")
-        .select(
-          `*, listings!inner(id, title, image_url, price_per_day, deposit, owner_id, profiles!owner_id(name, email))`
-        )
+        .select("*")
         .eq("renter_id", user.id)
         .order("created_at", { ascending: false });
 
-      setRequests((data as RequestRow[]) ?? []);
+      if (reqErr) throw reqErr;
+      if (!rawRequests || rawRequests.length === 0) {
+        setRequests([]);
+        setLoading(false);
+        return;
+      }
+
+      // Step 2: fetch listings
+      const listingIds = [...new Set(rawRequests.map((r) => r.listing_id))];
+      const { data: listings } = await supabase
+        .from("listings")
+        .select("id, title, image_url, price_per_day, deposit, owner_id")
+        .in("id", listingIds);
+
+      // Step 3: fetch owner profiles
+      const ownerIds = [...new Set((listings ?? []).map((l) => l.owner_id))];
+      const { data: profiles } = ownerIds.length > 0
+        ? await supabase
+            .from("profiles")
+            .select("id, name, email")
+            .in("id", ownerIds)
+        : { data: [] };
+
+      // Step 4: merge
+      const enriched: EnrichedRequest[] = rawRequests.map((r) => {
+        const listing = (listings ?? []).find((l) => l.id === r.listing_id) ?? null;
+        const owner = (profiles ?? []).find((p) => p.id === listing?.owner_id) ?? null;
+        return { ...r, listing, owner };
+      });
+
+      setRequests(enriched);
+    } catch (err: any) {
+      console.error("MyRequests fetch error:", err);
+      setError(lang === "zh" ? "載入請求時出錯" : "Failed to load requests.");
+    } finally {
       setLoading(false);
     }
-    load();
-  }, [navigate]);
+  }, [navigate, lang]);
+
+  useEffect(() => { load(); }, [load]);
 
   if (loading) {
     return (
@@ -92,14 +123,21 @@ export function MyRequests() {
     );
   }
 
+  if (error) {
+    return (
+      <div className="max-w-lg mx-auto px-4 pt-8 text-center">
+        <p className="text-red-600 text-sm bg-red-50 border border-red-200 px-4 py-3 rounded-xl mb-3">{error}</p>
+        <button onClick={load} className="text-sm text-[#1E6B1E]">
+          {lang === "zh" ? "重試" : "Try again"}
+        </button>
+      </div>
+    );
+  }
+
   const filtered = requests.filter((r) => {
     if (tab === "active") return r.status === "accepted";
     if (tab === "pending") return r.status === "pending";
-    return (
-      r.status === "rejected" ||
-      r.status === "completed" ||
-      r.status === "cancelled"
-    );
+    return r.status === "rejected" || r.status === "completed" || r.status === "cancelled";
   });
 
   const emptyMsg: Record<(typeof tabs)[number], string> = {
@@ -128,16 +166,13 @@ export function MyRequests() {
       </div>
 
       {filtered.length === 0 ? (
-        <p className="text-center text-[#6B7280] text-sm py-12">
-          {emptyMsg[tab]}
-        </p>
+        <p className="text-center text-[#6B7280] text-sm py-12">{emptyMsg[tab]}</p>
       ) : (
         <div className="space-y-3">
           {filtered.map((r) => {
-            const listing = r.listings;
-            const title = listing?.title ?? "—";
-            const image = listing?.image_url ?? FALLBACK_IMAGE;
-            const owner = ownerDisplayName(listing?.profiles ?? null);
+            const title = r.listing?.title ?? "—";
+            const image = r.listing?.image_url ?? FALLBACK_IMAGE;
+            const owner = ownerDisplayName(r.owner);
 
             return (
               <button
@@ -151,9 +186,7 @@ export function MyRequests() {
                   className="w-14 h-14 rounded-lg object-cover shrink-0"
                 />
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm truncate" style={{ fontWeight: 500 }}>
-                    {title}
-                  </p>
+                  <p className="text-sm truncate" style={{ fontWeight: 500 }}>{title}</p>
                   <p className="text-xs text-[#6B7280]">{owner}</p>
                   <p className="text-xs text-[#6B7280]">
                     {formatDateRange(r.start_date, r.end_date)}
@@ -163,8 +196,7 @@ export function MyRequests() {
                   <span
                     className="text-xs px-2 py-0.5 rounded-full"
                     style={{
-                      backgroundColor:
-                        (statusColor[r.status] ?? "#6B7280") + "15",
+                      backgroundColor: (statusColor[r.status] ?? "#6B7280") + "15",
                       color: statusColor[r.status] ?? "#6B7280",
                     }}
                   >

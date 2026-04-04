@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router";
 import { ArrowLeft, Shield } from "lucide-react";
 import { useI18n } from "../components/i18n";
@@ -8,6 +8,7 @@ import { supabase } from "../../lib/supabase";
 const FALLBACK_IMAGE = "https://placehold.co/400x300?text=RenTrend";
 
 type OwnerProfile = {
+  id: string;
   name: string | null;
   email: string | null;
   phone: string | null;
@@ -23,19 +24,18 @@ type ListingData = {
   deposit: number | null;
   district: string | null;
   owner_id: string;
-  profiles: OwnerProfile | null;
 };
 
 type RequestData = {
   id: string;
   renter_id: string;
+  listing_id: string;
   start_date: string;
   end_date: string;
   message: string | null;
   status: string;
   pickup_preference: string | null;
   total_price: number | null;
-  listings: ListingData | null;
 };
 
 function fmtFull(d: string) {
@@ -49,9 +49,7 @@ function fmtFull(d: string) {
 function daysBetween(start: string, end: string) {
   return Math.max(
     1,
-    Math.ceil(
-      (new Date(end).getTime() - new Date(start).getTime()) / 86400000
-    )
+    Math.ceil((new Date(end).getTime() - new Date(start).getTime()) / 86400000)
   );
 }
 
@@ -67,48 +65,68 @@ export function RequestView() {
   const { t, lang } = useI18n();
 
   const [request, setRequest] = useState<RequestData | null>(null);
+  const [listing, setListing] = useState<ListingData | null>(null);
+  const [ownerProfile, setOwnerProfile] = useState<OwnerProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [cancelling, setCancelling] = useState(false);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
 
-  useEffect(() => {
-    async function load() {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) {
-        navigate("/login");
-        return;
-      }
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError("");
 
-      const { data, error: fetchErr } = await supabase
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { navigate("/login"); return; }
+
+      // Step 1: fetch request
+      const { data: req, error: reqErr } = await supabase
         .from("requests")
-        .select(
-          `*, listings!inner(id, title, image_url, price_per_day, price_weekly, price_monthly, deposit, district, owner_id, profiles!owner_id(name, email, phone))`
-        )
+        .select("*")
         .eq("id", requestId)
         .single();
 
-      if (fetchErr || !data) {
-        setError(
-          lang === "zh" ? "找不到該請求" : "Request not found."
-        );
+      if (reqErr || !req) {
+        setError(lang === "zh" ? "找不到該請求" : "Request not found.");
         setLoading(false);
         return;
       }
 
-      const req = data as RequestData;
       if (req.renter_id !== user.id) {
         navigate("/my-requests");
         return;
       }
 
-      setRequest(req);
+      setRequest(req as RequestData);
+
+      // Step 2: fetch listing
+      const { data: listingData } = await supabase
+        .from("listings")
+        .select("id, title, image_url, price_per_day, price_weekly, price_monthly, deposit, district, owner_id")
+        .eq("id", req.listing_id)
+        .single();
+
+      setListing(listingData ?? null);
+
+      // Step 3: fetch owner profile
+      if (listingData?.owner_id) {
+        const { data: profileData } = await supabase
+          .from("profiles")
+          .select("id, name, email, phone")
+          .eq("id", listingData.owner_id)
+          .single();
+        setOwnerProfile(profileData ?? null);
+      }
+    } catch (err: any) {
+      console.error("RequestView fetch error:", err);
+      setError(lang === "zh" ? "載入請求時出錯" : "Failed to load request.");
+    } finally {
       setLoading(false);
     }
-    load();
   }, [requestId, navigate, lang]);
+
+  useEffect(() => { load(); }, [load]);
 
   async function handleCancel() {
     if (!request) return;
@@ -140,24 +158,22 @@ export function RequestView() {
     );
   }
 
-  if (!request) {
+  if (!request || !listing) {
     return (
       <div className="max-w-lg mx-auto px-4 pt-8 text-center">
-        <p className="text-[#6B7280] text-sm">
+        <p className="text-red-600 text-sm bg-red-50 border border-red-200 px-4 py-3 rounded-xl mb-3">
           {error || (lang === "zh" ? "找不到請求" : "Request not found.")}
         </p>
-        <button
-          onClick={() => navigate("/my-requests")}
-          className="mt-4 text-[#1E6B1E] text-sm"
-        >
+        <button onClick={load} className="text-sm text-[#1E6B1E] mb-2 block">
+          {lang === "zh" ? "重試" : "Try again"}
+        </button>
+        <button onClick={() => navigate("/my-requests")} className="text-sm text-[#6B7280]">
           ← {lang === "zh" ? "返回" : "Back"}
         </button>
       </div>
     );
   }
 
-  const listing = request.listings!;
-  const ownerProfile = listing.profiles;
   const ownerName = ownerDisplayName(ownerProfile);
   const days = daysBetween(request.start_date, request.end_date);
   const dailyTotal = listing.price_per_day * days;
@@ -168,10 +184,7 @@ export function RequestView() {
     <div className="max-w-lg mx-auto px-4 pt-4 pb-10">
       {/* Header */}
       <div className="flex items-center gap-3 mb-4">
-        <button
-          onClick={() => navigate("/my-requests")}
-          className="text-[#6B7280]"
-        >
+        <button onClick={() => navigate("/my-requests")} className="text-[#6B7280]">
           <ArrowLeft size={20} />
         </button>
         <h2 className="text-[#1F2937]" style={{ fontWeight: 600 }}>
@@ -194,10 +207,7 @@ export function RequestView() {
           className="w-full h-40 object-cover rounded-xl"
         />
         <div className="p-3">
-          <p
-            className="text-[#1B3D1B] mb-0.5"
-            style={{ fontWeight: 600, fontSize: 16 }}
-          >
+          <p className="text-[#1B3D1B] mb-0.5" style={{ fontWeight: 600, fontSize: 16 }}>
             {listing.title}
           </p>
           <p className="text-sm text-[#1E6B1E]" style={{ fontWeight: 500 }}>
@@ -213,10 +223,7 @@ export function RequestView() {
       {request.status === "pending" && (
         <div
           className="rounded-xl px-4 py-3 mb-4"
-          style={{
-            backgroundColor: "#F4A26119",
-            border: "1px solid #F4A26140",
-          }}
+          style={{ backgroundColor: "#F4A26119", border: "1px solid #F4A26140" }}
         >
           <p className="text-sm" style={{ color: "#B45309", fontWeight: 500 }}>
             {t("awaitingResponse")}
@@ -232,15 +239,10 @@ export function RequestView() {
       {request.status === "accepted" && (
         <div
           className="rounded-xl px-4 py-3 mb-4"
-          style={{
-            backgroundColor: "#22C55E19",
-            border: "1px solid #22C55E40",
-          }}
+          style={{ backgroundColor: "#22C55E19", border: "1px solid #22C55E40" }}
         >
           <p className="text-sm" style={{ color: "#15803D", fontWeight: 500 }}>
-            {lang === "zh"
-              ? "你的請求已被接受！"
-              : "Your request was accepted!"}
+            {lang === "zh" ? "你的請求已被接受！" : "Your request was accepted!"}
           </p>
         </div>
       )}
@@ -248,16 +250,11 @@ export function RequestView() {
       {(request.status === "rejected" || request.status === "cancelled") && (
         <div
           className="rounded-xl px-4 py-3 mb-4"
-          style={{
-            backgroundColor: "#EF444419",
-            border: "1px solid #EF444440",
-          }}
+          style={{ backgroundColor: "#EF444419", border: "1px solid #EF444440" }}
         >
           <p className="text-sm" style={{ color: "#B91C1C", fontWeight: 500 }}>
             {request.status === "cancelled"
-              ? lang === "zh"
-                ? "你已取消此請求。"
-                : "You cancelled this request."
+              ? lang === "zh" ? "你已取消此請求。" : "You cancelled this request."
               : t("requestDeclined")}
           </p>
         </div>
@@ -272,15 +269,11 @@ export function RequestView() {
         <div className="grid grid-cols-2 gap-3">
           <div>
             <p className="text-[10px] text-[#9CA3AF]">{t("startDate")}</p>
-            <p className="text-sm text-[#1F2937]">
-              {fmtFull(request.start_date)}
-            </p>
+            <p className="text-sm text-[#1F2937]">{fmtFull(request.start_date)}</p>
           </div>
           <div>
             <p className="text-[10px] text-[#9CA3AF]">{t("endDate")}</p>
-            <p className="text-sm text-[#1F2937]">
-              {fmtFull(request.end_date)}
-            </p>
+            <p className="text-sm text-[#1F2937]">{fmtFull(request.end_date)}</p>
           </div>
           <div>
             <p className="text-[10px] text-[#9CA3AF]">
@@ -291,9 +284,7 @@ export function RequestView() {
             </p>
           </div>
           <div>
-            <p className="text-[10px] text-[#9CA3AF]">
-              {t("pickupPref")}
-            </p>
+            <p className="text-[10px] text-[#9CA3AF]">{t("pickupPref")}</p>
             <p className="text-sm text-[#1F2937]">
               {request.pickup_preference === "deliver"
                 ? t("ownerDelivers")
@@ -308,9 +299,7 @@ export function RequestView() {
               {lang === "zh" ? "你的留言" : "Your message"}
             </p>
             <div className="bg-[#F9FAFB] border-l-2 border-[#1E6B1E] pl-3 py-2 rounded-r-lg">
-              <p className="text-sm text-[#4B5563] italic">
-                "{request.message}"
-              </p>
+              <p className="text-sm text-[#4B5563] italic">"{request.message}"</p>
             </div>
           </div>
         )}
@@ -319,8 +308,7 @@ export function RequestView() {
         <div className="pt-2 border-t border-[#E5E7EB] space-y-1.5">
           <div className="flex justify-between items-center">
             <p className="text-xs text-[#6B7280]">
-              HK${listing.price_per_day} × {days}{" "}
-              {lang === "zh" ? "天" : "days"}
+              HK${listing.price_per_day} × {days} {lang === "zh" ? "天" : "days"}
             </p>
             <p className="text-sm text-[#1F2937]">HK${dailyTotal}</p>
           </div>
@@ -329,13 +317,8 @@ export function RequestView() {
             <p className="text-sm text-[#1F2937]">HK${deposit}</p>
           </div>
           <div className="flex justify-between items-center pt-1 border-t border-[#E5E7EB]">
-            <p className="text-sm text-[#1F2937]" style={{ fontWeight: 600 }}>
-              {t("total")}
-            </p>
-            <p
-              className="text-[#1E6B1E]"
-              style={{ fontWeight: 700, fontSize: 16 }}
-            >
+            <p className="text-sm text-[#1F2937]" style={{ fontWeight: 600 }}>{t("total")}</p>
+            <p className="text-[#1E6B1E]" style={{ fontWeight: 700, fontSize: 16 }}>
               HK${total}
             </p>
           </div>
@@ -355,9 +338,7 @@ export function RequestView() {
             {ownerName[0]?.toUpperCase() ?? "O"}
           </div>
           <div className="flex-1">
-            <p className="text-sm" style={{ fontWeight: 500 }}>
-              {ownerName}
-            </p>
+            <p className="text-sm" style={{ fontWeight: 500 }}>{ownerName}</p>
           </div>
           <div className="flex items-center gap-1">
             <Shield size={12} className="text-[#22C55E]" />
@@ -370,10 +351,7 @@ export function RequestView() {
       {request.status === "accepted" && (
         <div
           className="rounded-xl px-4 py-3 mb-4"
-          style={{
-            backgroundColor: "#1E6B1E0D",
-            border: "1px solid #1E6B1E30",
-          }}
+          style={{ backgroundColor: "#1E6B1E0D", border: "1px solid #1E6B1E30" }}
         >
           <p className="text-sm text-[#1E6B1E] mb-2" style={{ fontWeight: 500 }}>
             {t("ownerAccepted")}
