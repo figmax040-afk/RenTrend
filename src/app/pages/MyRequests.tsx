@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 import { useI18n } from "../components/i18n";
 import { ImageWithFallback } from "../components/figma/ImageWithFallback";
@@ -71,49 +71,49 @@ export function MyRequests() {
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [acting, setActing] = useState(false);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError("");
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { navigate("/login"); return; }
+  useEffect(() => {
+    async function load() {
+      try {
+        setLoading(true);
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) { navigate("/login"); return; }
 
-      const { data: rawRequests, error: reqErr } = await supabase
-        .from("requests")
-        .select("*")
-        .eq("renter_id", user.id)
-        .order("created_at", { ascending: false });
+        const { data: reqs, error } = await supabase
+          .from("requests")
+          .select("*")
+          .eq("renter_id", user.id)
+          .order("created_at", { ascending: false });
 
-      if (reqErr) throw reqErr;
-      if (!rawRequests || rawRequests.length === 0) { setRequests([]); setLoading(false); return; }
+        if (error) throw error;
+        if (!reqs || reqs.length === 0) { setRequests([]); setLoading(false); return; }
 
-      const listingIds = [...new Set(rawRequests.map((r) => r.listing_id))];
-      const { data: listings } = await supabase
-        .from("listings")
-        .select("id, title, image_url, price_per_day, deposit, owner_id")
-        .in("id", listingIds);
+        const listingIds = [...new Set(reqs.map((r) => r.listing_id))];
+        const { data: listings } = await supabase
+          .from("listings")
+          .select("id, title, image_url, price_per_day, deposit, owner_id")
+          .in("id", listingIds);
 
-      const ownerIds = [...new Set((listings ?? []).map((l) => l.owner_id))];
-      const { data: profiles } = ownerIds.length > 0
-        ? await supabase.from("profiles").select("id, name, email").in("id", ownerIds)
-        : { data: [] };
+        const ownerIds = [...new Set((listings || []).map((l) => l.owner_id))];
+        const { data: profiles } = await supabase
+          .from("profiles")
+          .select("id, name, email")
+          .in("id", ownerIds);
 
-      const enriched: EnrichedRequest[] = rawRequests.map((r) => {
-        const listing = (listings ?? []).find((l) => l.id === r.listing_id) ?? null;
-        const owner = (profiles ?? []).find((p) => p.id === listing?.owner_id) ?? null;
-        return { ...r, listing, owner };
-      });
+        const enriched: EnrichedRequest[] = reqs.map((r) => {
+          const listing = listings?.find((l) => l.id === r.listing_id) ?? null;
+          const owner = profiles?.find((p) => p.id === listing?.owner_id) ?? null;
+          return { ...r, listing, owner };
+        });
 
-      setRequests(enriched);
-    } catch (err: any) {
-      console.error("MyRequests fetch error:", err);
-      setError(lang === "zh" ? "載入請求時出錯" : "Failed to load requests.");
-    } finally {
-      setLoading(false);
+        setRequests(enriched);
+      } catch (err: any) {
+        setError(err.message || "Failed to load requests.");
+      } finally {
+        setLoading(false);
+      }
     }
-  }, [navigate, lang]);
-
-  useEffect(() => { load(); }, [load]);
+    load();
+  }, []);
 
   async function handleCancel(requestId: string) {
     setActing(true);
@@ -145,7 +145,7 @@ export function MyRequests() {
     return (
       <div className="max-w-lg mx-auto px-4 pt-8 text-center">
         <p className="text-red-600 text-sm bg-red-50 border border-red-200 px-4 py-3 rounded-xl mb-3">{error}</p>
-        <button onClick={load} className="text-sm text-[#1E6B1E]">{lang === "zh" ? "重試" : "Try again"}</button>
+        <button onClick={() => window.location.reload()} className="text-sm text-[#1E6B1E]">{lang === "zh" ? "重試" : "Try again"}</button>
       </div>
     );
   }
