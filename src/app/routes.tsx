@@ -13,6 +13,7 @@ import { MyRequests } from "./pages/MyRequests";
 import { MyListings } from "./pages/MyListings";
 import { ListingRequests } from "./pages/ListingRequests";
 import { RequestDetail } from "./pages/RequestDetail";
+import { RequestView } from "./pages/RequestView";
 import { Profile } from "./pages/Profile";
 import { EditProfile } from "./pages/EditProfile";
 import { EmailPreferences } from "./pages/EmailPreferences";
@@ -40,6 +41,7 @@ export const router = createBrowserRouter([
       { path: "/create", Component: CreateListing },
       { path: "/recycle", Component: Recycle },
       { path: "/my-requests", Component: MyRequests },
+      { path: "/my-requests/:requestId", Component: RequestView },
       { path: "/my-listings", Component: MyListings },
       { path: "/my-listings/:listingId/requests", Component: ListingRequests },
       { path: "/my-listings/:listingId/requests/:requestId", Component: RequestDetail },
