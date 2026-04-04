@@ -1,7 +1,8 @@
 import { createBrowserRouter } from "react-router";
 import { Layout } from "./components/Layout";
 import { Onboarding } from "./pages/Onboarding";
-import { SignUp, Login, VerifyEmail } from "./pages/Auth";
+import { SignUp, Login } from "./pages/Auth";
+import { VerifyEmail } from "./pages/VerifyEmail";
 import { Home } from "./pages/Home";
 import { Browse } from "./pages/Browse";
 import { ListingDetail } from "./pages/ListingDetail";

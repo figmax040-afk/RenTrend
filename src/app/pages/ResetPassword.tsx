@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router";
-import { Lock, AlertCircle, CheckCircle } from "lucide-react";
+import { useNavigate, useSearchParams, Link } from "react-router";
+import { Lock, AlertCircle } from "lucide-react";
 import { useI18n } from "../components/i18n";
 import { supabase } from "../../lib/supabase";
 import { IMAGES } from "../components/data";
@@ -11,20 +11,24 @@ const logoImg = "https://placehold.co/400x300?text=RenTrend";
 export function ResetPassword() {
   const navigate = useNavigate();
   const { t } = useI18n();
-  const [ready,    setReady]    = useState(false);
+  const [searchParams] = useSearchParams();
+  const [status, setStatus] = useState<"verifying" | "ready" | "error">("verifying");
   const [password, setPassword] = useState("");
   const [confirm,  setConfirm]  = useState("");
   const [loading,  setLoading]  = useState(false);
   const [error,    setError]    = useState("");
-  const [done,     setDone]     = useState(false);
 
   useEffect(() => {
-    // Supabase fires PASSWORD_RECOVERY when user arrives via the reset link
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === "PASSWORD_RECOVERY") setReady(true);
+    const token_hash = searchParams.get("token_hash");
+    const type       = searchParams.get("type");
+    if (!token_hash || type !== "recovery") {
+      setStatus("error");
+      return;
+    }
+    supabase.auth.verifyOtp({ token_hash, type: "recovery" }).then(({ error: e }) => {
+      setStatus(e ? "error" : "ready");
     });
-    return () => subscription.unsubscribe();
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function handleUpdate() {
     setError("");
@@ -42,8 +46,7 @@ export function ResetPassword() {
     if (updateError) {
       setError(updateError.message);
     } else {
-      setDone(true);
-      setTimeout(() => navigate("/login"), 2000);
+      navigate("/login", { state: { successBanner: "Password updated successfully — please log in" } });
     }
   }
 
@@ -61,16 +64,23 @@ export function ResetPassword() {
       <div className="flex-1 flex flex-col px-6 max-w-md mx-auto w-full pt-8">
         <h1 className="text-[#1B3D1B] mb-2" style={{ fontSize: 26 }}>Set new password</h1>
 
-        {done ? (
-          <div className="flex flex-col items-center py-10 gap-3">
-            <CheckCircle size={40} className="text-[#22C55E]" />
-            <p className="text-[#1F2937] text-sm text-center">{t("passwordUpdated")}</p>
+        {status === "verifying" && (
+          <p className="text-[#6B7280] text-sm mt-4">Verifying reset link…</p>
+        )}
+
+        {status === "error" && (
+          <div className="mt-4 space-y-4">
+            <div className="flex items-center gap-2 bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-xl">
+              <AlertCircle size={16} />
+              This reset link has expired or is invalid. Please request a new one.
+            </div>
+            <Link to="/login" className="block text-center text-sm text-[#1E6B1E] font-medium">
+              Back to Login
+            </Link>
           </div>
-        ) : !ready ? (
-          <p className="text-[#6B7280] text-sm mt-4">
-            Waiting for the reset link… Make sure you opened this page from the link in your email.
-          </p>
-        ) : (
+        )}
+
+        {status === "ready" && (
           <div className="space-y-4 mt-4">
             {error && (
               <div className="flex items-center gap-2 bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-xl">

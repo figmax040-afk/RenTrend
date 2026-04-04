@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate, useLocation } from "react-router";
-import { Mail, Lock, ArrowLeft, Globe, AlertCircle, User, Phone, MailCheck } from "lucide-react";
+import { Mail, Lock, ArrowLeft, Globe, AlertCircle, User, Phone, MailCheck, CheckCircle } from "lucide-react";
 import { useI18n } from "../components/i18n";
 import { IMAGES } from "../components/data";
 import { ImageWithFallback } from "../components/figma/ImageWithFallback";
@@ -29,12 +29,13 @@ function AuthHero() {
 export function SignUp() {
   const navigate = useNavigate();
   const { t, lang, setLang } = useI18n();
-  const [name,     setName]     = useState("");
-  const [phone,    setPhone]    = useState("");
-  const [email,    setEmail]    = useState("");
-  const [password, setPassword] = useState("");
-  const [loading,  setLoading]  = useState(false);
-  const [error,    setError]    = useState("");
+  const [name,      setName]      = useState("");
+  const [phone,     setPhone]     = useState("");
+  const [email,     setEmail]     = useState("");
+  const [password,  setPassword]  = useState("");
+  const [loading,   setLoading]   = useState(false);
+  const [error,     setError]     = useState("");
+  const [emailSent, setEmailSent] = useState(false);
 
   async function handleSignUp() {
     setError("");
@@ -56,11 +57,35 @@ export function SignUp() {
     if (signUpError) {
       setError(signUpError.message);
     } else if (data.session === null) {
-      // Email confirmation required
-      navigate("/verify-email", { state: { email } });
+      // Email confirmation required — show inline confirmation
+      setEmailSent(true);
     } else {
       navigate("/home");
     }
+  }
+
+  if (emailSent) {
+    return (
+      <div className="min-h-screen bg-[#F9FAFB] flex flex-col">
+        <AuthHero />
+        <div className="flex-1 flex flex-col items-center justify-center px-6 max-w-md mx-auto w-full gap-4 text-center">
+          <div className="w-20 h-20 rounded-full bg-[#1E6B1E]/10 flex items-center justify-center">
+            <CheckCircle size={40} className="text-[#1E6B1E]" />
+          </div>
+          <h1 className="text-[#1B3D1B]" style={{ fontSize: 26 }}>Check your email</h1>
+          <p className="text-[#6B7280] text-sm">
+            We sent a confirmation link to <span className="text-[#1E6B1E] font-medium">{email}</span>. Click it to activate your account.
+          </p>
+          <p className="text-[#9CA3AF] text-xs">Didn't receive it? Check your spam folder.</p>
+          <button
+            onClick={() => navigate("/login")}
+            className="w-full py-3 bg-white text-[#1E6B1E] rounded-xl border border-[#C8E6C9] hover:bg-[#F0F7F0] transition-colors mt-2"
+          >
+            {t("backToLogin")}
+          </button>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -158,6 +183,7 @@ export function SignUp() {
 /* ── Log In ── */
 export function Login() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { t, lang, setLang } = useI18n();
   const [email,         setEmail]         = useState("");
   const [password,      setPassword]      = useState("");
@@ -168,6 +194,8 @@ export function Login() {
   const [forgotLoading, setForgotLoading] = useState(false);
   const [forgotSent,    setForgotSent]    = useState(false);
   const [forgotError,   setForgotError]   = useState("");
+
+  const successBanner = (location.state as { successBanner?: string })?.successBanner ?? "";
 
   async function handleLogin() {
     setError("");
@@ -225,6 +253,13 @@ export function Login() {
 
       <div className="flex-1 flex flex-col px-6 max-w-md mx-auto w-full pt-6">
         <h1 className="text-[#1B3D1B] mb-6" style={{ fontSize: 26 }}>{t("logIn")}</h1>
+
+        {successBanner && (
+          <div className="flex items-center gap-2 bg-green-50 border border-green-200 text-green-700 text-sm px-4 py-3 rounded-xl mb-4">
+            <CheckCircle size={16} />
+            {successBanner}
+          </div>
+        )}
 
         {error && (
           <div className="flex items-center gap-2 bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-xl mb-4">
