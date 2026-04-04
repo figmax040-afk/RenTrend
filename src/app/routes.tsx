@@ -19,12 +19,14 @@ import { AdminListings } from "./pages/AdminListings";
 import { AdminApprovals } from "./pages/AdminApprovals";
 import { AdminRequests } from "./pages/AdminRequests";
 import { AdminRecycling } from "./pages/AdminRecycling";
+import { ResetPassword } from "./pages/ResetPassword";
 
 export const router = createBrowserRouter([
   { path: "/", Component: Onboarding },
   { path: "/signup", Component: SignUp },
   { path: "/login", Component: Login },
   { path: "/verify-email", Component: VerifyEmail },
+  { path: "/reset-password", Component: ResetPassword },
   {
     Component: Layout,
     children: [

@@ -80,7 +80,7 @@ export function SignUp() {
       <AuthHero />
 
       <div className="flex-1 flex flex-col px-6 max-w-md mx-auto w-full pt-6">
-        <h1 className="text-[#1B3D1B] mb-1" style={{ fontSize: 26 }}>{t("signUp")}</h1>
+        <h1 className="text-[#1B3D1B] mb-1" style={{ fontSize: 26 }}>Join RenTrend</h1>
         <p className="text-[#6B7280] text-sm mb-6">{t("verifyStudent")}</p>
 
         {error && (
@@ -123,7 +123,6 @@ export function SignUp() {
               className="w-full pl-10 pr-4 py-3 rounded-xl border border-[#C8E6C9] bg-white focus:outline-none focus:border-[#1E6B1E] text-sm"
             />
           </div>
-          <p className="text-[10px] text-[#6B7280] -mt-2 ml-1">e.g. student@connect.hku.hk</p>
 
           <div className="relative">
             <Lock size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#6B7280]" />
@@ -160,10 +159,15 @@ export function SignUp() {
 export function Login() {
   const navigate = useNavigate();
   const { t, lang, setLang } = useI18n();
-  const [email,    setEmail]    = useState("");
-  const [password, setPassword] = useState("");
-  const [loading,  setLoading]  = useState(false);
-  const [error,    setError]    = useState("");
+  const [email,         setEmail]         = useState("");
+  const [password,      setPassword]      = useState("");
+  const [loading,       setLoading]       = useState(false);
+  const [error,         setError]         = useState("");
+  const [showForgot,    setShowForgot]    = useState(false);
+  const [forgotEmail,   setForgotEmail]   = useState("");
+  const [forgotLoading, setForgotLoading] = useState(false);
+  const [forgotSent,    setForgotSent]    = useState(false);
+  const [forgotError,   setForgotError]   = useState("");
 
   async function handleLogin() {
     setError("");
@@ -183,6 +187,24 @@ export function Login() {
     } else {
       navigate("/home");
     }
+  }
+
+  async function handleForgot() {
+    setForgotError("");
+    if (!forgotEmail) { setForgotError("Please enter your email."); return; }
+    setForgotLoading(true);
+    const { error: resetError } = await supabase.auth.resetPasswordForEmail(forgotEmail, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+    setForgotLoading(false);
+    if (resetError) { setForgotError(resetError.message); } else { setForgotSent(true); }
+  }
+
+  function openForgot() {
+    setForgotEmail(email);
+    setForgotSent(false);
+    setForgotError("");
+    setShowForgot(true);
   }
 
   return (
@@ -235,8 +257,49 @@ export function Login() {
           </div>
 
           <div className="text-right">
-            <button className="text-sm text-[#1E6B1E]">{t("forgotPassword")}</button>
+            <button onClick={openForgot} className="text-sm text-[#1E6B1E]">{t("forgotPassword")}</button>
           </div>
+
+          {/* Forgot password inline panel */}
+          {showForgot && (
+            <div className="bg-[#F0F7F0] border border-[#C8E6C9] rounded-xl p-4 space-y-3">
+              <p className="text-sm" style={{ fontWeight: 500 }}>Reset your password</p>
+              {forgotSent ? (
+                <div className="flex items-center gap-2 text-green-700 text-sm">
+                  <MailCheck size={16} />
+                  {t("resetPasswordSent")}
+                </div>
+              ) : (
+                <>
+                  {forgotError && (
+                    <div className="flex items-center gap-2 bg-red-50 border border-red-200 text-red-700 text-xs px-3 py-2 rounded-xl">
+                      <AlertCircle size={14} />{forgotError}
+                    </div>
+                  )}
+                  <div className="relative">
+                    <Mail size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#6B7280]" />
+                    <input
+                      type="email"
+                      placeholder={t("email")}
+                      value={forgotEmail}
+                      onChange={(e) => setForgotEmail(e.target.value)}
+                      className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-[#C8E6C9] bg-white focus:outline-none focus:border-[#1E6B1E] text-sm"
+                    />
+                  </div>
+                  <button
+                    onClick={handleForgot}
+                    disabled={forgotLoading}
+                    className="w-full py-2.5 bg-[#1E6B1E] text-white rounded-xl text-sm disabled:opacity-60"
+                  >
+                    {forgotLoading ? "Sending..." : t("sendResetLink")}
+                  </button>
+                </>
+              )}
+              <button onClick={() => setShowForgot(false)} className="text-xs text-[#6B7280] w-full text-center">
+                {t("backToLogin")}
+              </button>
+            </div>
+          )}
 
           <button
             onClick={handleLogin}

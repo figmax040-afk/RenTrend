@@ -2,6 +2,16 @@ import { useState } from "react";
 import { useNavigate } from "react-router";
 import { Heart, MapPin } from "lucide-react";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
+import { useI18n } from "./i18n";
+
+const categoryKeyMap: Record<string, string> = {
+  kitchen: "kitchen",
+  electronics: "electronics",
+  furniture: "furniture",
+  camera: "camera",
+  cooling: "cooling",
+  other: "other",
+};
 
 interface ListingCardProps {
   id: string | number;
@@ -16,7 +26,9 @@ interface ListingCardProps {
 
 export function ListingCard({ id, image, title, price, distance, category, available = true, large = false }: ListingCardProps) {
   const navigate = useNavigate();
+  const { t } = useI18n();
   const [liked, setLiked] = useState(false);
+  const categoryLabel = t(categoryKeyMap[category.toLowerCase()] ?? category);
   return (
     <div
       onClick={() => navigate(`/listing/${id}`)}
@@ -35,7 +47,7 @@ export function ListingCard({ id, image, title, price, distance, category, avail
         )}
       </div>
       <div className="p-3">
-        <p className="text-sm text-[#6B7280] mb-0.5">{category}</p>
+        <p className="text-sm text-[#6B7280] mb-0.5">{categoryLabel}</p>
         <h4 className="text-sm truncate" style={{ fontWeight: 500 }}>{title}</h4>
         <div className="flex items-center justify-between mt-1.5">
           <span className="text-[#1E6B1E]" style={{ fontWeight: 600, fontSize: 14 }}>HK${price}<span className="text-[#6B7280]" style={{ fontWeight: 400, fontSize: 11 }}>/day</span></span>
