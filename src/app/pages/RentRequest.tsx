@@ -91,7 +91,7 @@ export function RentRequest() {
         .single();
 
       if (data) {
-        if (data.owner_id === user.id) { navigate("/my-listings"); return; }
+        if (data.owner_id === user.id) { navigate("/activity?tab=listings"); return; }
         setListing({
           id: data.id,
           owner_id: data.owner_id,
@@ -181,7 +181,7 @@ export function RentRequest() {
         </div>
         <h1 className="text-[#1F2937] mb-2" style={{ fontSize: 22 }}>{t("requestSent")}</h1>
         <p className="text-[#6B7280] text-sm mb-6">{t("requestSentMsg")}</p>
-        <button onClick={() => navigate("/my-requests")} className="w-full max-w-xs py-3 bg-[#1E6B1E] text-white rounded-xl mb-3">{t("viewMyRequests")}</button>
+        <button onClick={() => navigate("/activity?tab=requests")} className="w-full max-w-xs py-3 bg-[#1E6B1E] text-white rounded-xl mb-3">{t("viewMyRequests")}</button>
         <button onClick={() => navigate("/browse")} className="text-sm text-[#1E6B1E]">{t("backToBrowse")}</button>
       </div>
     );

@@ -1,23 +1,50 @@
+import { useState, useEffect } from "react";
 import { Outlet, useNavigate, useLocation } from "react-router";
 import { Home, Search, PlusCircle, Package, User, Globe } from "lucide-react";
 import { useI18n } from "./i18n";
+import { supabase } from "../../lib/supabase";
 const logoImg = "https://placehold.co/400x300?text=RenTrend";
 
 // Brand colour palette derived from the RenTrend logo greens
 // Primary: #1E6B1E  |  Hover: #155215  |  Light tint: rgba(30,107,30,0.1)
 
 const navItems = [
-  { key: "home",      icon: Home,       path: "/home" },
-  { key: "browse",    icon: Search,     path: "/browse" },
-  { key: "listItem",  icon: PlusCircle, path: "/create" },
-  { key: "myListings",icon: Package,    path: "/my-listings" },
-  { key: "profile",   icon: User,       path: "/profile" },
+  { key: "home",     icon: Home,       path: "/home" },
+  { key: "browse",   icon: Search,     path: "/browse" },
+  { key: "listItem", icon: PlusCircle, path: "/create" },
+  { key: "activity", icon: Package,    path: "/activity" },
+  { key: "profile",  icon: User,       path: "/profile" },
 ];
 
 export function Layout() {
   const navigate  = useNavigate();
   const location  = useLocation();
   const { t, lang, setLang } = useI18n();
+  const [pendingCount, setPendingCount] = useState(0);
+
+  useEffect(() => {
+    async function checkPending() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: listings } = await supabase
+        .from("listings")
+        .select("id")
+        .eq("owner_id", user.id);
+
+      const listingIds = (listings || []).map((l) => l.id);
+      if (listingIds.length === 0) return;
+
+      const { count } = await supabase
+        .from("requests")
+        .select("id", { count: "exact", head: true })
+        .in("listing_id", listingIds)
+        .eq("status", "pending");
+
+      setPendingCount(count || 0);
+    }
+    checkPending();
+  }, []);
 
   return (
     <div className="flex flex-col min-h-screen bg-[#F9FAFB]">
@@ -45,7 +72,14 @@ export function Layout() {
                     : "text-[#6B7280] hover:text-[#1E6B1E]"
                 }`}
               >
-                <item.icon size={18} />
+                <div className="relative">
+                  <item.icon size={18} />
+                  {item.key === "activity" && pendingCount > 0 && (
+                    <span className="absolute -top-1 -right-1 w-4 h-4 bg-[#EF4444] text-white rounded-full flex items-center justify-center text-[8px] font-medium">
+                      {pendingCount > 9 ? "9+" : pendingCount}
+                    </span>
+                  )}
+                </div>
                 <span className="text-sm">{t(item.key)}</span>
               </button>
             );
@@ -79,7 +113,14 @@ export function Layout() {
                 active ? "text-[#1E6B1E]" : "text-[#6B7280]"
               }`}
             >
-              <item.icon size={20} />
+              <div className="relative">
+                <item.icon size={20} />
+                {item.key === "activity" && pendingCount > 0 && (
+                  <span className="absolute -top-1 -right-1 w-4 h-4 bg-[#EF4444] text-white rounded-full flex items-center justify-center text-[8px] font-medium">
+                    {pendingCount > 9 ? "9+" : pendingCount}
+                  </span>
+                )}
+              </div>
               <span style={{ fontSize: 10 }}>{t(item.key)}</span>
             </button>
           );

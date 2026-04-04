@@ -59,7 +59,7 @@ function ownerDisplayName(owner: { name: string | null; email: string | null } |
   return "Owner";
 }
 
-export function MyRequests() {
+export function MyRequestsContent() {
   const { t, lang } = useI18n();
   const navigate = useNavigate();
   const [requests, setRequests] = useState<EnrichedRequest[]>([]);
@@ -143,7 +143,7 @@ export function MyRequests() {
 
   if (error) {
     return (
-      <div className="max-w-lg mx-auto px-4 pt-8 text-center">
+      <div className="py-8 text-center">
         <p className="text-red-600 text-sm bg-red-50 border border-red-200 px-4 py-3 rounded-xl mb-3">{error}</p>
         <button onClick={() => window.location.reload()} className="text-sm text-[#1E6B1E]">{lang === "zh" ? "重試" : "Try again"}</button>
       </div>
@@ -163,8 +163,7 @@ export function MyRequests() {
   };
 
   return (
-    <div className="max-w-lg mx-auto px-4 pt-4" onClick={() => setMenuOpen(null)}>
-      <h2 className="text-[#1F2937] mb-4">{t("myRentalRequests")}</h2>
+    <div onClick={() => setMenuOpen(null)}>
       <div className="flex gap-2 mb-4">
         {tabs.map((tb) => (
           <button key={tb} onClick={() => setTab(tb)}
@@ -298,4 +297,10 @@ export function MyRequests() {
       )}
     </div>
   );
+}
+
+export function MyRequests() {
+  const navigate = useNavigate();
+  useEffect(() => { navigate("/activity?tab=requests", { replace: true }); }, [navigate]);
+  return null;
 }

@@ -84,7 +84,7 @@ export function EditListing() {
         .eq("owner_id", user.id)
         .single();
 
-      if (error || !data) { navigate("/my-listings"); return; }
+      if (error || !data) { navigate("/activity?tab=listings"); return; }
 
       // Pre-fill Step 1
       setTitle(data.title ?? "");
@@ -247,7 +247,7 @@ export function EditListing() {
         </div>
         <h1 className="text-[#1F2937] mb-2" style={{ fontSize: 22 }}>{t("listingUpdated")}</h1>
         <p className="text-[#6B7280] text-sm mb-6">{title}</p>
-        <button onClick={() => navigate("/my-listings")} className="py-3 px-8 bg-[#1E6B1E] text-white rounded-xl">{t("myListings")}</button>
+        <button onClick={() => navigate("/activity?tab=listings")} className="py-3 px-8 bg-[#1E6B1E] text-white rounded-xl">{t("myListings")}</button>
       </div>
     );
   }
@@ -256,7 +256,7 @@ export function EditListing() {
     <div className="min-h-screen bg-[#F9FAFB]">
       <div className="max-w-lg mx-auto px-4 pt-4">
         <div className="flex items-center gap-3 mb-6">
-          <button onClick={() => navigate("/my-listings")} className="text-[#6B7280]"><ArrowLeft size={20} /></button>
+          <button onClick={() => navigate("/activity?tab=listings")} className="text-[#6B7280]"><ArrowLeft size={20} /></button>
           <h2 className="text-[#1F2937]">{t("editListing")}</h2>
         </div>
 
@@ -430,7 +430,7 @@ export function EditListing() {
             <button onClick={handleSave} disabled={saving} className="w-full py-3 bg-[#1E6B1E] text-white rounded-xl disabled:opacity-60">
               {saving ? "Saving..." : t("saveChanges")}
             </button>
-            <button onClick={() => navigate("/my-listings")} className="w-full py-3 border border-[#E5E7EB] rounded-xl text-sm text-[#6B7280]">
+            <button onClick={() => navigate("/activity?tab=listings")} className="w-full py-3 border border-[#E5E7EB] rounded-xl text-sm text-[#6B7280]">
               {t("back")}
             </button>
           </div>

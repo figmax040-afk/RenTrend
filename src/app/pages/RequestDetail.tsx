@@ -78,7 +78,7 @@ export function RequestDetail() {
         .single();
 
       if (listingErr || !listingData) {
-        navigate("/my-listings");
+        navigate("/activity?tab=listings");
         return;
       }
       setListing(listingData);

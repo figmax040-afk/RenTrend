@@ -7,6 +7,7 @@ const translations: Record<string, Record<Lang, string>> = {
   home:      { en: "Home",      zh: "首頁" },
   browse:    { en: "Browse",    zh: "瀏覽" },
   listItem:  { en: "List Item", zh: "刊登物品" },
+  activity:  { en: "Activity",  zh: "動態" },
   myListings:{ en: "My Listings", zh: "我的物品" },
   requests:  { en: "Requests",  zh: "租賃請求" },
   profile:   { en: "Profile",   zh: "個人資料" },

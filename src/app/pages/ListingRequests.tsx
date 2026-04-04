@@ -92,7 +92,7 @@ export function ListingRequests() {
         .single();
 
       if (listingErr || !listingData) {
-        navigate("/my-listings");
+        navigate("/activity?tab=listings");
         return;
       }
       setListing(listingData);
@@ -175,7 +175,7 @@ export function ListingRequests() {
     <div className="max-w-lg mx-auto px-4 pt-4 pb-10">
       {/* Header */}
       <div className="flex items-center gap-3 mb-4">
-        <button onClick={() => navigate("/my-listings")} className="text-[#6B7280]">
+        <button onClick={() => navigate("/activity?tab=listings")} className="text-[#6B7280]">
           <ArrowLeft size={20} />
         </button>
         <h2 className="text-[#1F2937] truncate flex-1" style={{ fontWeight: 600 }}>

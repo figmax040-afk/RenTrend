@@ -16,7 +16,7 @@ type DbListing = {
   is_active: boolean;
 };
 
-export function MyListings() {
+export function MyListingsContent() {
   const navigate = useNavigate();
   const { t, lang } = useI18n();
   const { user, loading: authLoading } = useAuth();
@@ -82,7 +82,7 @@ export function MyListings() {
   }
 
   return (
-    <div className="max-w-lg mx-auto px-4 pt-4" onClick={() => setMenuOpen(null)}>
+    <div onClick={() => setMenuOpen(null)}>
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-[#1F2937]">{t("myListings")}</h2>
         <button onClick={() => navigate("/create")} className="flex items-center gap-1 px-3 py-1.5 bg-[#1E6B1E] text-white rounded-lg text-sm">
@@ -223,4 +223,10 @@ export function MyListings() {
       )}
     </div>
   );
+}
+
+export function MyListings() {
+  const navigate = useNavigate();
+  useEffect(() => { navigate("/activity?tab=listings", { replace: true }); }, [navigate]);
+  return null;
 }

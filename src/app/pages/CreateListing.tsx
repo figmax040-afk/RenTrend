@@ -190,7 +190,7 @@ export function CreateListing() {
         </div>
         <h1 className="text-[#1F2937] mb-2" style={{ fontSize: 22 }}>{t("publishListing")}</h1>
         <p className="text-[#6B7280] text-sm mb-6">{title}</p>
-        <button onClick={() => navigate("/my-listings")} className="py-3 px-8 bg-[#1E6B1E] text-white rounded-xl">{t("myListings")}</button>
+        <button onClick={() => navigate("/activity?tab=listings")} className="py-3 px-8 bg-[#1E6B1E] text-white rounded-xl">{t("myListings")}</button>
       </div>
     );
   }

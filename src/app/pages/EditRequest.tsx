@@ -59,8 +59,8 @@ export function EditRequest() {
         .eq("id", requestId)
         .single();
 
-      if (reqErr || !req) { navigate("/my-requests"); return; }
-      if (req.renter_id !== user.id) { navigate("/my-requests"); return; }
+      if (reqErr || !req) { navigate("/activity?tab=requests"); return; }
+      if (req.renter_id !== user.id) { navigate("/activity?tab=requests"); return; }
       if (req.status !== "pending") { navigate(`/my-requests/${requestId}`); return; }
 
       // Pre-fill
@@ -129,7 +129,7 @@ export function EditRequest() {
     return (
       <div className="max-w-lg mx-auto px-4 pt-8 text-center">
         <p className="text-[#6B7280] text-sm">{error || (lang === "zh" ? "找不到請求" : "Request not found.")}</p>
-        <button onClick={() => navigate("/my-requests")} className="mt-4 text-[#1E6B1E] text-sm">← {lang === "zh" ? "返回" : "Back"}</button>
+        <button onClick={() => navigate("/activity?tab=requests")} className="mt-4 text-[#1E6B1E] text-sm">← {lang === "zh" ? "返回" : "Back"}</button>
       </div>
     );
   }

@@ -94,7 +94,7 @@ export function RequestView() {
       }
 
       if (req.renter_id !== user.id) {
-        navigate("/my-requests");
+        navigate("/activity?tab=requests");
         return;
       }
 
@@ -147,7 +147,7 @@ export function RequestView() {
       return;
     }
 
-    navigate("/my-requests");
+    navigate("/activity?tab=requests");
   }
 
   if (loading) {
@@ -167,7 +167,7 @@ export function RequestView() {
         <button onClick={load} className="text-sm text-[#1E6B1E] mb-2 block">
           {lang === "zh" ? "重試" : "Try again"}
         </button>
-        <button onClick={() => navigate("/my-requests")} className="text-sm text-[#6B7280]">
+        <button onClick={() => navigate("/activity?tab=requests")} className="text-sm text-[#6B7280]">
           ← {lang === "zh" ? "返回" : "Back"}
         </button>
       </div>
@@ -184,7 +184,7 @@ export function RequestView() {
     <div className="max-w-lg mx-auto px-4 pt-4 pb-10">
       {/* Header */}
       <div className="flex items-center gap-3 mb-4">
-        <button onClick={() => navigate("/my-requests")} className="text-[#6B7280]">
+        <button onClick={() => navigate("/activity?tab=requests")} className="text-[#6B7280]">
           <ArrowLeft size={20} />
         </button>
         <h2 className="text-[#1F2937]" style={{ fontWeight: 600 }}>
