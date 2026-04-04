@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router";
-import { ArrowLeft, Camera, ChefHat, Monitor, Sofa, Camera as CameraIcon, Wind, MoreHorizontal, CheckCircle } from "lucide-react";
+import { ArrowLeft, Camera, X, ChefHat, Monitor, Sofa, Camera as CameraIcon, Wind, MoreHorizontal, CheckCircle } from "lucide-react";
 import { useI18n } from "../components/i18n";
 import { supabase } from "../../lib/supabase";
 
@@ -16,22 +16,47 @@ const catIcons = [
 const stepKeys = ["details", "pricing", "availability", "review"];
 const conditions = ["worksPerf", "minorIssues", "forParts"];
 
+const BRANDS = [
+  "Philips", "Panasonic", "Sony", "Samsung", "LG", "Xiaomi", "Dyson",
+  "Tefal", "Midea", "Cornell", "Sharp", "IKEA", "Canon", "Nikon",
+  "Fujifilm", "GoPro", "Honeywell", "Mistral", "Other / Unlisted brand",
+];
+
 export function CreateListing() {
   const navigate = useNavigate();
   const { t } = useI18n();
+
+  // Step state
   const [step, setStep] = useState(0);
-  const [title, setTitle] = useState("");
-  const [cat, setCat] = useState("");
-  const [cond, setCond] = useState("worksPerf");
-  const [desc, setDesc] = useState("");
-  const [daily, setDaily] = useState("");
-  const [weekly, setWeekly] = useState("");
+
+  // Step 1 — Details
+  const [photos, setPhotos]           = useState<(string | null)[]>([null, null, null]);
+  const [imageUrls, setImageUrls]     = useState<(string | null)[]>([null, null, null]);
+  const [uploading, setUploading]     = useState<boolean[]>([false, false, false]);
+  const [uploadErrors, setUploadErrors] = useState<(string | null)[]>([null, null, null]);
+  const fileRefs = useRef<(HTMLInputElement | null)[]>([null, null, null]);
+
+  const [title, setTitle]             = useState("");
+  const [brand, setBrand]             = useState("");
+  const [customBrand, setCustomBrand] = useState("");
+  const [cat, setCat]                 = useState("");
+  const [cond, setCond]               = useState("worksPerf");
+  const [damagedParts, setDamagedParts] = useState("");
+  const [desc, setDesc]               = useState("");
+
+  // Step 2 — Pricing
+  const [daily, setDaily]     = useState("");
+  const [weekly, setWeekly]   = useState("");
   const [monthly, setMonthly] = useState("");
   const [deposit, setDeposit] = useState("");
-  const [avail, setAvail] = useState(true);
+
+  // Step 3 — Availability
+  const [avail, setAvail]       = useState(true);
   const [location, setLocation] = useState("");
-  const [published, setPublished] = useState(false);
-  const [publishing, setPublishing] = useState(false);
+
+  // Publish state
+  const [published, setPublished]       = useState(false);
+  const [publishing, setPublishing]     = useState(false);
   const [publishError, setPublishError] = useState("");
 
   useEffect(() => {
@@ -40,17 +65,55 @@ export function CreateListing() {
     });
   }, [navigate]);
 
+  async function handleFileSelect(index: number, file: File) {
+    // Clear previous error
+    setUploadErrors((e) => { const n = [...e]; n[index] = null; return n; });
+    setUploading((u) => { const n = [...u]; n[index] = true; return n; });
+
+    // Local preview immediately
+    const previewUrl = URL.createObjectURL(file);
+    setPhotos((p) => { const n = [...p]; n[index] = previewUrl; return n; });
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { setUploading((u) => { const n = [...u]; n[index] = false; return n; }); return; }
+
+    const path = `${user.id}/${Date.now()}_${file.name.replace(/\s+/g, "_")}`;
+    const { error } = await supabase.storage.from("listings").upload(path, file);
+
+    if (error) {
+      setPhotos((p) => { const n = [...p]; n[index] = null; return n; });
+      setUploadErrors((e) => { const n = [...e]; n[index] = error.message; return n; });
+    } else {
+      const { data: { publicUrl } } = supabase.storage.from("listings").getPublicUrl(path);
+      setImageUrls((u) => { const n = [...u]; n[index] = publicUrl; return n; });
+    }
+
+    setUploading((u) => { const n = [...u]; n[index] = false; return n; });
+  }
+
+  function removePhoto(index: number) {
+    setPhotos((p) => { const n = [...p]; n[index] = null; return n; });
+    setImageUrls((u) => { const n = [...u]; n[index] = null; return n; });
+    setUploadErrors((e) => { const n = [...e]; n[index] = null; return n; });
+    if (fileRefs.current[index]) fileRefs.current[index]!.value = "";
+  }
+
   async function handlePublish() {
     setPublishError("");
     setPublishing(true);
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { navigate("/login"); return; }
 
+    const finalBrand = brand === "Other / Unlisted brand" ? customBrand : brand;
+    const urls = imageUrls.filter((u): u is string => u !== null);
+
     const { error } = await supabase.from("listings").insert({
       owner_id: user.id,
       title,
+      brand: finalBrand || null,
       category: cat,
       condition: t(cond),
+      damaged_parts: cond === "forParts" ? damagedParts : null,
       description: desc,
       price_per_day: Number(daily),
       price_weekly: weekly ? Number(weekly) : null,
@@ -59,15 +122,15 @@ export function CreateListing() {
       district: location || null,
       is_active: avail,
       currency: "HKD",
+      image_url: urls[0] ?? null,
+      images: urls.length > 0 ? urls : null,
     });
 
     setPublishing(false);
-    if (error) {
-      setPublishError(error.message);
-    } else {
-      setPublished(true);
-    }
+    if (error) { setPublishError(error.message); } else { setPublished(true); }
   }
+
+  const step1NextDisabled = !title || !cat || (cond === "forParts" && !damagedParts);
 
   if (published) {
     return (
@@ -97,18 +160,87 @@ export function CreateListing() {
           ))}
         </div>
 
-        {/* Step 1 - Details */}
+        {/* Step 1 — Details */}
         {step === 0 && (
           <div className="space-y-4">
+            {/* Photo slots */}
             <div className="grid grid-cols-3 gap-2">
               {[0, 1, 2].map((i) => (
-                <div key={i} className="aspect-square rounded-xl border-2 border-dashed border-[#E5E7EB] flex flex-col items-center justify-center text-[#6B7280]">
-                  <Camera size={20} />
-                  <span className="text-[10px] mt-1">{i === 0 ? t("addPhotos") : `#${i + 1}`}</span>
+                <div key={i} className="relative">
+                  <input
+                    ref={(el) => { fileRefs.current[i] = el; }}
+                    type="file"
+                    accept="image/*,.heic,.heif"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) handleFileSelect(i, file);
+                    }}
+                  />
+                  <div className="aspect-square rounded-xl border-2 border-dashed border-[#E5E7EB] overflow-hidden bg-[#F9FAFB]">
+                    {uploading[i] ? (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <div className="w-6 h-6 border-2 border-[#1E6B1E] border-t-transparent rounded-full animate-spin" />
+                      </div>
+                    ) : photos[i] ? (
+                      <div className="relative w-full h-full">
+                        <img src={photos[i]!} alt="" className="w-full h-full object-cover" />
+                        <button
+                          type="button"
+                          onClick={() => removePhoto(i)}
+                          className="absolute top-1 right-1 w-5 h-5 bg-black/60 rounded-full flex items-center justify-center"
+                        >
+                          <X size={10} className="text-white" />
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => fileRefs.current[i]?.click()}
+                        className="w-full h-full flex flex-col items-center justify-center text-[#6B7280]"
+                      >
+                        <Camera size={20} />
+                        <span className="text-[10px] mt-1">{i === 0 ? t("addPhotos") : `#${i + 1}`}</span>
+                      </button>
+                    )}
+                  </div>
+                  {uploadErrors[i] && (
+                    <p className="text-[9px] text-red-500 mt-0.5 text-center leading-tight">{uploadErrors[i]}</p>
+                  )}
                 </div>
               ))}
             </div>
-            <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder={t("title")} className="w-full px-4 py-2.5 rounded-xl border border-[#E5E7EB] bg-white text-sm focus:outline-none focus:border-[#1E6B1E]" />
+
+            {/* Title */}
+            <input
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder={t("title")}
+              className="w-full px-4 py-2.5 rounded-xl border border-[#E5E7EB] bg-white text-sm focus:outline-none focus:border-[#1E6B1E]"
+            />
+
+            {/* Brand */}
+            <div>
+              <label className="text-sm text-[#6B7280]">Brand <span className="text-[#9CA3AF]">(optional)</span></label>
+              <select
+                value={brand}
+                onChange={(e) => { setBrand(e.target.value); setCustomBrand(""); }}
+                className="w-full mt-1 px-4 py-2.5 rounded-xl border border-[#E5E7EB] bg-white text-sm focus:outline-none focus:border-[#1E6B1E]"
+              >
+                <option value="">Select brand</option>
+                {BRANDS.map((b) => <option key={b}>{b}</option>)}
+              </select>
+              {brand === "Other / Unlisted brand" && (
+                <input
+                  value={customBrand}
+                  onChange={(e) => setCustomBrand(e.target.value)}
+                  placeholder="Type brand name"
+                  className="w-full mt-2 px-4 py-2.5 rounded-xl border border-[#E5E7EB] bg-white text-sm focus:outline-none focus:border-[#1E6B1E]"
+                />
+              )}
+            </div>
+
+            {/* Category */}
             <div>
               <label className="text-sm text-[#6B7280]">{t("category")}</label>
               <div className="grid grid-cols-3 gap-2 mt-2">
@@ -124,6 +256,8 @@ export function CreateListing() {
                 ))}
               </div>
             </div>
+
+            {/* Condition */}
             <div>
               <label className="text-sm text-[#6B7280]">{t("condition")}</label>
               <div className="flex gap-2 mt-2">
@@ -137,19 +271,55 @@ export function CreateListing() {
                   </button>
                 ))}
               </div>
+              {cond === "forParts" && (
+                <div className="mt-2">
+                  <textarea
+                    value={damagedParts}
+                    onChange={(e) => setDamagedParts(e.target.value)}
+                    placeholder="e.g. The motor works but the heating element is broken"
+                    rows={2}
+                    className="w-full px-4 py-2.5 rounded-xl border border-[#E5E7EB] bg-white text-sm resize-none focus:outline-none focus:border-[#1E6B1E]"
+                  />
+                  <p className="text-[10px] text-[#6B7280] mt-0.5">Describe the damaged or non-working parts</p>
+                </div>
+              )}
             </div>
-            <textarea value={desc} onChange={(e) => setDesc(e.target.value)} placeholder={t("description")} rows={3} className="w-full px-4 py-2.5 rounded-xl border border-[#E5E7EB] bg-white text-sm resize-none focus:outline-none focus:border-[#1E6B1E]" />
+
+            {/* Description */}
+            <textarea
+              value={desc}
+              onChange={(e) => setDesc(e.target.value)}
+              placeholder={t("description")}
+              rows={3}
+              className="w-full px-4 py-2.5 rounded-xl border border-[#E5E7EB] bg-white text-sm resize-none focus:outline-none focus:border-[#1E6B1E]"
+            />
             <p className="text-right text-[10px] text-[#6B7280]">{desc.length}/500</p>
-            <button onClick={() => setStep(1)} disabled={!title || !cat} className="w-full py-3 bg-[#1E6B1E] text-white rounded-xl disabled:opacity-40">{t("next")}</button>
+
+            <button
+              onClick={() => setStep(1)}
+              disabled={step1NextDisabled}
+              className="w-full py-3 bg-[#1E6B1E] text-white rounded-xl disabled:opacity-40"
+            >
+              {t("next")}
+            </button>
           </div>
         )}
 
-        {/* Step 2 - Pricing */}
+        {/* Step 2 — Pricing */}
         {step === 1 && (
           <div className="space-y-4">
             <div>
               <label className="text-sm text-[#6B7280]">{t("dailyPrice")}</label>
-              <input type="number" value={daily} onChange={(e) => { setDaily(e.target.value); if (!weekly) setWeekly(String(Number(e.target.value) * 6)); if (!monthly) setMonthly(String(Number(e.target.value) * 25)); }} className="w-full mt-1 px-4 py-2.5 rounded-xl border border-[#E5E7EB] bg-white text-sm" />
+              <input
+                type="number"
+                value={daily}
+                onChange={(e) => {
+                  setDaily(e.target.value);
+                  if (!weekly) setWeekly(String(Number(e.target.value) * 6));
+                  if (!monthly) setMonthly(String(Number(e.target.value) * 25));
+                }}
+                className="w-full mt-1 px-4 py-2.5 rounded-xl border border-[#E5E7EB] bg-white text-sm"
+              />
             </div>
             <div>
               <label className="text-sm text-[#6B7280]">{t("weeklyPrice")}</label>
@@ -168,7 +338,7 @@ export function CreateListing() {
           </div>
         )}
 
-        {/* Step 3 - Availability & Location */}
+        {/* Step 3 — Availability & Location */}
         {step === 2 && (
           <div className="space-y-4">
             <div className="flex items-center justify-between p-3 rounded-xl bg-white border border-[#E5E7EB]">
@@ -192,12 +362,26 @@ export function CreateListing() {
           </div>
         )}
 
-        {/* Step 4 - Review */}
+        {/* Step 4 — Review */}
         {step === 3 && (
           <div className="space-y-4">
             <div className="p-4 rounded-xl bg-white border border-[#E5E7EB] space-y-2 text-sm">
+              {/* Photos preview */}
+              {photos.some((p) => p !== null) && (
+                <div className="flex gap-1.5 mb-3">
+                  {photos.filter((p) => p !== null).map((p, i) => (
+                    <img key={i} src={p!} alt="" className="w-14 h-14 rounded-lg object-cover" />
+                  ))}
+                </div>
+              )}
               <p style={{ fontWeight: 500 }}>{title}</p>
+              {(brand === "Other / Unlisted brand" ? customBrand : brand) && (
+                <p className="text-[#6B7280]">Brand: {brand === "Other / Unlisted brand" ? customBrand : brand}</p>
+              )}
               <p className="text-[#6B7280]">{t(cat)} · {t(cond)}</p>
+              {cond === "forParts" && damagedParts && (
+                <p className="text-[#6B7280] text-xs">Damaged: {damagedParts}</p>
+              )}
               <p className="text-[#1E6B1E]" style={{ fontWeight: 600 }}>HK${daily}/day · HK${weekly}/week · HK${monthly}/month</p>
               <p className="text-[#6B7280]">{t("deposit")}: HK${deposit}</p>
               <p className="text-[#6B7280]">{location}</p>

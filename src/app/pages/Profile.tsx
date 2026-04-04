@@ -12,25 +12,42 @@ export function Profile() {
   const [initials, setInitials] = useState("?");
   const [memberSince, setMemberSince] = useState("");
   const [loading, setLoading] = useState(true);
+  const [itemsListed, setItemsListed] = useState(0);
+  const [rentalsCompleted, setRentalsCompleted] = useState(0);
 
   useEffect(() => {
     async function loadUser() {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        navigate("/login");
-        return;
-      }
+      if (!user) { navigate("/login"); return; }
+
       const email = user.email ?? "";
       setEmail(email);
 
-      // Display name: use metadata name if set, otherwise derive from email
       const name = user.user_metadata?.name || email.split("@")[0];
       setDisplayName(name);
       setInitials(name.charAt(0).toUpperCase());
 
-      // Member since: format the created_at date
       const date = new Date(user.created_at);
       setMemberSince(date.toLocaleDateString("en-US", { month: "short", year: "numeric" }));
+
+      // Fetch real stats
+      const { data: userListings, count: listedCount } = await supabase
+        .from("listings")
+        .select("id", { count: "exact" })
+        .eq("owner_id", user.id);
+
+      setItemsListed(listedCount ?? 0);
+
+      const ids = (userListings ?? []).map((l) => l.id);
+      if (ids.length > 0) {
+        const { count: completedCount } = await supabase
+          .from("requests")
+          .select("id", { count: "exact", head: true })
+          .in("listing_id", ids)
+          .in("status", ["accepted", "completed"]);
+        setRentalsCompleted(completedCount ?? 0);
+      }
+
       setLoading(false);
     }
     loadUser();
@@ -68,13 +85,17 @@ export function Profile() {
       {/* Stats */}
       <div className="grid grid-cols-2 gap-3 mb-6">
         <div className="bg-white rounded-xl border border-[#E5E7EB] p-4 text-center">
-          <p className="text-2xl text-[#1E6B1E]" style={{ fontWeight: 600 }}>0</p>
+          <p className="text-2xl text-[#1E6B1E]" style={{ fontWeight: 600 }}>{itemsListed}</p>
           <p className="text-xs text-[#6B7280]">{t("itemsListed")}</p>
         </div>
-        <div className="bg-white rounded-xl border border-[#E5E7EB] p-4 text-center">
-          <p className="text-2xl text-[#1E6B1E]" style={{ fontWeight: 600 }}>0</p>
+        <button
+          onClick={() => navigate("/earnings")}
+          className="bg-white rounded-xl border border-[#E5E7EB] p-4 text-center hover:border-[#1E6B1E] transition-colors relative"
+        >
+          <p className="text-2xl text-[#1E6B1E]" style={{ fontWeight: 600 }}>{rentalsCompleted}</p>
           <p className="text-xs text-[#6B7280]">{t("rentalsCompleted")}</p>
-        </div>
+          <ChevronRight size={12} className="absolute top-2 right-2 text-[#D1D5DB]" />
+        </button>
       </div>
 
       {/* Menu */}

@@ -13,6 +13,7 @@ import { MyListings } from "./pages/MyListings";
 import { Profile } from "./pages/Profile";
 import { EditProfile } from "./pages/EditProfile";
 import { EmailPreferences } from "./pages/EmailPreferences";
+import { Earnings } from "./pages/Earnings";
 import { Admin } from "./pages/Admin";
 import { AdminListings } from "./pages/AdminListings";
 import { AdminApprovals } from "./pages/AdminApprovals";
@@ -38,6 +39,7 @@ export const router = createBrowserRouter([
       { path: "/profile", Component: Profile },
       { path: "/edit-profile", Component: EditProfile },
       { path: "/email-preferences", Component: EmailPreferences },
+      { path: "/earnings", Component: Earnings },
       { path: "/admin", Component: Admin },
       { path: "/admin/listings", Component: AdminListings },
       { path: "/admin/approvals", Component: AdminApprovals },
