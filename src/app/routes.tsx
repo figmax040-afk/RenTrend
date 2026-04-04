@@ -8,12 +8,14 @@ import { Browse } from "./pages/Browse";
 import { ListingDetail } from "./pages/ListingDetail";
 import { RentRequest } from "./pages/RentRequest";
 import { CreateListing } from "./pages/CreateListing";
+import { EditListing } from "./pages/EditListing";
 import { Recycle } from "./pages/Recycle";
 import { MyRequests } from "./pages/MyRequests";
 import { MyListings } from "./pages/MyListings";
 import { ListingRequests } from "./pages/ListingRequests";
 import { RequestDetail } from "./pages/RequestDetail";
 import { RequestView } from "./pages/RequestView";
+import { EditRequest } from "./pages/EditRequest";
 import { Profile } from "./pages/Profile";
 import { EditProfile } from "./pages/EditProfile";
 import { EmailPreferences } from "./pages/EmailPreferences";
@@ -42,7 +44,9 @@ export const router = createBrowserRouter([
       { path: "/recycle", Component: Recycle },
       { path: "/my-requests", Component: MyRequests },
       { path: "/my-requests/:requestId", Component: RequestView },
+      { path: "/my-requests/:requestId/edit", Component: EditRequest },
       { path: "/my-listings", Component: MyListings },
+      { path: "/my-listings/:listingId/edit", Component: EditListing },
       { path: "/my-listings/:listingId/requests", Component: ListingRequests },
       { path: "/my-listings/:listingId/requests/:requestId", Component: RequestDetail },
       { path: "/profile", Component: Profile },

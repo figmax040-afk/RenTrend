@@ -271,7 +271,7 @@ export function CreateListing() {
 
             {/* Brand */}
             <div>
-              <label className="text-sm text-[#6B7280]">Brand <span className="text-[#9CA3AF]">(optional)</span></label>
+              <label className="text-sm text-[#6B7280]">{t("brand")} <span className="text-[#9CA3AF]">(optional)</span></label>
               <select
                 value={brand}
                 onChange={(e) => { setBrand(e.target.value); setCustomBrand(""); }}

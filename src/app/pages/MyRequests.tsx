@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router";
 import { useI18n } from "../components/i18n";
 import { ImageWithFallback } from "../components/figma/ImageWithFallback";
-import { ChevronRight } from "lucide-react";
+import { MoreVertical } from "lucide-react";
 import { supabase } from "../../lib/supabase";
 
 const FALLBACK_IMAGE = "https://placehold.co/400x300?text=RenTrend";
@@ -36,7 +36,15 @@ const statusColor: Record<string, string> = {
   pending: "#F4A261",
   rejected: "#EF4444",
   completed: "#6B7280",
-  cancelled: "#6B7280",
+  cancelled: "#EF4444",
+};
+
+const statusKeyMap: Record<string, string> = {
+  pending: "pending",
+  accepted: "accepted",
+  rejected: "rejected",
+  cancelled: "cancelled",
+  completed: "completed",
 };
 
 function formatDateRange(start: string, end: string) {
@@ -58,16 +66,18 @@ export function MyRequests() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [tab, setTab] = useState<(typeof tabs)[number]>("active");
+  const [menuOpen, setMenuOpen] = useState<string | null>(null);
+  const [confirmCancel, setConfirmCancel] = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+  const [acting, setActing] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
     setError("");
-
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { navigate("/login"); return; }
 
-      // Step 1: fetch requests
       const { data: rawRequests, error: reqErr } = await supabase
         .from("requests")
         .select("*")
@@ -75,29 +85,19 @@ export function MyRequests() {
         .order("created_at", { ascending: false });
 
       if (reqErr) throw reqErr;
-      if (!rawRequests || rawRequests.length === 0) {
-        setRequests([]);
-        setLoading(false);
-        return;
-      }
+      if (!rawRequests || rawRequests.length === 0) { setRequests([]); setLoading(false); return; }
 
-      // Step 2: fetch listings
       const listingIds = [...new Set(rawRequests.map((r) => r.listing_id))];
       const { data: listings } = await supabase
         .from("listings")
         .select("id, title, image_url, price_per_day, deposit, owner_id")
         .in("id", listingIds);
 
-      // Step 3: fetch owner profiles
       const ownerIds = [...new Set((listings ?? []).map((l) => l.owner_id))];
       const { data: profiles } = ownerIds.length > 0
-        ? await supabase
-            .from("profiles")
-            .select("id, name, email")
-            .in("id", ownerIds)
+        ? await supabase.from("profiles").select("id, name, email").in("id", ownerIds)
         : { data: [] };
 
-      // Step 4: merge
       const enriched: EnrichedRequest[] = rawRequests.map((r) => {
         const listing = (listings ?? []).find((l) => l.id === r.listing_id) ?? null;
         const owner = (profiles ?? []).find((p) => p.id === listing?.owner_id) ?? null;
@@ -115,6 +115,24 @@ export function MyRequests() {
 
   useEffect(() => { load(); }, [load]);
 
+  async function handleCancel(requestId: string) {
+    setActing(true);
+    const { error } = await supabase.from("requests").update({ status: "cancelled" }).eq("id", requestId);
+    if (!error) {
+      setRequests((prev) => prev.map((r) => r.id === requestId ? { ...r, status: "cancelled" } : r));
+    }
+    setConfirmCancel(null);
+    setActing(false);
+  }
+
+  async function handleDelete(requestId: string) {
+    setActing(true);
+    await supabase.from("requests").delete().eq("id", requestId);
+    setRequests((prev) => prev.filter((r) => r.id !== requestId));
+    setConfirmDelete(null);
+    setActing(false);
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-16">
@@ -127,9 +145,7 @@ export function MyRequests() {
     return (
       <div className="max-w-lg mx-auto px-4 pt-8 text-center">
         <p className="text-red-600 text-sm bg-red-50 border border-red-200 px-4 py-3 rounded-xl mb-3">{error}</p>
-        <button onClick={load} className="text-sm text-[#1E6B1E]">
-          {lang === "zh" ? "重試" : "Try again"}
-        </button>
+        <button onClick={load} className="text-sm text-[#1E6B1E]">{lang === "zh" ? "重試" : "Try again"}</button>
       </div>
     );
   }
@@ -147,19 +163,14 @@ export function MyRequests() {
   };
 
   return (
-    <div className="max-w-lg mx-auto px-4 pt-4">
-      <h2 className="text-[#1F2937] mb-4">{t("myRequests")}</h2>
+    <div className="max-w-lg mx-auto px-4 pt-4" onClick={() => setMenuOpen(null)}>
+      <h2 className="text-[#1F2937] mb-4">{t("myRentalRequests")}</h2>
       <div className="flex gap-2 mb-4">
         {tabs.map((tb) => (
-          <button
-            key={tb}
-            onClick={() => setTab(tb)}
+          <button key={tb} onClick={() => setTab(tb)}
             className={`px-4 py-1.5 rounded-full text-sm border transition-colors ${
-              tab === tb
-                ? "bg-[#1E6B1E] text-white border-[#1E6B1E]"
-                : "bg-white text-[#6B7280] border-[#E5E7EB]"
-            }`}
-          >
+              tab === tb ? "bg-[#1E6B1E] text-white border-[#1E6B1E]" : "bg-white text-[#6B7280] border-[#E5E7EB]"
+            }`}>
             {t(tb)}
           </button>
         ))}
@@ -173,38 +184,114 @@ export function MyRequests() {
             const title = r.listing?.title ?? "—";
             const image = r.listing?.image_url ?? FALLBACK_IMAGE;
             const owner = ownerDisplayName(r.owner);
+            const isMenuOpen = menuOpen === r.id;
+            const isCancelConfirming = confirmCancel === r.id;
+            const isDeleteConfirming = confirmDelete === r.id;
 
             return (
-              <button
-                key={r.id}
-                onClick={() => navigate(`/my-requests/${r.id}`)}
-                className="w-full bg-white rounded-xl border border-[#E5E7EB] overflow-hidden flex items-center gap-3 p-3 text-left"
-              >
-                <ImageWithFallback
-                  src={image}
-                  alt=""
-                  className="w-14 h-14 rounded-lg object-cover shrink-0"
-                />
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm truncate" style={{ fontWeight: 500 }}>{title}</p>
-                  <p className="text-xs text-[#6B7280]">{owner}</p>
-                  <p className="text-xs text-[#6B7280]">
-                    {formatDateRange(r.start_date, r.end_date)}
-                  </p>
+              <div key={r.id} className="relative">
+                <div
+                  onClick={() => { if (!isCancelConfirming && !isDeleteConfirming) navigate(`/my-requests/${r.id}`); }}
+                  className="bg-white rounded-xl border border-[#E5E7EB] p-3 flex gap-3 cursor-pointer hover:border-[#1E6B1E] transition-colors"
+                >
+                  <ImageWithFallback src={image} alt="" className="w-20 h-20 rounded-lg object-cover shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm truncate" style={{ fontWeight: 500 }}>{title}</p>
+                    <p className="text-xs text-[#6B7280]">{owner}</p>
+                    <p className="text-xs text-[#6B7280]">{formatDateRange(r.start_date, r.end_date)}</p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="text-xs px-2 py-0.5 rounded-full"
+                        style={{
+                          backgroundColor: (statusColor[r.status] ?? "#6B7280") + "15",
+                          color: statusColor[r.status] ?? "#6B7280",
+                        }}>
+                        {t(statusKeyMap[r.status] ?? r.status)}
+                      </span>
+                      {r.total_price > 0 && (
+                        <span className="text-xs text-[#1E6B1E]" style={{ fontWeight: 500 }}>
+                          HK${r.total_price}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  {/* Three-dot menu */}
+                  <div className="relative shrink-0" onClick={(e) => e.stopPropagation()}>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setMenuOpen(isMenuOpen ? null : r.id); setConfirmCancel(null); setConfirmDelete(null); }}
+                      className="text-[#6B7280] p-1"
+                    >
+                      <MoreVertical size={14} />
+                    </button>
+                    {isMenuOpen && (
+                      <div className="absolute right-0 top-6 bg-white border border-[#E5E7EB] rounded-xl shadow-sm z-10 min-w-[160px]"
+                        onClick={(e) => e.stopPropagation()}>
+                        <button
+                          onClick={() => { navigate(`/my-requests/${r.id}`); setMenuOpen(null); }}
+                          className="w-full text-left px-4 py-2.5 text-sm hover:bg-[#F9FAFB] rounded-t-xl"
+                        >
+                          {t("viewRequest")}
+                        </button>
+                        {r.status === "pending" && (
+                          <button
+                            onClick={() => { navigate(`/my-requests/${r.id}/edit`); setMenuOpen(null); }}
+                            className="w-full text-left px-4 py-2.5 text-sm hover:bg-[#F9FAFB]"
+                          >
+                            {t("editRequest")}
+                          </button>
+                        )}
+                        {r.status === "pending" && (
+                          <button
+                            onClick={() => { setConfirmCancel(r.id); setMenuOpen(null); }}
+                            className="w-full text-left px-4 py-2.5 text-sm text-[#F4A261] hover:bg-orange-50"
+                          >
+                            {t("cancelRequest")}
+                          </button>
+                        )}
+                        {(r.status === "rejected" || r.status === "cancelled") && (
+                          <button
+                            onClick={() => { setConfirmDelete(r.id); setMenuOpen(null); }}
+                            className="w-full text-left px-4 py-2.5 text-sm text-[#EF4444] hover:bg-red-50 rounded-b-xl"
+                          >
+                            {t("deleteRequest")}
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
-                <div className="flex items-center gap-1.5 shrink-0">
-                  <span
-                    className="text-xs px-2 py-0.5 rounded-full"
-                    style={{
-                      backgroundColor: (statusColor[r.status] ?? "#6B7280") + "15",
-                      color: statusColor[r.status] ?? "#6B7280",
-                    }}
-                  >
-                    {t(r.status)}
-                  </span>
-                  <ChevronRight size={14} className="text-[#6B7280]" />
-                </div>
-              </button>
+
+                {/* Cancel confirmation */}
+                {isCancelConfirming && (
+                  <div className="mt-1 bg-orange-50 border border-orange-200 rounded-xl px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                    <p className="text-sm text-[#1F2937] mb-2">{t("cancelConfirm")}</p>
+                    <div className="flex gap-2">
+                      <button onClick={() => setConfirmCancel(null)} className="flex-1 py-1.5 border border-[#E5E7EB] text-[#6B7280] rounded-lg text-xs">
+                        {lang === "zh" ? "返回" : "Go back"}
+                      </button>
+                      <button onClick={() => handleCancel(r.id)} disabled={acting}
+                        className="flex-1 py-1.5 bg-[#F4A261] text-white rounded-lg text-xs disabled:opacity-60">
+                        {acting ? "…" : t("cancelRequest")}
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Delete confirmation */}
+                {isDeleteConfirming && (
+                  <div className="mt-1 bg-red-50 border border-red-200 rounded-xl px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                    <p className="text-sm text-[#1F2937] mb-2">{t("deleteConfirm")}</p>
+                    <div className="flex gap-2">
+                      <button onClick={() => setConfirmDelete(null)} className="flex-1 py-1.5 border border-[#E5E7EB] text-[#6B7280] rounded-lg text-xs">
+                        {lang === "zh" ? "取消" : "Cancel"}
+                      </button>
+                      <button onClick={() => handleDelete(r.id)} disabled={acting}
+                        className="flex-1 py-1.5 bg-[#EF4444] text-white rounded-lg text-xs disabled:opacity-60">
+                        {acting ? "…" : t("delete")}
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
             );
           })}
         </div>
