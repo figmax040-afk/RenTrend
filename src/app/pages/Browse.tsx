@@ -292,7 +292,7 @@ export function Browse() {
 
           {/* Condition */}
           <div>
-            <label className="text-xs text-[#6B7280] block mb-2">Condition</label>
+            <label className="text-xs text-[#6B7280] block mb-2">{t("condition")}</label>
             <div className="flex flex-wrap gap-2">
               {conditionKeys.map((key) => {
                 const val = conditionValues[key];
@@ -324,7 +324,7 @@ export function Browse() {
           {/* Brand chips */}
           {brands.length > 0 && (
             <div>
-              <label className="text-xs text-[#6B7280] block mb-2">Brand</label>
+              <label className="text-xs text-[#6B7280] block mb-2">{t("brand")}</label>
               <div className="flex flex-wrap gap-2">
                 {brands.map((brand) => {
                   const active = selectedBrands.includes(brand);

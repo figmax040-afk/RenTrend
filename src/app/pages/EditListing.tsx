@@ -428,7 +428,7 @@ export function EditListing() {
             </div>
             {saveError && <p className="text-sm text-red-600 bg-red-50 border border-red-200 px-4 py-3 rounded-xl">{saveError}</p>}
             <button onClick={handleSave} disabled={saving} className="w-full py-3 bg-[#1E6B1E] text-white rounded-xl disabled:opacity-60">
-              {saving ? "Saving..." : t("saveChanges")}
+              {saving ? t("saving") : t("saveChanges")}
             </button>
             <button onClick={() => navigate("/activity?tab=listings")} className="w-full py-3 border border-[#E5E7EB] rounded-xl text-sm text-[#6B7280]">
               {t("back")}

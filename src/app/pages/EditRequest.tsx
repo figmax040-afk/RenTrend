@@ -265,7 +265,7 @@ export function EditRequest() {
             disabled={!startDate || !endDate || saving}
             className="w-full py-3 bg-[#1E6B1E] text-white rounded-xl disabled:opacity-40"
           >
-            {saving ? "Saving..." : t("saveChanges")}
+            {saving ? t("saving") : t("saveChanges")}
           </button>
         </div>
       </div>

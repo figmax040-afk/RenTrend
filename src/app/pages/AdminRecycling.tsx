@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 import { ArrowLeft } from "lucide-react";
 import { supabase } from "../../lib/supabase";
+import { useI18n } from "../components/i18n";
 
 type Submission = {
   id: string;
@@ -35,6 +36,7 @@ function fmt(d: string) {
 
 export function AdminRecycling() {
   const navigate = useNavigate();
+  const { t } = useI18n();
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -75,7 +77,7 @@ export function AdminRecycling() {
     <div className="max-w-4xl mx-auto px-4 pt-4">
       <div className="flex items-center gap-3 mb-4">
         <button onClick={() => navigate("/admin")} className="text-[#6B7280]"><ArrowLeft size={20} /></button>
-        <h2 className="text-[#1F2937]">Recycling Submissions</h2>
+        <h2 className="text-[#1F2937]">{t("recyclingSubmissions")}</h2>
       </div>
 
       {loading ? (
@@ -83,7 +85,7 @@ export function AdminRecycling() {
           <div className="w-8 h-8 border-2 border-[#1E6B1E] border-t-transparent rounded-full animate-spin" />
         </div>
       ) : submissions.length === 0 ? (
-        <p className="text-center text-[#6B7280] text-sm py-12">No submissions yet</p>
+        <p className="text-center text-[#6B7280] text-sm py-12">{t("noSubmissionsYet")}</p>
       ) : (
         <div className="space-y-3">
           {submissions.map((s) => (
@@ -100,7 +102,7 @@ export function AdminRecycling() {
                     color: statusColor[s.status] ?? "#6B7280",
                   }}
                 >
-                  {s.status}
+                  {t(s.status) || s.status}
                 </span>
               </div>
 
@@ -112,7 +114,7 @@ export function AdminRecycling() {
                     color: conditionColor[s.condition] ?? "#6B7280",
                   }}
                 >
-                  {s.condition}
+                  {t(s.condition) || s.condition}
                 </span>
                 {s.location && <span>📍 {s.location}</span>}
                 {s.pickup_date && <span>📅 {fmt(s.pickup_date)}</span>}
@@ -129,13 +131,13 @@ export function AdminRecycling() {
                     onClick={() => updateStatus(s.id, "collected")}
                     className="flex-1 py-1.5 bg-[#3B82F6] text-white rounded-lg text-xs"
                   >
-                    Mark Collected
+                    {t("markCollected")}
                   </button>
                   <button
                     onClick={() => updateStatus(s.id, "listed")}
                     className="flex-1 py-1.5 bg-[#1E6B1E] text-white rounded-lg text-xs"
                   >
-                    Mark Listed
+                    {t("markListed")}
                   </button>
                 </div>
               )}
@@ -144,7 +146,7 @@ export function AdminRecycling() {
                   onClick={() => updateStatus(s.id, "listed")}
                   className="w-full py-1.5 bg-[#1E6B1E] text-white rounded-lg text-xs"
                 >
-                  Mark Listed
+                  {t("markListed")}
                 </button>
               )}
             </div>

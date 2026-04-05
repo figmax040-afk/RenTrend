@@ -426,7 +426,7 @@ export function ListingDetail() {
             className="flex-1 py-3 bg-[#1E6B1E] text-white rounded-xl hover:bg-[#155215] transition-colors"
             onClick={() => navigate(`/my-listings/${listing.id}/requests`)}
           >
-            Manage Listing
+            {t("manageListing")}
           </button>
         ) : (
           <button

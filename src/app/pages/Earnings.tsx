@@ -3,6 +3,7 @@ import { useNavigate } from "react-router";
 import { ArrowLeft, Download, TrendingUp } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { supabase } from "../../lib/supabase";
+import { useI18n } from "../components/i18n";
 
 type EarningRow = {
   id: string;
@@ -38,6 +39,7 @@ function getLast6Months(): { key: string; label: string }[] {
 
 export function Earnings() {
   const navigate = useNavigate();
+  const { t } = useI18n();
   const [rows, setRows] = useState<EarningRow[]>([]);
   const [chartData, setChartData] = useState<ChartPoint[]>([]);
   const [loading, setLoading] = useState(true);
@@ -154,7 +156,7 @@ export function Earnings() {
       {/* Header */}
       <div className="flex items-center gap-3 mb-6">
         <button onClick={() => navigate("/profile")} className="text-[#6B7280]"><ArrowLeft size={20} /></button>
-        <h2 className="text-[#1F2937]">My Earnings</h2>
+        <h2 className="text-[#1F2937]">{t("myEarnings")}</h2>
       </div>
 
       {error && (
@@ -164,9 +166,9 @@ export function Earnings() {
       {/* Summary cards */}
       <div className="grid grid-cols-3 gap-2 mb-1">
         {[
-          { label: "Total Earned", value: `HK$${totalEarned}` },
-          { label: "This Month", value: `HK$${thisMonth}` },
-          { label: "Completed", value: String(completedCount) },
+          { label: t("totalEarned"), value: `HK$${totalEarned}` },
+          { label: t("thisMonth"), value: `HK$${thisMonth}` },
+          { label: t("completed"), value: String(completedCount) },
         ].map(({ label, value }) => (
           <div key={label} className="bg-white rounded-xl border border-[#E5E7EB] p-3 text-center">
             <p className="text-lg text-[#1E6B1E]" style={{ fontWeight: 600 }}>{value}</p>
@@ -176,12 +178,12 @@ export function Earnings() {
       </div>
 
       <p className="text-xs text-[#6B7280] text-center mt-1 mb-4">
-        Only completed rentals are counted. Active rentals will appear once finished.
+        {t("earningsCompletedOnly")}
       </p>
 
       {/* Bar chart */}
       <div className="bg-white rounded-xl border border-[#E5E7EB] p-4 mb-6">
-        <p className="text-sm mb-3" style={{ fontWeight: 500 }}>Earnings — last 6 months</p>
+        <p className="text-sm mb-3" style={{ fontWeight: 500 }}>{t("earningsLast6Months")}</p>
         {hasData ? (
           <ResponsiveContainer width="100%" height={160}>
             <BarChart data={chartData} margin={{ top: 0, right: 4, left: -20, bottom: 0 }}>
@@ -198,22 +200,22 @@ export function Earnings() {
         ) : (
           <div className="flex flex-col items-center justify-center py-8 text-center">
             <TrendingUp size={28} className="text-[#D1D5DB] mb-2" />
-            <p className="text-sm text-[#9CA3AF]">Your earnings will appear here once you complete your first rental</p>
+            <p className="text-sm text-[#9CA3AF]">{t("earningsEmptyChart")}</p>
           </div>
         )}
       </div>
 
       {/* Rental history */}
       <div className="mb-6">
-        <p className="text-sm mb-3" style={{ fontWeight: 500 }}>Rental History</p>
+        <p className="text-sm mb-3" style={{ fontWeight: 500 }}>{t("rentalHistory")}</p>
         {rows.length === 0 ? (
           <div className="bg-white rounded-xl border border-[#E5E7EB] p-6 text-center">
-            <p className="text-sm text-[#6B7280]">Earnings will appear here once your first rental is completed</p>
+            <p className="text-sm text-[#6B7280]">{t("earningsEmptyHistory")}</p>
             <button
               onClick={() => navigate("/create")}
               className="mt-3 px-5 py-2 bg-[#1E6B1E] text-white rounded-xl text-sm"
             >
-              Create a Listing
+              {t("createListing")}
             </button>
           </div>
         ) : (
@@ -240,7 +242,7 @@ export function Earnings() {
           className="w-full py-3 border border-[#E5E7EB] rounded-xl text-sm text-[#6B7280] flex items-center justify-center gap-2 hover:border-[#1E6B1E] hover:text-[#1E6B1E] transition-colors"
         >
           <Download size={16} />
-          Export Summary
+          {t("exportSummary")}
         </button>
       )}
     </div>

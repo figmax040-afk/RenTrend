@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 import { ArrowLeft } from "lucide-react";
 import { supabase } from "../../lib/supabase";
+import { useI18n } from "../components/i18n";
 
 type Row = {
   id: string;
@@ -29,6 +30,7 @@ function fmt(d: string) {
 
 export function AdminRequests() {
   const navigate = useNavigate();
+  const { t } = useI18n();
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -80,7 +82,7 @@ export function AdminRequests() {
     <div className="max-w-4xl mx-auto px-4 pt-4">
       <div className="flex items-center gap-3 mb-4">
         <button onClick={() => navigate("/admin")} className="text-[#6B7280]"><ArrowLeft size={20} /></button>
-        <h2 className="text-[#1F2937]">All Requests</h2>
+        <h2 className="text-[#1F2937]">{t("allRequests")}</h2>
       </div>
 
       {loading ? (
@@ -88,7 +90,7 @@ export function AdminRequests() {
           <div className="w-8 h-8 border-2 border-[#1E6B1E] border-t-transparent rounded-full animate-spin" />
         </div>
       ) : rows.length === 0 ? (
-        <p className="text-center text-[#6B7280] text-sm py-12">No requests yet</p>
+        <p className="text-center text-[#6B7280] text-sm py-12">{t("noRequestsYet")}</p>
       ) : (
         <div className="bg-white rounded-xl border border-[#E5E7EB] divide-y divide-[#E5E7EB]">
           {rows.map((r) => (
@@ -106,7 +108,7 @@ export function AdminRequests() {
                   color: statusColor[r.status] ?? "#6B7280",
                 }}
               >
-                {r.status}
+                {t(r.status) || r.status}
               </span>
             </div>
           ))}
