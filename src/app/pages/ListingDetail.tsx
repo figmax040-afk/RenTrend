@@ -107,6 +107,9 @@ export function ListingDetail() {
   const [loading,   setLoading]   = useState(true);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [copied,    setCopied]    = useState(false);
+  const [realReviews, setRealReviews] = useState<Array<{
+    id: string; author: string; rating: number; date: string; comment: string;
+  }>>([]);
 
   useEffect(() => {
     if (!id) return;
@@ -176,6 +179,42 @@ export function ListingDetail() {
       });
   }, [id]);
 
+  // Fetch real reviews for UUID listings
+  useEffect(() => {
+    if (!listing || typeof listing.id === "number") return;
+    const listingId = listing.id as string;
+
+    async function fetchReviews() {
+      const { data: revData } = await supabase
+        .from("reviews")
+        .select("id, rating, comment, created_at, reviewer_id")
+        .eq("listing_id", listingId)
+        .order("created_at", { ascending: false });
+
+      if (!revData || revData.length === 0) { setRealReviews([]); return; }
+
+      const reviewerIds = revData.map((r) => r.reviewer_id);
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("id, name, email")
+        .in("id", reviewerIds);
+
+      const profileMap = Object.fromEntries(
+        (profiles ?? []).map((p) => [p.id, p.name || (p.email ? p.email.split("@")[0] : "User")])
+      );
+
+      setRealReviews(revData.map((r) => ({
+        id: r.id,
+        author: profileMap[r.reviewer_id] ?? "User",
+        rating: r.rating,
+        date: new Date(r.created_at).toLocaleDateString("en-US", { month: "short", year: "numeric" }),
+        comment: r.comment || "",
+      })));
+    }
+
+    fetchReviews();
+  }, [listing]);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-16">
@@ -201,7 +240,9 @@ export function ListingDetail() {
   }
 
   const numericMockId = typeof listing.id === "number" ? listing.id : null;
-  const reviews = numericMockId ? (mockReviews[numericMockId] ?? []) : [];
+  const mockRevs = numericMockId ? (mockReviews[numericMockId] ?? []) : [];
+  // For UUID listings use real reviews; for mock numeric IDs use mock data
+  const reviews = numericMockId ? mockRevs : realReviews;
   const avgRating = reviews.length
     ? reviews.reduce((s, r) => s + r.rating, 0) / reviews.length
     : null;
@@ -345,29 +386,34 @@ export function ListingDetail() {
 
           {reviews.length === 0 ? (
             <p className="text-sm text-[#6B7280] py-4 text-center">
-              {lang === "zh" ? "暫無評價" : "No reviews yet — be the first to rent!"}
+              {lang === "zh" ? "暫無評價 — 成為第一個租用的人！" : "No reviews yet — be the first to rent!"}
             </p>
           ) : (
             <div className="space-y-3">
-              {reviews.map((r) => (
-                <div key={r.id} className="p-3 rounded-xl bg-[#F9FAFB] border border-[#E5E7EB]">
-                  <div className="flex items-center gap-2 mb-2">
-                    <div className="w-7 h-7 rounded-full bg-[#1E6B1E]/15 flex items-center justify-center text-[#1E6B1E] text-xs" style={{ fontWeight: 600 }}>
-                      {r.author[0]}
+              {reviews.map((r) => {
+                const isMock = numericMockId !== null;
+                const subtitle = isMock
+                  ? `${lang === "zh" ? (r as any).universityZh : (r as any).university} · ${r.date}`
+                  : r.date;
+                const body = isMock
+                  ? (lang === "zh" ? (r as any).commentZh : r.comment)
+                  : r.comment;
+                return (
+                  <div key={r.id} className="p-3 rounded-xl bg-[#F9FAFB] border border-[#E5E7EB]">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="w-7 h-7 rounded-full bg-[#1E6B1E]/15 flex items-center justify-center text-[#1E6B1E] text-xs" style={{ fontWeight: 600 }}>
+                        {r.author[0]}
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-xs" style={{ fontWeight: 500 }}>{r.author}</p>
+                        <p className="text-[10px] text-[#6B7280]">{subtitle}</p>
+                      </div>
+                      <StarRow rating={r.rating} />
                     </div>
-                    <div className="flex-1">
-                      <p className="text-xs" style={{ fontWeight: 500 }}>{r.author}</p>
-                      <p className="text-[10px] text-[#6B7280]">
-                        {lang === "zh" ? r.universityZh : r.university} · {r.date}
-                      </p>
-                    </div>
-                    <StarRow rating={r.rating} />
+                    {body && <p className="text-sm text-[#4B5563]">{body}</p>}
                   </div>
-                  <p className="text-sm text-[#4B5563]">
-                    {lang === "zh" ? r.commentZh : r.comment}
-                  </p>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>

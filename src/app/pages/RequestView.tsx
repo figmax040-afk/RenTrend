@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router";
-import { ArrowLeft, Shield } from "lucide-react";
+import { ArrowLeft, Shield, Star } from "lucide-react";
 import { useI18n } from "../components/i18n";
 import { ImageWithFallback } from "../components/figma/ImageWithFallback";
 import { supabase } from "../../lib/supabase";
@@ -59,6 +59,21 @@ function ownerDisplayName(profile: OwnerProfile | null): string {
   return "Owner";
 }
 
+function StarSelector({ value, onChange }: { value: number; onChange: (v: number) => void }) {
+  return (
+    <div className="flex gap-1">
+      {[1, 2, 3, 4, 5].map((s) => (
+        <button key={s} onClick={() => onChange(s)} className="p-0.5">
+          <Star
+            size={28}
+            className={s <= value ? "text-[#F59E0B] fill-[#F59E0B]" : "text-[#D1D5DB]"}
+          />
+        </button>
+      ))}
+    </div>
+  );
+}
+
 export function RequestView() {
   const { requestId } = useParams<{ requestId: string }>();
   const navigate = useNavigate();
@@ -67,10 +82,19 @@ export function RequestView() {
   const [request, setRequest] = useState<RequestData | null>(null);
   const [listing, setListing] = useState<ListingData | null>(null);
   const [ownerProfile, setOwnerProfile] = useState<OwnerProfile | null>(null);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [cancelling, setCancelling] = useState(false);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+
+  // Review state
+  const [existingReview, setExistingReview] = useState<{ rating: number; comment: string | null } | null>(null);
+  const [reviewChecked, setReviewChecked] = useState(false);
+  const [reviewRating, setReviewRating] = useState(0);
+  const [reviewComment, setReviewComment] = useState("");
+  const [submittingReview, setSubmittingReview] = useState(false);
+  const [reviewDone, setReviewDone] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -79,6 +103,7 @@ export function RequestView() {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { navigate("/login"); return; }
+      setCurrentUserId(user.id);
 
       // Step 1: fetch request
       const { data: req, error: reqErr } = await supabase
@@ -118,6 +143,18 @@ export function RequestView() {
           .single();
         setOwnerProfile(profileData ?? null);
       }
+
+      // Step 4: check existing review if completed
+      if (req.status === "completed") {
+        const { data: rev } = await supabase
+          .from("reviews")
+          .select("rating, comment")
+          .eq("request_id", req.id)
+          .eq("reviewer_id", user.id)
+          .maybeSingle();
+        setExistingReview(rev ?? null);
+        setReviewChecked(true);
+      }
     } catch (err: any) {
       console.error("RequestView fetch error:", err);
       setError(lang === "zh" ? "載入請求時出錯" : "Failed to load request.");
@@ -148,6 +185,39 @@ export function RequestView() {
     }
 
     navigate("/activity?tab=requests");
+  }
+
+  async function handleSubmitReview() {
+    if (!listing || !reviewRating || !currentUserId) return;
+    setSubmittingReview(true);
+
+    await supabase.from("reviews").insert({
+      request_id: requestId,
+      listing_id: listing.id,
+      reviewer_id: currentUserId,
+      reviewee_id: listing.owner_id,
+      role: "renter",
+      rating: reviewRating,
+      comment: reviewComment || null,
+    });
+
+    // Update lister's rating on their profile
+    const { data: allRevs } = await supabase
+      .from("reviews")
+      .select("rating")
+      .eq("reviewee_id", listing.owner_id)
+      .eq("role", "renter");
+
+    if (allRevs && allRevs.length > 0) {
+      const avg = Math.round(allRevs.reduce((s, r) => s + r.rating, 0) / allRevs.length * 10) / 10;
+      await supabase.from("profiles").update({
+        rating_as_lister: avg,
+        review_count_as_lister: allRevs.length,
+      }).eq("id", listing.owner_id);
+    }
+
+    setReviewDone(true);
+    setSubmittingReview(false);
   }
 
   if (loading) {
@@ -243,6 +313,17 @@ export function RequestView() {
         >
           <p className="text-sm" style={{ color: "#15803D", fontWeight: 500 }}>
             {lang === "zh" ? "你的請求已被接受！" : "Your request was accepted!"}
+          </p>
+        </div>
+      )}
+
+      {request.status === "completed" && (
+        <div
+          className="rounded-xl px-4 py-3 mb-4"
+          style={{ backgroundColor: "#1E6B1E19", border: "1px solid #1E6B1E40" }}
+        >
+          <p className="text-sm" style={{ color: "#1E6B1E", fontWeight: 500 }}>
+            {t("rentalCompleted")}
           </p>
         </div>
       )}
@@ -375,7 +456,51 @@ export function RequestView() {
         </div>
       )}
 
-      {/* ── Section 6: Cancel button (pending only) ── */}
+      {/* ── Section 6: Review (completed only) ── */}
+      {request.status === "completed" && reviewChecked && (
+        <div className="bg-white rounded-xl border border-[#E5E7EB] p-4 mb-4">
+          {existingReview || reviewDone ? (
+            <div>
+              <p className="text-sm text-[#1E6B1E]" style={{ fontWeight: 500 }}>
+                {t("reviewSubmitted")}
+              </p>
+              {(existingReview?.comment || reviewComment) && (
+                <p className="text-xs text-[#6B7280] mt-1 italic">
+                  "{existingReview?.comment || reviewComment}"
+                </p>
+              )}
+            </div>
+          ) : (
+            <div>
+              <p className="text-sm text-[#1F2937] mb-3" style={{ fontWeight: 500 }}>
+                {t("leaveReview")}
+              </p>
+              <StarSelector value={reviewRating} onChange={setReviewRating} />
+              <textarea
+                value={reviewComment}
+                onChange={(e) => setReviewComment(e.target.value)}
+                placeholder={lang === "zh" ? "你的租用體驗如何？" : "How was your experience?"}
+                rows={3}
+                className="w-full mt-3 px-4 py-2.5 rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] text-sm resize-none focus:outline-none focus:border-[#1E6B1E]"
+              />
+              <button
+                onClick={handleSubmitReview}
+                disabled={!reviewRating || submittingReview}
+                className="w-full mt-3 py-2.5 bg-[#1E6B1E] text-white rounded-xl text-sm disabled:opacity-40"
+              >
+                {submittingReview ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    {lang === "zh" ? "提交中..." : "Submitting..."}
+                  </span>
+                ) : lang === "zh" ? "提交評價" : "Submit Review"}
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── Section 7: Cancel button (pending only) ── */}
       {request.status === "pending" && (
         <div>
           {!showCancelConfirm ? (

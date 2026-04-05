@@ -1,15 +1,98 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router";
 import { ArrowLeft, Recycle as RecycleIcon, CheckCircle, Upload } from "lucide-react";
 import { useI18n } from "../components/i18n";
+import { supabase } from "../../lib/supabase";
+
+declare global { interface Window { google: any; } }
 
 export function Recycle() {
   const navigate = useNavigate();
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const [showForm, setShowForm] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [itemType, setItemType] = useState("");
   const [cond, setCond] = useState("working");
+  const [description, setDescription] = useState("");
+  const [location, setLocation] = useState("");
+  const [pickupDate, setPickupDate] = useState("");
+  const [expectedPrice, setExpectedPrice] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [userId, setUserId] = useState<string | null>(null);
+  const locationInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      setUserId(data.user?.id ?? null);
+    });
+  }, []);
+
+  // Load Google Maps script
+  useEffect(() => {
+    if (window.google) return;
+    const existing = document.querySelector('script[src*="maps.googleapis.com"]');
+    if (existing) return;
+    const script = document.createElement("script");
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${import.meta.env.VITE_GOOGLE_MAPS_API_KEY}&libraries=places`;
+    script.async = true;
+    document.head.appendChild(script);
+  }, []);
+
+  // Init autocomplete when form is shown
+  useEffect(() => {
+    if (!showForm) return;
+
+    function init() {
+      if (!window.google || !locationInputRef.current) return;
+      const ac = new window.google.maps.places.Autocomplete(locationInputRef.current, {
+        componentRestrictions: { country: "hk" },
+        fields: ["formatted_address", "name"],
+        types: ["establishment", "geocode"],
+      });
+      ac.addListener("place_changed", () => {
+        const place = ac.getPlace();
+        setLocation(place.formatted_address || place.name || "");
+      });
+    }
+
+    if (window.google) {
+      init();
+    } else {
+      const interval = setInterval(() => {
+        if (window.google) { clearInterval(interval); init(); }
+      }, 200);
+      return () => clearInterval(interval);
+    }
+  }, [showForm]);
+
+  async function handleSubmit() {
+    if (!itemType) return;
+    setLoading(true);
+    setError("");
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error(lang === "zh" ? "請先登入" : "Please sign in first");
+
+      const { error: insertErr } = await supabase.from("recycle_submissions").insert({
+        user_id: user.id,
+        item_type: itemType,
+        condition: cond,
+        description: description || null,
+        location: location || null,
+        pickup_date: pickupDate || null,
+        expected_price: expectedPrice ? Number(expectedPrice) : null,
+        status: "pending",
+      });
+
+      if (insertErr) throw insertErr;
+      setSubmitted(true);
+    } catch (err: any) {
+      setError(err.message || (lang === "zh" ? "提交失敗，請重試" : "Submission failed. Please try again."));
+    } finally {
+      setLoading(false);
+    }
+  }
 
   if (submitted) {
     return (
@@ -30,6 +113,15 @@ export function Recycle() {
   }
 
   if (!showForm) {
+    if (userId === null) {
+      // Still checking auth
+      return (
+        <div className="min-h-screen bg-[#F9FAFB] flex items-center justify-center">
+          <div className="w-8 h-8 border-2 border-[#1E6B1E] border-t-transparent rounded-full animate-spin" />
+        </div>
+      );
+    }
+
     return (
       <div className="min-h-screen bg-[#F9FAFB] flex flex-col items-center justify-center px-6 text-center">
         <div className="w-20 h-20 rounded-full bg-[#1E6B1E]/10 flex items-center justify-center mb-6">
@@ -37,7 +129,14 @@ export function Recycle() {
         </div>
         <h1 className="text-[#1F2937] whitespace-pre-line mb-3" style={{ fontSize: 24 }}>{t("recycleTitle")}</h1>
         <p className="text-[#6B7280] text-sm mb-8 max-w-sm">{t("recycleSub")}</p>
-        <button onClick={() => setShowForm(true)} className="py-3 px-8 bg-[#1E6B1E] text-white rounded-xl">{t("submitAppliance")}</button>
+        {userId ? (
+          <button onClick={() => setShowForm(true)} className="py-3 px-8 bg-[#1E6B1E] text-white rounded-xl">{t("submitAppliance")}</button>
+        ) : (
+          <div className="space-y-3">
+            <p className="text-sm text-[#6B7280]">{lang === "zh" ? "請先登入才能提交" : "Sign in to submit an appliance"}</p>
+            <button onClick={() => navigate("/login")} className="py-3 px-8 bg-[#1E6B1E] text-white rounded-xl">{t("logIn")}</button>
+          </div>
+        )}
       </div>
     );
   }
@@ -67,23 +166,55 @@ export function Recycle() {
               ))}
             </div>
           </div>
+          <div>
+            <label className="text-sm text-[#6B7280]">{t("recycleDescription")}</label>
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder={lang === "zh" ? "物品狀態、年份或使用情況..." : "Any details about the item's condition, age, or usage..."}
+              rows={3}
+              className="w-full mt-1 px-4 py-2.5 rounded-xl border border-[#E5E7EB] bg-white text-sm resize-none focus:outline-none focus:border-[#1E6B1E]"
+            />
+          </div>
           <div className="border-2 border-dashed border-[#E5E7EB] rounded-xl p-6 flex flex-col items-center text-[#6B7280]">
             <Upload size={24} />
             <span className="text-xs mt-1">{t("addPhotos")}</span>
           </div>
           <div>
             <label className="text-sm text-[#6B7280]">{t("location")}</label>
-            <input className="w-full mt-1 px-4 py-2.5 rounded-xl border border-[#E5E7EB] bg-white text-sm" placeholder="Building / Dorm" />
+            <input
+              ref={locationInputRef}
+              value={location}
+              onChange={(e) => setLocation(e.target.value)}
+              className="w-full mt-1 px-4 py-2.5 rounded-xl border border-[#E5E7EB] bg-white text-sm"
+              placeholder={lang === "zh" ? "大廈 / 宿舍" : "Building / Area"}
+            />
           </div>
           <div>
             <label className="text-sm text-[#6B7280]">{t("pickupDate")}</label>
-            <input type="date" className="w-full mt-1 px-4 py-2.5 rounded-xl border border-[#E5E7EB] bg-white text-sm" />
+            <input type="date" value={pickupDate} onChange={(e) => setPickupDate(e.target.value)} className="w-full mt-1 px-4 py-2.5 rounded-xl border border-[#E5E7EB] bg-white text-sm" />
           </div>
           <div>
             <label className="text-sm text-[#6B7280]">{t("expectedPrice")}</label>
-            <input type="number" placeholder="HK$" className="w-full mt-1 px-4 py-2.5 rounded-xl border border-[#E5E7EB] bg-white text-sm" />
+            <input type="number" value={expectedPrice} onChange={(e) => setExpectedPrice(e.target.value)} placeholder="HK$" className="w-full mt-1 px-4 py-2.5 rounded-xl border border-[#E5E7EB] bg-white text-sm" />
           </div>
-          <button onClick={() => setSubmitted(true)} disabled={!itemType} className="w-full py-3 bg-[#1E6B1E] text-white rounded-xl disabled:opacity-40">{t("submitCollection")}</button>
+
+          {error && (
+            <p className="text-sm text-red-600 bg-red-50 border border-red-200 px-4 py-3 rounded-xl">{error}</p>
+          )}
+
+          <button
+            onClick={handleSubmit}
+            disabled={!itemType || loading}
+            className="w-full py-3 bg-[#1E6B1E] text-white rounded-xl disabled:opacity-40"
+          >
+            {loading ? (
+              <span className="flex items-center justify-center gap-2">
+                <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                {lang === "zh" ? "提交中..." : "Submitting..."}
+              </span>
+            ) : t("submitCollection")}
+          </button>
         </div>
       </div>
     </div>

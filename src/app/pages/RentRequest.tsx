@@ -5,6 +5,7 @@ import { useI18n } from "../components/i18n";
 import { listings as mockListings, IMAGES } from "../components/data";
 import { ImageWithFallback } from "../components/figma/ImageWithFallback";
 import { supabase } from "../../lib/supabase";
+import { sendEmail } from "../../lib/sendEmail";
 
 type ListingSummary = {
   id: string | number;
@@ -148,7 +149,26 @@ export function RentRequest() {
     });
 
     setSending(false);
-    if (error) { setSubmitError(error.message); } else { setSent(true); }
+    if (error) {
+      setSubmitError(error.message);
+    } else {
+      // Email lister (non-blocking)
+      if (listing.owner_id) {
+        const [{ data: listerProfile }, { data: renterProfile }] = await Promise.all([
+          supabase.from("profiles").select("name, email").eq("id", listing.owner_id).single(),
+          supabase.from("profiles").select("name").eq("id", user.id).single(),
+        ]);
+        if (listerProfile?.email) {
+          const title = lang === "zh" ? listing.titleZh : listing.title;
+          await sendEmail(
+            listerProfile.email,
+            `New rental request for ${title}`,
+            `Hi ${listerProfile.name || "there"}, <strong>${renterProfile?.name || "A user"}</strong> has requested to rent your <strong>${title}</strong> from ${startDate} to ${endDate}. Log in to RenTrend to review and respond: <a href="https://ren-trend.vercel.app/activity?tab=listings">https://ren-trend.vercel.app/activity?tab=listings</a>`
+          );
+        }
+      }
+      setSent(true);
+    }
   }
 
   if (loading) {

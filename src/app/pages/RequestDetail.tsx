@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router";
-import { ArrowLeft, Shield, CheckCircle, X } from "lucide-react";
+import { ArrowLeft, Shield, CheckCircle, X, Star } from "lucide-react";
 import { useI18n } from "../components/i18n";
 import { ImageWithFallback } from "../components/figma/ImageWithFallback";
 import { supabase } from "../../lib/supabase";
+import { sendEmail } from "../../lib/sendEmail";
 import { IMAGES } from "../components/data";
 
 type Listing = {
@@ -49,6 +50,21 @@ function renterName(r: Request) {
   return email.split("@")[0] || "User";
 }
 
+function StarSelector({ value, onChange }: { value: number; onChange: (v: number) => void }) {
+  return (
+    <div className="flex gap-1">
+      {[1, 2, 3, 4, 5].map((s) => (
+        <button key={s} onClick={() => onChange(s)} className="p-0.5">
+          <Star
+            size={28}
+            className={s <= value ? "text-[#F59E0B] fill-[#F59E0B]" : "text-[#D1D5DB]"}
+          />
+        </button>
+      ))}
+    </div>
+  );
+}
+
 export function RequestDetail() {
   const { listingId, requestId } = useParams<{ listingId: string; requestId: string }>();
   const navigate = useNavigate();
@@ -57,10 +73,23 @@ export function RequestDetail() {
   const [listing, setListing] = useState<Listing | null>(null);
   const [request, setRequest] = useState<Request | null>(null);
   const [allRequests, setAllRequests] = useState<{ id: string; status: string }[]>([]);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [acting, setActing] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+
+  // Mark complete
+  const [showCompleteConfirm, setShowCompleteConfirm] = useState(false);
+  const [completing, setCompleting] = useState(false);
+
+  // Review state
+  const [existingReview, setExistingReview] = useState<{ rating: number; comment: string | null } | null>(null);
+  const [reviewChecked, setReviewChecked] = useState(false);
+  const [reviewRating, setReviewRating] = useState(0);
+  const [reviewComment, setReviewComment] = useState("");
+  const [submittingReview, setSubmittingReview] = useState(false);
+  const [reviewDone, setReviewDone] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -69,6 +98,7 @@ export function RequestDetail() {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { navigate("/login"); return; }
+      setCurrentUserId(user.id);
 
       const { data: listingData, error: listingErr } = await supabase
         .from("listings")
@@ -83,7 +113,6 @@ export function RequestDetail() {
       }
       setListing(listingData);
 
-      // Step 1: fetch request without nested join
       const { data: reqData, error: reqErr } = await supabase
         .from("requests")
         .select("*")
@@ -96,7 +125,6 @@ export function RequestDetail() {
         return;
       }
 
-      // Step 2: fetch renter profile separately
       const { data: profileData } = await supabase
         .from("profiles")
         .select("id, name, email, phone")
@@ -105,12 +133,23 @@ export function RequestDetail() {
 
       setRequest({ ...reqData, profiles: profileData ?? null } as Request);
 
-      // Fetch all requests for this listing (for one-acceptance rule)
       const { data: allReqData } = await supabase
         .from("requests")
         .select("id, status")
         .eq("listing_id", listingId);
       setAllRequests((allReqData ?? []) as { id: string; status: string }[]);
+
+      // Check existing review if completed
+      if (reqData.status === "completed") {
+        const { data: rev } = await supabase
+          .from("reviews")
+          .select("rating, comment")
+          .eq("request_id", reqData.id)
+          .eq("reviewer_id", user.id)
+          .maybeSingle();
+        setExistingReview(rev ?? null);
+        setReviewChecked(true);
+      }
     } catch (err: any) {
       console.error("RequestDetail fetch error:", err);
       setError(lang === "zh" ? "載入請求時出錯" : "Failed to load request.");
@@ -122,7 +161,7 @@ export function RequestDetail() {
   useEffect(() => { load(); }, [load]);
 
   async function handleAccept() {
-    if (!request || !listingId) return;
+    if (!request || !listingId || !listing) return;
     setActing(true);
     setShowConfirm(false);
 
@@ -146,10 +185,21 @@ export function RequestDetail() {
 
     setRequest((prev) => prev ? { ...prev, status: "accepted" } : prev);
     setActing(false);
+
+    // Email renter
+    const renterEmail = request.profiles?.email;
+    const listingTitle = lang === "zh" && listing.title_zh ? listing.title_zh : listing.title;
+    if (renterEmail) {
+      await sendEmail(
+        renterEmail,
+        "Your rental request was accepted!",
+        `Great news! Your request to rent <strong>${listingTitle}</strong> has been accepted. Contact the owner to arrange pickup. View your request: <a href="https://ren-trend.vercel.app/activity?tab=requests">https://ren-trend.vercel.app/activity?tab=requests</a>`
+      );
+    }
   }
 
   async function handleDecline() {
-    if (!request) return;
+    if (!request || !listing) return;
     setActing(true);
 
     const { error: declineErr } = await supabase
@@ -165,6 +215,91 @@ export function RequestDetail() {
 
     setRequest((prev) => prev ? { ...prev, status: "rejected" } : prev);
     setActing(false);
+
+    // Email renter
+    const renterEmail = request.profiles?.email;
+    const listingTitle = lang === "zh" && listing.title_zh ? listing.title_zh : listing.title;
+    if (renterEmail) {
+      await sendEmail(
+        renterEmail,
+        "Update on your rental request",
+        `Unfortunately, your request to rent <strong>${listingTitle}</strong> was not accepted this time. Browse other available items: <a href="https://ren-trend.vercel.app/browse">https://ren-trend.vercel.app/browse</a>`
+      );
+    }
+  }
+
+  async function handleComplete() {
+    if (!request || !listing) return;
+    setCompleting(true);
+    setShowCompleteConfirm(false);
+
+    const { error: completeErr } = await supabase
+      .from("requests")
+      .update({ status: "completed", completed_at: new Date().toISOString() })
+      .eq("id", request.id);
+
+    if (completeErr) {
+      setError(lang === "zh" ? "標記完成時出錯" : "Failed to mark as completed.");
+      setCompleting(false);
+      return;
+    }
+
+    const listingTitle = lang === "zh" && listing.title_zh ? listing.title_zh : listing.title;
+
+    // Email renter
+    const renterEmail = request.profiles?.email;
+    if (renterEmail) {
+      await sendEmail(
+        renterEmail,
+        `Your rental of ${listingTitle} is complete`,
+        `Your rental of <strong>${listingTitle}</strong> is complete. Please leave a review! View: <a href="https://ren-trend.vercel.app/my-requests/${request.id}">https://ren-trend.vercel.app/my-requests/${request.id}</a>`
+      );
+    }
+
+    // Email lister (self)
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user?.email) {
+      await sendEmail(
+        user.email,
+        "Rental completed",
+        `Rental of <strong>${listingTitle}</strong> completed — don't forget to leave a review for your renter.`
+      );
+    }
+
+    navigate("/activity?tab=listings");
+  }
+
+  async function handleSubmitReview() {
+    if (!request || !reviewRating || !currentUserId) return;
+    setSubmittingReview(true);
+
+    await supabase.from("reviews").insert({
+      request_id: requestId,
+      listing_id: listingId,
+      reviewer_id: currentUserId,
+      reviewee_id: request.renter_id,
+      role: "lister",
+      rating: reviewRating,
+      comment: reviewComment || null,
+    });
+
+    // Update renter's rating on their profile
+    const { data: allRevs } = await supabase
+      .from("reviews")
+      .select("rating")
+      .eq("reviewee_id", request.renter_id)
+      .eq("role", "lister");
+
+    if (allRevs && allRevs.length > 0) {
+      const avg = Math.round(allRevs.reduce((s, r) => s + r.rating, 0) / allRevs.length * 10) / 10;
+      await supabase.from("profiles").update({
+        rating_as_renter: avg,
+        review_count_as_renter: allRevs.length,
+      }).eq("id", request.renter_id);
+    }
+
+    setReviewDone(true);
+    setSubmittingReview(false);
   }
 
   if (loading) {
@@ -320,17 +455,61 @@ export function RequestDetail() {
       </div>
 
       {/* ── Section 4: Actions ── */}
-      {request.status === "accepted" && (
-        <div className="bg-[#22C55E]/10 border border-[#22C55E]/30 rounded-xl px-4 py-3 flex items-center gap-3">
-          <CheckCircle size={20} className="text-[#22C55E] shrink-0" />
-          <p className="text-sm text-[#15803D]" style={{ fontWeight: 500 }}>
-            {t("requestAccepted")}
+      {request.status === "completed" && (
+        <div className="bg-[#1E6B1E]/10 border border-[#1E6B1E]/30 rounded-xl px-4 py-3 mb-4 flex items-center gap-3">
+          <CheckCircle size={20} className="text-[#1E6B1E] shrink-0" />
+          <p className="text-sm text-[#1E6B1E]" style={{ fontWeight: 500 }}>
+            {t("rentalCompleted")}
           </p>
         </div>
       )}
 
+      {request.status === "accepted" && (
+        <>
+          <div className="bg-[#22C55E]/10 border border-[#22C55E]/30 rounded-xl px-4 py-3 flex items-center gap-3 mb-3">
+            <CheckCircle size={20} className="text-[#22C55E] shrink-0" />
+            <p className="text-sm text-[#15803D]" style={{ fontWeight: 500 }}>
+              {t("requestAccepted")}
+            </p>
+          </div>
+
+          {!showCompleteConfirm ? (
+            <button
+              onClick={() => setShowCompleteConfirm(true)}
+              disabled={completing}
+              className="w-full py-3 bg-[#1E6B1E] text-white rounded-xl text-sm hover:bg-[#155215] transition-colors disabled:opacity-60 mb-3"
+            >
+              {t("markCompleted")}
+            </button>
+          ) : (
+            <div className="bg-[#1E6B1E]/5 border border-[#1E6B1E]/20 rounded-xl px-4 py-3 mb-3 space-y-3">
+              <p className="text-sm text-[#1F2937]">{t("markCompletedConfirm")}</p>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setShowCompleteConfirm(false)}
+                  className="flex-1 py-2 border border-[#E5E7EB] text-[#6B7280] rounded-xl text-sm"
+                >
+                  {lang === "zh" ? "取消" : "Cancel"}
+                </button>
+                <button
+                  onClick={handleComplete}
+                  disabled={completing}
+                  className="flex-1 py-2 bg-[#1E6B1E] text-white rounded-xl text-sm disabled:opacity-60"
+                >
+                  {completing ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    </span>
+                  ) : lang === "zh" ? "確認完成" : "Confirm"}
+                </button>
+              </div>
+            </div>
+          )}
+        </>
+      )}
+
       {request.status === "rejected" && (
-        <div className="bg-[#F3F4F6] border border-[#E5E7EB] rounded-xl px-4 py-3">
+        <div className="bg-[#F3F4F6] border border-[#E5E7EB] rounded-xl px-4 py-3 mb-4">
           <p className="text-sm text-[#6B7280]">
             {lang === "zh" ? "你已拒絕此請求" : "You declined this request"}
           </p>
@@ -338,7 +517,7 @@ export function RequestDetail() {
       )}
 
       {request.status === "pending" && hasAcceptedOther && (
-        <div className="bg-[#F3F4F6] border border-[#E5E7EB] rounded-xl px-4 py-3">
+        <div className="bg-[#F3F4F6] border border-[#E5E7EB] rounded-xl px-4 py-3 mb-4">
           <p className="text-sm text-[#6B7280]">{t("alreadyAccepted")}</p>
           <button
             onClick={() => navigate(`/my-listings/${listingId}/requests`)}
@@ -370,6 +549,50 @@ export function RequestDetail() {
           >
             {t("decline")}
           </button>
+        </div>
+      )}
+
+      {/* ── Review section (completed only) ── */}
+      {request.status === "completed" && reviewChecked && (
+        <div className="bg-white rounded-xl border border-[#E5E7EB] p-4 mt-4">
+          {existingReview || reviewDone ? (
+            <div>
+              <p className="text-sm text-[#1E6B1E]" style={{ fontWeight: 500 }}>
+                {t("reviewSubmitted")}
+              </p>
+              {(existingReview?.comment || reviewComment) && (
+                <p className="text-xs text-[#6B7280] mt-1 italic">
+                  "{existingReview?.comment || reviewComment}"
+                </p>
+              )}
+            </div>
+          ) : (
+            <div>
+              <p className="text-sm text-[#1F2937] mb-3" style={{ fontWeight: 500 }}>
+                {t("reviewRenter")}
+              </p>
+              <StarSelector value={reviewRating} onChange={setReviewRating} />
+              <textarea
+                value={reviewComment}
+                onChange={(e) => setReviewComment(e.target.value)}
+                placeholder={lang === "zh" ? "這位租客怎麼樣？" : "How was this renter?"}
+                rows={3}
+                className="w-full mt-3 px-4 py-2.5 rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] text-sm resize-none focus:outline-none focus:border-[#1E6B1E]"
+              />
+              <button
+                onClick={handleSubmitReview}
+                disabled={!reviewRating || submittingReview}
+                className="w-full mt-3 py-2.5 bg-[#1E6B1E] text-white rounded-xl text-sm disabled:opacity-40"
+              >
+                {submittingReview ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    {lang === "zh" ? "提交中..." : "Submitting..."}
+                  </span>
+                ) : lang === "zh" ? "提交評價" : "Submit Review"}
+              </button>
+            </div>
+          )}
         </div>
       )}
 

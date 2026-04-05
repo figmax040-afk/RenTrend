@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
-import { Shield, Edit, Bell, Mail, LogOut, Globe, ChevronRight, BarChart3 } from "lucide-react";
+import { Shield, Edit, Bell, Mail, LogOut, Globe, ChevronRight, BarChart3, Star } from "lucide-react";
 import { useI18n } from "../components/i18n";
 import { supabase } from "../../lib/supabase";
 
@@ -9,6 +9,8 @@ type ProfileRow = {
   avatar_url: string | null;
   phone: string | null;
   university: string | null;
+  rating_as_lister: number | null;
+  review_count_as_lister: number | null;
 };
 
 export function Profile() {
@@ -22,6 +24,8 @@ export function Profile() {
   const [loading, setLoading] = useState(true);
   const [itemsListed, setItemsListed] = useState(0);
   const [rentalsCompleted, setRentalsCompleted] = useState(0);
+  const [ratingAsLister, setRatingAsLister] = useState<number | null>(null);
+  const [reviewCountAsLister, setReviewCountAsLister] = useState(0);
 
   useEffect(() => {
     async function loadUser() {
@@ -37,7 +41,7 @@ export function Profile() {
       // Fetch profile row
       const { data: profile } = await supabase
         .from("profiles")
-        .select("name, avatar_url, phone, university")
+        .select("name, avatar_url, phone, university, rating_as_lister, review_count_as_lister")
         .eq("id", user.id)
         .single();
 
@@ -50,6 +54,8 @@ export function Profile() {
       setDisplayName(name);
       setInitials(name.charAt(0).toUpperCase());
       setAvatarUrl(profile?.avatar_url ?? null);
+      setRatingAsLister(profile?.rating_as_lister ?? null);
+      setReviewCountAsLister(profile?.review_count_as_lister ?? 0);
 
       // Items Listed (owner)
       const { count: listedCount } = await supabase
@@ -105,6 +111,14 @@ export function Profile() {
           <Shield size={12} className="text-[#22C55E]" />
           <span className="text-xs text-[#22C55E]">{t("verified")}</span>
         </div>
+        {ratingAsLister !== null && ratingAsLister > 0 && reviewCountAsLister > 0 && (
+          <div className="flex items-center gap-1 mt-1">
+            <Star size={12} className="text-[#F59E0B] fill-[#F59E0B]" />
+            <span className="text-xs" style={{ color: "#F59E0B" }}>
+              {ratingAsLister.toFixed(1)} ({reviewCountAsLister} {lang === "zh" ? "個評價" : "reviews"})
+            </span>
+          </div>
+        )}
         <span className="text-xs text-[#6B7280] mt-0.5">{t("memberSince")} {memberSince}</span>
       </div>
 
