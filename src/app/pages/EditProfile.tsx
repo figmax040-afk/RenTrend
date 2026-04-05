@@ -2,9 +2,11 @@ import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router";
 import { ArrowLeft } from "lucide-react";
 import { supabase } from "../../lib/supabase";
+import { useI18n } from "../components/i18n";
 
 export function EditProfile() {
   const navigate = useNavigate();
+  const { t, lang } = useI18n();
   const [userId, setUserId] = useState("");
   const [name, setName] = useState("");
   const [university, setUniversity] = useState("");
@@ -56,7 +58,7 @@ export function EditProfile() {
       .upload(path, file, { upsert: true });
 
     if (uploadErr) {
-      setUploadError("Failed to upload photo. Please try again.");
+      setUploadError(t("uploadPhotoFailed"));
       setUploading(false);
       return;
     }
@@ -69,7 +71,7 @@ export function EditProfile() {
       .upsert({ id: userId, avatar_url: publicUrl });
 
     if (updateErr) {
-      setUploadError("Photo uploaded but failed to save. Please try again.");
+      setUploadError(t("uploadPhotoSaveFailed"));
       setUploading(false);
       return;
     }
@@ -118,7 +120,7 @@ export function EditProfile() {
     <div className="max-w-lg mx-auto px-4 pt-4">
       <div className="flex items-center gap-3 mb-6">
         <button onClick={() => navigate("/profile")} className="text-[#6B7280]"><ArrowLeft size={20} /></button>
-        <h2 className="text-[#1F2937]">Edit Profile</h2>
+        <h2 className="text-[#1F2937]">{t("editProfile")}</h2>
       </div>
 
       {/* Avatar upload */}
@@ -145,7 +147,7 @@ export function EditProfile() {
           disabled={uploading}
           className="mt-2 text-sm text-[#1E6B1E] disabled:opacity-50"
         >
-          Change photo
+          {t("changePhoto")}
         </button>
         <input
           ref={fileInputRef}
@@ -161,22 +163,22 @@ export function EditProfile() {
 
       <div className="space-y-4">
         <div>
-          <label className="text-sm text-[#6B7280]">Display Name</label>
+          <label className="text-sm text-[#6B7280]">{t("displayName")}</label>
           <input
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="Your name"
+            placeholder={lang === "zh" ? "你的名字" : "Your name"}
             className="w-full mt-1 px-4 py-2.5 rounded-xl border border-[#E5E7EB] bg-white text-sm focus:outline-none focus:border-[#1E6B1E]"
           />
         </div>
         <div>
-          <label className="text-sm text-[#6B7280]">University</label>
+          <label className="text-sm text-[#6B7280]">{t("location")}</label>
           <select
             value={university}
             onChange={(e) => setUniversity(e.target.value)}
             className="w-full mt-1 px-4 py-2.5 rounded-xl border border-[#E5E7EB] bg-white text-sm focus:outline-none focus:border-[#1E6B1E]"
           >
-            <option value="">Select university</option>
+            <option value="">{t("selectUniversity")}</option>
             <option>HKU</option>
             <option>CUHK</option>
             <option>HKUST</option>
@@ -187,7 +189,7 @@ export function EditProfile() {
           </select>
         </div>
         <div>
-          <label className="text-sm text-[#6B7280]">Phone Number</label>
+          <label className="text-sm text-[#6B7280]">{t("phone")}</label>
           <input
             type="tel"
             value={phone}
@@ -206,7 +208,7 @@ export function EditProfile() {
           disabled={saving}
           className="w-full py-3 bg-[#1E6B1E] text-white rounded-xl hover:bg-[#155215] transition-colors disabled:opacity-60"
         >
-          {saving ? "Saving..." : "Save Changes"}
+          {saving ? t("saving") : t("saveChanges")}
         </button>
       </div>
     </div>

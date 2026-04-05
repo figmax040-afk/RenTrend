@@ -175,8 +175,26 @@ const translations: Record<string, Record<Lang, string>> = {
   renterCollects: { en: "Renter will collect", zh: "租客自取" },
   ownerDelivers: { en: "Owner delivers", zh: "物主送貨" },
   noRequests: { en: "No requests yet", zh: "暫無請求" },
-  // Profile
+  // Edit Profile
   editProfile: { en: "Edit Profile", zh: "編輯資料" },
+  changePhoto: { en: "Change photo", zh: "更換照片" },
+  displayName: { en: "Display Name", zh: "顯示名稱" },
+  selectUniversity: { en: "Select university", zh: "選擇大學" },
+  saving: { en: "Saving...", zh: "儲存中..." },
+  uploadPhotoFailed: { en: "Failed to upload photo. Please try again.", zh: "上傳照片失敗，請重試。" },
+  uploadPhotoSaveFailed: { en: "Photo uploaded but failed to save. Please try again.", zh: "照片已上傳但儲存失敗，請重試。" },
+  // Email Preferences
+  emailPrefsSaved: { en: "Preferences saved!", zh: "偏好已儲存！" },
+  emailPrefsRentalReq: { en: "Rental request notifications", zh: "租用請求通知" },
+  emailPrefsRentalReqDesc: { en: "Email me when someone requests my listing", zh: "有人請求租用我的物品時發送電郵" },
+  emailPrefsReqUpdates: { en: "Request status updates", zh: "請求狀態更新" },
+  emailPrefsReqUpdatesDesc: { en: "Email me when my request is accepted or rejected", zh: "我的請求被接受或拒絕時發送電郵" },
+  emailPrefsNearby: { en: "New listings near me", zh: "附近新刊登" },
+  emailPrefsNearbyDesc: { en: "Get notified about new items in your area", zh: "獲取你所在地區的新物品通知" },
+  emailPrefsDigest: { en: "Weekly digest", zh: "每週摘要" },
+  emailPrefsDigestDesc: { en: "A weekly summary of activity on RenTrend", zh: "RenTrend 每週活動摘要" },
+  noPendingApprovals: { en: "No pending approvals", zh: "暫無待批准的刊登" },
+  // Profile
   settings: { en: "Settings", zh: "設定" },
   notifications: { en: "Notifications", zh: "通知" },
   emailPrefs: { en: "Email Preferences", zh: "電郵偏好" },

@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 import { ArrowLeft, CheckCircle } from "lucide-react";
 import { supabase } from "../../lib/supabase";
+import { useI18n } from "../components/i18n";
 
 type Prefs = {
   rentalRequests: boolean;
@@ -17,20 +18,21 @@ const defaultPrefs: Prefs = {
   weeklyDigest: false,
 };
 
-const prefLabels: { key: keyof Prefs; label: string; desc: string }[] = [
-  { key: "rentalRequests", label: "Rental request notifications", desc: "Email me when someone requests my listing" },
-  { key: "requestUpdates", label: "Request status updates", desc: "Email me when my request is accepted or rejected" },
-  { key: "nearbyListings", label: "New listings near me", desc: "Get notified about new items in your area" },
-  { key: "weeklyDigest", label: "Weekly digest", desc: "A weekly summary of activity on RenTrend" },
-];
-
 export function EmailPreferences() {
   const navigate = useNavigate();
+  const { t } = useI18n();
   const [prefs, setPrefs] = useState<Prefs>(defaultPrefs);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState("");
+
+  const prefLabels: { key: keyof Prefs; labelKey: string; descKey: string }[] = [
+    { key: "rentalRequests", labelKey: "emailPrefsRentalReq",   descKey: "emailPrefsRentalReqDesc" },
+    { key: "requestUpdates", labelKey: "emailPrefsReqUpdates",  descKey: "emailPrefsReqUpdatesDesc" },
+    { key: "nearbyListings", labelKey: "emailPrefsNearby",      descKey: "emailPrefsNearbyDesc" },
+    { key: "weeklyDigest",   labelKey: "emailPrefsDigest",      descKey: "emailPrefsDigestDesc" },
+  ];
 
   useEffect(() => {
     async function load() {
@@ -86,15 +88,15 @@ export function EmailPreferences() {
     <div className="max-w-lg mx-auto px-4 pt-4">
       <div className="flex items-center gap-3 mb-6">
         <button onClick={() => navigate("/profile")} className="text-[#6B7280]"><ArrowLeft size={20} /></button>
-        <h2 className="text-[#1F2937]">Email Preferences</h2>
+        <h2 className="text-[#1F2937]">{t("emailPrefs")}</h2>
       </div>
 
       <div className="bg-white rounded-xl border border-[#E5E7EB] divide-y divide-[#E5E7EB] mb-4">
-        {prefLabels.map(({ key, label, desc }) => (
+        {prefLabels.map(({ key, labelKey, descKey }) => (
           <div key={key} className="flex items-center justify-between px-4 py-4">
             <div className="flex-1 pr-4">
-              <p className="text-sm" style={{ fontWeight: 500 }}>{label}</p>
-              <p className="text-xs text-[#6B7280] mt-0.5">{desc}</p>
+              <p className="text-sm" style={{ fontWeight: 500 }}>{t(labelKey)}</p>
+              <p className="text-xs text-[#6B7280] mt-0.5">{t(descKey)}</p>
             </div>
             <button
               onClick={() => toggle(key)}
@@ -113,7 +115,7 @@ export function EmailPreferences() {
       {saved && (
         <div className="flex items-center gap-2 bg-green-50 border border-green-200 text-green-700 text-sm px-4 py-3 rounded-xl mb-4">
           <CheckCircle size={16} />
-          Preferences saved!
+          {t("emailPrefsSaved")}
         </div>
       )}
 
@@ -122,7 +124,7 @@ export function EmailPreferences() {
         disabled={saving}
         className="w-full py-3 bg-[#1E6B1E] text-white rounded-xl hover:bg-[#155215] transition-colors disabled:opacity-60"
       >
-        {saving ? "Saving..." : "Save Preferences"}
+        {saving ? t("saving") : t("emailPrefs")}
       </button>
     </div>
   );

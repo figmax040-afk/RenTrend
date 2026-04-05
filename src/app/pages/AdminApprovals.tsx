@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 import { ArrowLeft } from "lucide-react";
 import { supabase } from "../../lib/supabase";
+import { useI18n } from "../components/i18n";
 
 type Row = {
   id: string;
@@ -12,6 +13,7 @@ type Row = {
 
 export function AdminApprovals() {
   const navigate = useNavigate();
+  const { t, lang } = useI18n();
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
   const [acting, setActing] = useState<string | null>(null);
@@ -46,7 +48,7 @@ export function AdminApprovals() {
     <div className="max-w-4xl mx-auto px-4 pt-4">
       <div className="flex items-center gap-3 mb-4">
         <button onClick={() => navigate("/admin")} className="text-[#6B7280]"><ArrowLeft size={20} /></button>
-        <h2 className="text-[#1F2937]">Pending Approvals</h2>
+        <h2 className="text-[#1F2937]">{t("pendingApprovals")}</h2>
       </div>
 
       {loading ? (
@@ -54,7 +56,7 @@ export function AdminApprovals() {
           <div className="w-8 h-8 border-2 border-[#1E6B1E] border-t-transparent rounded-full animate-spin" />
         </div>
       ) : rows.length === 0 ? (
-        <p className="text-center text-[#6B7280] text-sm py-12">No pending approvals</p>
+        <p className="text-center text-[#6B7280] text-sm py-12">{t("noPendingApprovals")}</p>
       ) : (
         <div className="bg-white rounded-xl border border-[#E5E7EB] divide-y divide-[#E5E7EB]">
           {rows.map((r) => (
@@ -62,7 +64,7 @@ export function AdminApprovals() {
               <div className="flex-1 min-w-0">
                 <p className="text-sm truncate" style={{ fontWeight: 500 }}>{r.title}</p>
                 <p className="text-[10px] text-[#6B7280] mt-0.5">
-                  {r.owner_id.slice(0, 8)}… · {new Date(r.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                  {r.owner_id.slice(0, 8)}… · {new Date(r.created_at).toLocaleDateString(lang === "zh" ? "zh-HK" : "en-US", { month: "short", day: "numeric", year: "numeric" })}
                 </p>
               </div>
               <div className="flex gap-2 ml-3">
@@ -71,14 +73,14 @@ export function AdminApprovals() {
                   disabled={acting === r.id}
                   className="px-3 py-1 bg-[#22C55E] text-white rounded-lg text-xs disabled:opacity-50"
                 >
-                  Approve
+                  {t("approve")}
                 </button>
                 <button
                   onClick={() => reject(r.id)}
                   disabled={acting === r.id}
                   className="px-3 py-1 border border-[#EF4444] text-[#EF4444] rounded-lg text-xs disabled:opacity-50"
                 >
-                  Reject
+                  {t("reject")}
                 </button>
               </div>
             </div>
