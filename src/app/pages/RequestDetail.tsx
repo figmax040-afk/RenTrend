@@ -239,12 +239,27 @@ export function RequestDetail() {
       .eq("id", request.id);
 
     if (completeErr) {
+      console.error("Mark complete error:", completeErr);
       setError(lang === "zh" ? "標記完成時出錯" : "Failed to mark as completed.");
       setCompleting(false);
       return;
     }
 
+    // Update local state immediately
+    setRequest((prev) => prev ? { ...prev, status: "completed", completed_at: new Date().toISOString() } as Request & { completed_at: string } : prev);
+
     const listingTitle = lang === "zh" && listing.title_zh ? listing.title_zh : listing.title;
+
+    // Check existing review now that it's completed
+    const { data: rev } = await supabase
+      .from("reviews")
+      .select("rating, comment")
+      .eq("request_id", request.id)
+      .eq("reviewer_id", currentUserId)
+      .maybeSingle();
+    setExistingReview(rev ?? null);
+    setReviewChecked(true);
+    setCompleting(false);
 
     // Email renter
     const renterEmail = request.profiles?.email;
@@ -265,8 +280,6 @@ export function RequestDetail() {
         `Rental of <strong>${listingTitle}</strong> completed — don't forget to leave a review for your renter.`
       );
     }
-
-    navigate("/activity?tab=listings");
   }
 
   async function handleSubmitReview() {

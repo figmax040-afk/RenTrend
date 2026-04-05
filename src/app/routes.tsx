@@ -27,6 +27,7 @@ import { AdminApprovals } from "./pages/AdminApprovals";
 import { AdminRequests } from "./pages/AdminRequests";
 import { AdminRecycling } from "./pages/AdminRecycling";
 import { ResetPassword } from "./pages/ResetPassword";
+import { SavedListings } from "./pages/SavedListings";
 
 export const router = createBrowserRouter([
   { path: "/", Component: Onboarding },
@@ -51,6 +52,7 @@ export const router = createBrowserRouter([
       { path: "/my-listings/:listingId/edit", Component: EditListing },
       { path: "/my-listings/:listingId/requests", Component: ListingRequests },
       { path: "/my-listings/:listingId/requests/:requestId", Component: RequestDetail },
+      { path: "/saved", Component: SavedListings },
       { path: "/profile", Component: Profile },
       { path: "/edit-profile", Component: EditProfile },
       { path: "/email-preferences", Component: EmailPreferences },

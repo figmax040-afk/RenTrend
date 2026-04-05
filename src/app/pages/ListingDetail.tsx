@@ -107,16 +107,27 @@ export function ListingDetail() {
   const [loading,   setLoading]   = useState(true);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [copied,    setCopied]    = useState(false);
+  const [ownerName, setOwnerName] = useState<string>("—");
   const [realReviews, setRealReviews] = useState<Array<{
-    id: string; author: string; rating: number; date: string; comment: string;
+    id: string; author: string; rating: number; date: string; comment: string; listing_title?: string;
   }>>([]);
 
   useEffect(() => {
     if (!id) return;
 
-    // Get current user for owner detection
-    supabase.auth.getUser().then(({ data }) => {
-      setCurrentUserId(data.user?.id ?? null);
+    // Get current user for owner detection and saved status
+    supabase.auth.getUser().then(async ({ data }) => {
+      const userId = data.user?.id ?? null;
+      setCurrentUserId(userId);
+      if (userId && id) {
+        const { data: savedData } = await supabase
+          .from("saved_listings")
+          .select("id")
+          .eq("user_id", userId)
+          .eq("listing_id", id)
+          .maybeSingle();
+        setSaved(!!savedData);
+      }
     });
 
     const numericId = Number(id);
@@ -179,29 +190,51 @@ export function ListingDetail() {
       });
   }, [id]);
 
-  // Fetch real reviews for UUID listings
+  // Fetch all owner reviews and owner name for UUID listings
   useEffect(() => {
-    if (!listing || typeof listing.id === "number") return;
-    const listingId = listing.id as string;
+    if (!listing || typeof listing.id === "number" || !listing.owner_id) return;
 
-    async function fetchReviews() {
+    async function fetchOwnerReviews() {
+      // Fetch owner's display name
+      const { data: ownerProfile } = await supabase
+        .from("profiles")
+        .select("name, email")
+        .eq("id", listing!.owner_id!)
+        .maybeSingle();
+      const oName = ownerProfile?.name || (ownerProfile?.email ? ownerProfile.email.split("@")[0] : "—");
+      setOwnerName(oName);
+
+      // Fetch all reviews for this owner as a lister (renter reviews)
       const { data: revData } = await supabase
         .from("reviews")
-        .select("id, rating, comment, created_at, reviewer_id")
-        .eq("listing_id", listingId)
-        .order("created_at", { ascending: false });
+        .select("id, rating, comment, created_at, reviewer_id, listing_id")
+        .eq("reviewee_id", listing!.owner_id!)
+        .eq("role", "renter")
+        .order("created_at", { ascending: false })
+        .limit(10);
 
       if (!revData || revData.length === 0) { setRealReviews([]); return; }
 
-      const reviewerIds = revData.map((r) => r.reviewer_id);
+      // Fetch reviewer names
+      const reviewerIds = [...new Set(revData.map((r) => r.reviewer_id))];
       const { data: profiles } = await supabase
         .from("profiles")
         .select("id, name, email")
         .in("id", reviewerIds);
-
       const profileMap = Object.fromEntries(
         (profiles ?? []).map((p) => [p.id, p.name || (p.email ? p.email.split("@")[0] : "User")])
       );
+
+      // Fetch listing titles for each review
+      const listingIds = [...new Set(revData.map((r) => r.listing_id).filter(Boolean))];
+      let listingTitleMap: Record<string, string> = {};
+      if (listingIds.length > 0) {
+        const { data: listingData } = await supabase
+          .from("listings")
+          .select("id, title")
+          .in("id", listingIds);
+        listingTitleMap = Object.fromEntries((listingData ?? []).map((l) => [l.id, l.title]));
+      }
 
       setRealReviews(revData.map((r) => ({
         id: r.id,
@@ -209,10 +242,11 @@ export function ListingDetail() {
         rating: r.rating,
         date: new Date(r.created_at).toLocaleDateString("en-US", { month: "short", year: "numeric" }),
         comment: r.comment || "",
+        listing_title: r.listing_id ? listingTitleMap[r.listing_id] : undefined,
       })));
     }
 
-    fetchReviews();
+    fetchOwnerReviews();
   }, [listing]);
 
   if (loading) {
@@ -226,6 +260,18 @@ export function ListingDetail() {
   if (!listing) return <div className="p-8 text-center text-[#6B7280]">Not found</div>;
 
   const isOwner = !!currentUserId && !!listing.owner_id && currentUserId === listing.owner_id;
+
+  async function handleSave() {
+    if (!currentUserId) { navigate("/login"); return; }
+    if (saved) {
+      await supabase.from("saved_listings").delete()
+        .eq("user_id", currentUserId).eq("listing_id", String(listing.id));
+      setSaved(false);
+    } else {
+      await supabase.from("saved_listings").insert({ user_id: currentUserId, listing_id: String(listing.id) });
+      setSaved(true);
+    }
+  }
 
   async function handleShare() {
     const url = window.location.href;
@@ -267,7 +313,7 @@ export function ListingDetail() {
               <Share2 size={16} />
             </button>
             <button
-              onClick={() => setSaved(!saved)}
+              onClick={handleSave}
               className="w-9 h-9 bg-white/90 rounded-full flex items-center justify-center shadow"
             >
               <Heart size={16} className={saved ? "fill-red-500 text-red-500" : ""} />
@@ -375,7 +421,9 @@ export function ListingDetail() {
           <div className="flex items-center gap-2 mb-3">
             <MessageCircle size={16} className="text-[#1E6B1E]" />
             <h3 className="text-[#1B3D1B]" style={{ fontSize: 15, fontWeight: 600 }}>
-              {lang === "zh" ? "租客評價" : "Renter Reviews"}
+              {numericMockId
+                ? (lang === "zh" ? "租客評價" : "Renter Reviews")
+                : `${t("reviewsFor")} ${ownerName}`}
             </h3>
             {reviews.length > 0 && (
               <span className="ml-auto text-xs text-[#6B7280]">
@@ -411,6 +459,9 @@ export function ListingDetail() {
                       <StarRow rating={r.rating} />
                     </div>
                     {body && <p className="text-sm text-[#4B5563]">{body}</p>}
+                    {!isMock && (r as any).listing_title && (
+                      <p className="text-[10px] text-[#9CA3AF] mt-1">{t("forListing")} {(r as any).listing_title}</p>
+                    )}
                   </div>
                 );
               })}
@@ -437,7 +488,7 @@ export function ListingDetail() {
           </button>
         )}
         <button
-          onClick={() => setSaved(!saved)}
+          onClick={handleSave}
           className={`px-4 py-3 border rounded-xl transition-colors ${
             saved
               ? "border-red-400 text-red-500 bg-red-50"

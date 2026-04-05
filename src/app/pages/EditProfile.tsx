@@ -9,7 +9,6 @@ export function EditProfile() {
   const { t, lang } = useI18n();
   const [userId, setUserId] = useState("");
   const [name, setName] = useState("");
-  const [university, setUniversity] = useState("");
   const [phone, setPhone] = useState("");
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
@@ -28,13 +27,12 @@ export function EditProfile() {
 
       const { data } = await supabase
         .from("profiles")
-        .select("name, university, phone, avatar_url")
+        .select("name, phone, avatar_url")
         .eq("id", user.id)
         .single();
 
       if (data) {
         setName(data.name ?? "");
-        setUniversity(data.university ?? "");
         setPhone(data.phone ?? "");
         setAvatarUrl(data.avatar_url ?? null);
       }
@@ -93,7 +91,6 @@ export function EditProfile() {
         id: user.id,
         name,
         phone,
-        university,
         updated_at: new Date().toISOString(),
       });
 
@@ -170,23 +167,6 @@ export function EditProfile() {
             placeholder={lang === "zh" ? "你的名字" : "Your name"}
             className="w-full mt-1 px-4 py-2.5 rounded-xl border border-[#E5E7EB] bg-white text-sm focus:outline-none focus:border-[#1E6B1E]"
           />
-        </div>
-        <div>
-          <label className="text-sm text-[#6B7280]">{t("location")}</label>
-          <select
-            value={university}
-            onChange={(e) => setUniversity(e.target.value)}
-            className="w-full mt-1 px-4 py-2.5 rounded-xl border border-[#E5E7EB] bg-white text-sm focus:outline-none focus:border-[#1E6B1E]"
-          >
-            <option value="">{t("selectUniversity")}</option>
-            <option>HKU</option>
-            <option>CUHK</option>
-            <option>HKUST</option>
-            <option>PolyU</option>
-            <option>CityU</option>
-            <option>HKBU</option>
-            <option>Other</option>
-          </select>
         </div>
         <div>
           <label className="text-sm text-[#6B7280]">{t("phone")}</label>

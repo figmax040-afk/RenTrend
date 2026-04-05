@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 import { useI18n } from "../components/i18n";
-import { Clock, MessageSquare, Recycle } from "lucide-react";
+import { Clock, MessageSquare, Recycle, ArrowLeft } from "lucide-react";
 import { supabase } from "../../lib/supabase";
 
 type Stats = {
@@ -43,7 +43,12 @@ export function Admin() {
 
   return (
     <div className="max-w-4xl mx-auto px-4 pt-6">
-      <h2 className="text-[#1F2937] mb-4">{t("admin")}</h2>
+      <div className="flex items-center gap-3 mb-4">
+        <button onClick={() => navigate("/profile")} className="text-[#6B7280]">
+          <ArrowLeft size={20} />
+        </button>
+        <h2 className="text-[#1F2937]">{t("admin")}</h2>
+      </div>
 
       <div className="grid grid-cols-3 gap-3 mb-6">
         {statCards.map((s) => {

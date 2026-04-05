@@ -230,6 +230,11 @@ const translations: Record<string, Record<Lang, string>> = {
   recyclingSubmissions: { en: "Recycling Submissions", zh: "回收提交" },
   approve: { en: "Approve", zh: "批准" },
   reject: { en: "Reject", zh: "拒絕" },
+  savedListings: { en: "Saved Items", zh: "已收藏" },
+  noSavedItems: { en: "No saved items yet", zh: "暫無收藏" },
+  browseToSave: { en: "Browse listings and tap the heart to save items", zh: "瀏覽刊登並點擊愛心以收藏" },
+  reviewsFor: { en: "Reviews for", zh: "關於" },
+  forListing: { en: "For:", zh: "關於:" },
 };
 
 interface I18nContextType {

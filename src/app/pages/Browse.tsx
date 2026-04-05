@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Search, SlidersHorizontal, X, MapPin } from "lucide-react";
+import { Search, SlidersHorizontal, X, MapPin, Heart, Recycle, ChevronRight } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router";
 import { useI18n } from "../components/i18n";
 import { ListingCard } from "../components/ListingCard";
@@ -61,6 +61,7 @@ export function Browse() {
   const [allListings, setAllListings] = useState<UiListing[]>([]);
   const [brands, setBrands] = useState<string[]>([]);
   const [dataLoading, setDataLoading] = useState(true);
+  const [savedCount, setSavedCount] = useState(0);
 
   // Load Google Maps script
   useEffect(() => {
@@ -95,6 +96,15 @@ export function Browse() {
       }
     });
   }, []);
+
+  useEffect(() => {
+    if (authLoading || !user) return;
+    supabase
+      .from("saved_listings")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", user.id)
+      .then(({ count }) => setSavedCount(count || 0));
+  }, [authLoading, user]);
 
   useEffect(() => {
     if (authLoading) return;
@@ -219,6 +229,17 @@ export function Browse() {
           {activeFilterCount > 0 && (
             <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-[#1E6B1E] text-white rounded-full text-[10px] flex items-center justify-center">
               {activeFilterCount}
+            </span>
+          )}
+        </button>
+        <button
+          onClick={() => navigate("/saved")}
+          className="relative p-2.5 rounded-xl border border-[#E5E7EB] bg-white text-[#6B7280] hover:text-[#EF4444]"
+        >
+          <Heart size={18} />
+          {savedCount > 0 && (
+            <span className="absolute -top-1 -right-1 w-4 h-4 bg-[#EF4444] text-white rounded-full text-[9px] flex items-center justify-center">
+              {savedCount}
             </span>
           )}
         </button>
@@ -363,6 +384,21 @@ export function Browse() {
           ))}
         </div>
       )}
+
+      {/* Recycle banner */}
+      <div
+        onClick={() => navigate("/recycle")}
+        className="mx-0 mt-6 mb-4 p-4 rounded-xl bg-[#1E6B1E]/8 border border-[#C8E6C9] flex items-center gap-3 cursor-pointer hover:bg-[#1E6B1E]/12 transition-colors"
+      >
+        <div className="w-10 h-10 rounded-full bg-[#1E6B1E]/15 flex items-center justify-center flex-shrink-0">
+          <Recycle size={20} className="text-[#1E6B1E]" />
+        </div>
+        <div className="flex-1">
+          <p className="text-sm font-medium text-[#1E6B1E]">{t("recycleTitle").split("\n")[0]}</p>
+          <p className="text-xs text-[#6B7280] mt-0.5">{t("recycleSub").substring(0, 60)}...</p>
+        </div>
+        <ChevronRight size={16} className="text-[#1E6B1E]" />
+      </div>
     </div>
   );
 }
