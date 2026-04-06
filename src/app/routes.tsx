@@ -28,6 +28,7 @@ import { AdminRequests } from "./pages/AdminRequests";
 import { AdminRecycling } from "./pages/AdminRecycling";
 import { ResetPassword } from "./pages/ResetPassword";
 import { SavedListings } from "./pages/SavedListings";
+import { Chat } from "./pages/Chat";
 
 export const router = createBrowserRouter([
   { path: "/", Component: Onboarding },
@@ -62,6 +63,7 @@ export const router = createBrowserRouter([
       { path: "/admin/approvals", Component: AdminApprovals },
       { path: "/admin/requests", Component: AdminRequests },
       { path: "/admin/recycling", Component: AdminRecycling },
+      { path: "/chat/:requestId", Component: Chat },
     ],
   },
 ]);

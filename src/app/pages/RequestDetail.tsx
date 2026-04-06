@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router";
-import { ArrowLeft, Shield, CheckCircle, X, Star } from "lucide-react";
+import { ArrowLeft, Shield, CheckCircle, X, Star, MessageCircle } from "lucide-react";
 import { useI18n } from "../components/i18n";
 import { ImageWithFallback } from "../components/figma/ImageWithFallback";
 import { supabase } from "../../lib/supabase";
@@ -539,6 +539,16 @@ export function RequestDetail() {
             ← {lang === "zh" ? "返回請求列表" : "Back to requests"}
           </button>
         </div>
+      )}
+
+      {(request.status === "pending" || request.status === "accepted") && (
+        <button
+          onClick={() => navigate(`/chat/${requestId}`)}
+          className="w-full py-3 border border-[#1E6B1E] text-[#1E6B1E] rounded-xl text-sm flex items-center justify-center gap-2 hover:bg-[#1E6B1E]/5 transition-colors mb-3"
+        >
+          <MessageCircle size={16} />
+          {t("messageRenter")}
+        </button>
       )}
 
       {request.status === "pending" && !hasAcceptedOther && (

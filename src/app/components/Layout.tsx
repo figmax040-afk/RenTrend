@@ -21,29 +21,55 @@ export function Layout() {
   const location  = useLocation();
   const { t, lang, setLang } = useI18n();
   const [pendingCount, setPendingCount] = useState(0);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
-    async function checkPending() {
+    async function checkCounts() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
+      // Pending requests for lister
       const { data: listings } = await supabase
         .from("listings")
         .select("id")
         .eq("owner_id", user.id);
 
       const listingIds = (listings || []).map((l) => l.id);
-      if (listingIds.length === 0) return;
+      if (listingIds.length > 0) {
+        const { count } = await supabase
+          .from("requests")
+          .select("id", { count: "exact", head: true })
+          .in("listing_id", listingIds)
+          .eq("status", "pending");
+        setPendingCount(count || 0);
+      }
 
-      const { count } = await supabase
+      // Unread messages: get all request IDs where user is renter or lister
+      const { data: renterReqs } = await supabase
         .from("requests")
-        .select("id", { count: "exact", head: true })
-        .in("listing_id", listingIds)
-        .eq("status", "pending");
+        .select("id")
+        .eq("renter_id", user.id);
 
-      setPendingCount(count || 0);
+      const { data: listerReqs } = listingIds.length > 0
+        ? await supabase.from("requests").select("id").in("listing_id", listingIds)
+        : { data: [] };
+
+      const allRequestIds = [
+        ...((renterReqs || []).map((r) => r.id)),
+        ...((listerReqs || []).map((r) => r.id)),
+      ];
+
+      if (allRequestIds.length > 0) {
+        const { count: msgCount } = await supabase
+          .from("messages")
+          .select("id", { count: "exact", head: true })
+          .is("read_at", null)
+          .neq("sender_id", user.id)
+          .in("request_id", allRequestIds);
+        setUnreadCount(msgCount || 0);
+      }
     }
-    checkPending();
+    checkCounts();
   }, []);
 
   return (
@@ -74,9 +100,9 @@ export function Layout() {
               >
                 <div className="relative">
                   <item.icon size={18} />
-                  {item.key === "activity" && pendingCount > 0 && (
+                  {item.key === "activity" && (pendingCount + unreadCount) > 0 && (
                     <span className="absolute -top-1 -right-1 w-4 h-4 bg-[#EF4444] text-white rounded-full flex items-center justify-center text-[8px] font-medium">
-                      {pendingCount > 9 ? "9+" : pendingCount}
+                      {(pendingCount + unreadCount) > 9 ? "9+" : pendingCount + unreadCount}
                     </span>
                   )}
                 </div>
@@ -115,9 +141,9 @@ export function Layout() {
             >
               <div className="relative">
                 <item.icon size={20} />
-                {item.key === "activity" && pendingCount > 0 && (
+                {item.key === "activity" && (pendingCount + unreadCount) > 0 && (
                   <span className="absolute -top-1 -right-1 w-4 h-4 bg-[#EF4444] text-white rounded-full flex items-center justify-center text-[8px] font-medium">
-                    {pendingCount > 9 ? "9+" : pendingCount}
+                    {(pendingCount + unreadCount) > 9 ? "9+" : pendingCount + unreadCount}
                   </span>
                 )}
               </div>

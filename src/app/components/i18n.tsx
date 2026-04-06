@@ -235,6 +235,12 @@ const translations: Record<string, Record<Lang, string>> = {
   browseToSave: { en: "Browse listings and tap the heart to save items", zh: "瀏覽刊登並點擊愛心以收藏" },
   reviewsFor: { en: "Reviews for", zh: "關於" },
   forListing: { en: "For:", zh: "關於:" },
+  // Chat
+  messageOwner: { en: "Message Owner", zh: "聯絡物主" },
+  messageRenter: { en: "Message Renter", zh: "聯絡租客" },
+  chatPlaceholder: { en: "Type a message...", zh: "輸入訊息..." },
+  noMessages: { en: "Start the conversation!", zh: "開始對話吧！" },
+  chat: { en: "Chat", zh: "聊天" },
 };
 
 interface I18nContextType {
