@@ -4,7 +4,7 @@ import { ChevronRight, Recycle, Clock, Package, Globe } from "lucide-react";
 import { useI18n } from "../components/i18n";
 import { IMAGES } from "../components/data";
 import { ImageWithFallback } from "../components/figma/ImageWithFallback";
-const logoImg = "https://placehold.co/400x300?text=RenTrend";
+import logoImg from "../../assets/lendy-logo.png";
 
 const slides = [
   { key: "slide1Title", icon: Package, color: "#1E6B1E" },
@@ -31,8 +31,8 @@ export function Onboarding() {
       </div>
 
       <div className="flex-1 flex flex-col items-center justify-center px-6 max-w-md mx-auto w-full">
-        {/* RenTrend logo */}
-        <img src={logoImg} alt="RenTrend" className="h-28 w-auto object-contain mb-6" />
+        {/* Lendy logo */}
+        <img src={logoImg} alt="Lendy" className="h-20 w-auto max-w-full object-contain mb-6" />
 
         {/* Hero image — home electronics, not students */}
         <div className="w-full h-44 rounded-2xl overflow-hidden mb-8 shadow-sm">

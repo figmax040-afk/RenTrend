@@ -1,7 +1,7 @@
 
-  # RenTrend
+  # Lendy
 
-  This is a code bundle for RenTrend. The original project is available at https://www.figma.com/design/YSZGFo0qaTo7WttZX7jbvl/RenTrend.
+  This is a code bundle for Lendy. The original project is available at https://www.figma.com/design/YSZGFo0qaTo7WttZX7jbvl/RenTrend.
 
   ## Running the code
 

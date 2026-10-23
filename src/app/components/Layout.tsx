@@ -3,9 +3,9 @@ import { Outlet, useNavigate, useLocation } from "react-router";
 import { Home, Search, PlusCircle, Package, User, Globe } from "lucide-react";
 import { useI18n } from "./i18n";
 import { supabase } from "../../lib/supabase";
-const logoImg = "https://placehold.co/400x300?text=RenTrend";
+import logoImg from "../../assets/lendy-logo.png";
 
-// Brand colour palette derived from the RenTrend logo greens
+// Brand colour palette (originally derived from the old logo greens)
 // Primary: #1E6B1E  |  Hover: #155215  |  Light tint: rgba(30,107,30,0.1)
 
 const navItems = [
@@ -81,7 +81,7 @@ export function Layout() {
           onClick={() => navigate("/home")}
           className="flex items-center gap-2 focus:outline-none"
         >
-          <img src={logoImg} alt="RenTrend" className="h-20 w-auto object-contain" />
+          <img src={logoImg} alt="Lendy" className="h-12 w-auto object-contain" />
         </button>
 
         {/* Navigation links */}

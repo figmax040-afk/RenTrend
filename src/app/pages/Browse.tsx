@@ -123,7 +123,7 @@ export function Browse() {
         if (data && data.length > 0) {
           const mapped: UiListing[] = data.map((l) => ({
             id: l.id,
-            image: l.image_url ?? "https://placehold.co/400x300?text=RenTrend",
+            image: l.image_url ?? "https://placehold.co/400x300?text=Lendy",
             title: l.title,
             titleZh: l.title_zh ?? l.title,
             price: l.price_per_day,

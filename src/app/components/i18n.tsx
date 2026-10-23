@@ -25,7 +25,7 @@ const translations: Record<string, Record<Lang, string>> = {
   fullName: { en: "Full Name", zh: "全名" },
   phone: { en: "Phone Number", zh: "電話號碼" },
   forgotPassword: { en: "Forgot password?", zh: "忘記密碼？" },
-  verifyStudent: { en: "Create your RenTrend account", zh: "加入電易家" },
+  verifyStudent: { en: "Create your Lendy account", zh: "加入電易家" },
   resetPasswordSent: { en: "Check your email for a password reset link.", zh: "請查看電郵以獲取密碼重設連結。" },
   sendResetLink: { en: "Send reset link", zh: "發送密碼重設連結" },
   newPassword: { en: "New Password", zh: "新密碼" },
@@ -111,7 +111,7 @@ const translations: Record<string, Record<Lang, string>> = {
   forParts: { en: "For parts", zh: "部分零件損壞" },
   // Recycle
   recycleTitle: { en: "Leaving the city?\nDon't bin it.", zh: "即將離開？\n別丟棄它。" },
-  recycleSub: { en: "Submit your item and we'll collect it, refurbish if needed, and give it a second life on RenTrend.", zh: "提交你的物品，我們會收集、翻新，讓它在電易家上重獲新生。" },
+  recycleSub: { en: "Submit your item and we'll collect it, refurbish if needed, and give it a second life on Lendy.", zh: "提交你的物品，我們會收集、翻新，讓它在電易家上重獲新生。" },
   submitAppliance: { en: "Submit an Appliance", zh: "提交電器" },
   itemType: { en: "Item Type", zh: "物品類型" },
   working: { en: "Working", zh: "正常運作" },
@@ -192,7 +192,7 @@ const translations: Record<string, Record<Lang, string>> = {
   emailPrefsNearby: { en: "New listings near me", zh: "附近新刊登" },
   emailPrefsNearbyDesc: { en: "Get notified about new items in your area", zh: "獲取你所在地區的新物品通知" },
   emailPrefsDigest: { en: "Weekly digest", zh: "每週摘要" },
-  emailPrefsDigestDesc: { en: "A weekly summary of activity on RenTrend", zh: "RenTrend 每週活動摘要" },
+  emailPrefsDigestDesc: { en: "A weekly summary of activity on Lendy", zh: "Lendy 每週活動摘要" },
   noPendingApprovals: { en: "No pending approvals", zh: "暫無待批准的刊登" },
   // Admin pages
   allListings: { en: "All Listings", zh: "所有刊登" },

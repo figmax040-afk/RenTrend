@@ -84,7 +84,7 @@ export function SavedListings() {
             <div key={item.id} className="relative">
               <ListingCard
                 id={item.listings.id}
-                image={item.listings.image_url ?? "https://placehold.co/400x300?text=RenTrend"}
+                image={item.listings.image_url ?? "https://placehold.co/400x300?text=Lendy"}
                 title={lang === "zh" ? item.listings.title : item.listings.title}
                 price={item.listings.price_per_day}
                 distance={item.listings.district ?? "HK"}

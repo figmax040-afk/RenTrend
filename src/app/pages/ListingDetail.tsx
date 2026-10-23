@@ -277,7 +277,7 @@ export function ListingDetail() {
     const url = window.location.href;
     const title = lang === "zh" ? listing.titleZh : listing.title;
     if (navigator.share) {
-      await navigator.share({ title, text: `Check out this listing on RenTrend: ${title}`, url });
+      await navigator.share({ title, text: `Check out this listing on Lendy: ${title}`, url });
     } else {
       await navigator.clipboard.writeText(url);
       setCopied(true);
