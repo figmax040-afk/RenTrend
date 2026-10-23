@@ -6,7 +6,7 @@ import { supabase } from "../../lib/supabase";
 import { IMAGES } from "../components/data";
 import { ImageWithFallback } from "../components/figma/ImageWithFallback";
 
-const logoImg = "https://placehold.co/400x300?text=RenTrend";
+import logoImg from "../../assets/lendy-logo.png";
 
 export function ResetPassword() {
   const navigate = useNavigate();
@@ -57,7 +57,7 @@ export function ResetPassword() {
         <ImageWithFallback src={IMAGES.authHero} alt="" className="w-full h-full object-cover" />
         <div className="absolute inset-0 bg-gradient-to-b from-[#1E6B1E]/60 to-[#1E6B1E]/10" />
         <div className="absolute inset-0 flex items-center justify-center">
-          <img src={logoImg} alt="RenTrend" className="h-20 w-auto object-contain drop-shadow-lg" />
+          <img src={logoImg} alt="Lendy" className="h-20 w-auto max-w-[80vw] object-contain bg-white/90 rounded-2xl px-6 py-3 shadow-lg" />
         </div>
       </div>
 

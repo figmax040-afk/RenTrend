@@ -154,7 +154,7 @@ export function EditRequest() {
         {/* Item summary */}
         <div className="flex gap-3 p-3 rounded-xl bg-white border border-[#E5E7EB] mb-5">
           <img
-            src={listing.image_url ?? "https://placehold.co/400x300?text=RenTrend"}
+            src={listing.image_url ?? "https://placehold.co/400x300?text=Lendy"}
             alt=""
             className="w-16 h-16 rounded-lg object-cover"
           />

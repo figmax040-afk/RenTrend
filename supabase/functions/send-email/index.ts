@@ -19,7 +19,7 @@ serve(async (req) => {
       'Authorization': `Bearer ${RESEND_API_KEY}`,
     },
     body: JSON.stringify({
-      from: 'RenTrend <noreply@rentrend.app>',
+      from: 'Lendy <noreply@rentrend.app>',
       to,
       subject,
       html,

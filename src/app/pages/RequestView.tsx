@@ -5,7 +5,7 @@ import { useI18n } from "../components/i18n";
 import { ImageWithFallback } from "../components/figma/ImageWithFallback";
 import { supabase } from "../../lib/supabase";
 
-const FALLBACK_IMAGE = "https://placehold.co/400x300?text=RenTrend";
+const FALLBACK_IMAGE = "https://placehold.co/400x300?text=Lendy";
 
 type OwnerProfile = {
   id: string;

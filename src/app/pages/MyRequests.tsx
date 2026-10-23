@@ -5,7 +5,7 @@ import { ImageWithFallback } from "../components/figma/ImageWithFallback";
 import { MoreVertical } from "lucide-react";
 import { supabase } from "../../lib/supabase";
 
-const FALLBACK_IMAGE = "https://placehold.co/400x300?text=RenTrend";
+const FALLBACK_IMAGE = "https://placehold.co/400x300?text=Lendy";
 
 type EnrichedRequest = {
   id: string;

@@ -33,7 +33,7 @@ type UiListing = {
 function dbToUi(l: Record<string, any>): UiListing {
   return {
     id: l.id,
-    image: l.image_url ?? "https://placehold.co/400x300?text=RenTrend",
+    image: l.image_url ?? "https://placehold.co/400x300?text=Lendy",
     title: l.title,
     titleZh: l.title_zh ?? l.title,
     price: l.price_per_day,

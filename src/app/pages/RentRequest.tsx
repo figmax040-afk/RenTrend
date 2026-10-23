@@ -163,7 +163,7 @@ export function RentRequest() {
           await sendEmail(
             listerProfile.email,
             `New rental request for ${title}`,
-            `Hi ${listerProfile.name || "there"}, <strong>${renterProfile?.name || "A user"}</strong> has requested to rent your <strong>${title}</strong> from ${startDate} to ${endDate}. Log in to RenTrend to review and respond: <a href="https://ren-trend.vercel.app/activity?tab=listings">https://ren-trend.vercel.app/activity?tab=listings</a>`
+            `Hi ${listerProfile.name || "there"}, <strong>${renterProfile?.name || "A user"}</strong> has requested to rent your <strong>${title}</strong> from ${startDate} to ${endDate}. Log in to Lendy to review and respond: <a href="https://ren-trend.vercel.app/activity?tab=listings">https://ren-trend.vercel.app/activity?tab=listings</a>`
           );
         }
       }

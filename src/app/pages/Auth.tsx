@@ -6,7 +6,7 @@ import { IMAGES } from "../components/data";
 import { ImageWithFallback } from "../components/figma/ImageWithFallback";
 import { supabase } from "../../lib/supabase";
 
-const logoImg = "https://placehold.co/400x300?text=RenTrend";
+import logoImg from "../../assets/lendy-logo.png";
 
 /* ── Shared hero banner ── */
 function AuthHero() {
@@ -19,7 +19,7 @@ function AuthHero() {
       />
       <div className="absolute inset-0 bg-gradient-to-b from-[#1E6B1E]/60 to-[#1E6B1E]/10" />
       <div className="absolute inset-0 flex items-center justify-center">
-        <img src={logoImg} alt="RenTrend" className="h-20 w-auto object-contain drop-shadow-lg" />
+        <img src={logoImg} alt="Lendy" className="h-20 w-auto max-w-[80vw] object-contain bg-white/90 rounded-2xl px-6 py-3 shadow-lg" />
       </div>
     </div>
   );
@@ -105,7 +105,7 @@ export function SignUp() {
       <AuthHero />
 
       <div className="flex-1 flex flex-col px-6 max-w-md mx-auto w-full pt-6">
-        <h1 className="text-[#1B3D1B] mb-1" style={{ fontSize: 26 }}>Join RenTrend</h1>
+        <h1 className="text-[#1B3D1B] mb-1" style={{ fontSize: 26 }}>Join Lendy</h1>
         <p className="text-[#6B7280] text-sm mb-6">{t("verifyStudent")}</p>
 
         {error && (
