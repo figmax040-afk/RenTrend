@@ -4,6 +4,8 @@ import { ArrowLeft, Shield, CheckCircle, X, Star, MessageCircle } from "lucide-r
 import { useI18n } from "../components/i18n";
 import { ImageWithFallback } from "../components/figma/ImageWithFallback";
 import { supabase } from "../../lib/supabase";
+import { loginPath } from "../../lib/authRedirect";
+import { APP_URL } from "../../lib/appUrl";
 import { sendEmail } from "../../lib/sendEmail";
 import { IMAGES } from "../components/data";
 
@@ -97,7 +99,7 @@ export function RequestDetail() {
 
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { navigate("/login"); return; }
+      if (!user) { navigate(loginPath()); return; }
       setCurrentUserId(user.id);
 
       const { data: listingData, error: listingErr } = await supabase
@@ -193,7 +195,7 @@ export function RequestDetail() {
       await sendEmail(
         renterEmail,
         "Your rental request was accepted!",
-        `Great news! Your request to rent <strong>${listingTitle}</strong> has been accepted. Contact the owner to arrange pickup. View your request: <a href="https://ren-trend.vercel.app/activity?tab=requests">https://ren-trend.vercel.app/activity?tab=requests</a>`
+        `Great news! Your request to rent <strong>${listingTitle}</strong> has been accepted. Contact the owner to arrange pickup. View your request: <a href="${APP_URL}/activity?tab=requests">${APP_URL}/activity?tab=requests</a>`
       );
     }
   }
@@ -223,7 +225,7 @@ export function RequestDetail() {
       await sendEmail(
         renterEmail,
         "Update on your rental request",
-        `Unfortunately, your request to rent <strong>${listingTitle}</strong> was not accepted this time. Browse other available items: <a href="https://ren-trend.vercel.app/browse">https://ren-trend.vercel.app/browse</a>`
+        `Unfortunately, your request to rent <strong>${listingTitle}</strong> was not accepted this time. Browse other available items: <a href="${APP_URL}/browse">${APP_URL}/browse</a>`
       );
     }
   }
@@ -267,7 +269,7 @@ export function RequestDetail() {
       await sendEmail(
         renterEmail,
         `Your rental of ${listingTitle} is complete`,
-        `Your rental of <strong>${listingTitle}</strong> is complete. Please leave a review! View: <a href="https://ren-trend.vercel.app/my-requests/${request.id}">https://ren-trend.vercel.app/my-requests/${request.id}</a>`
+        `Your rental of <strong>${listingTitle}</strong> is complete. Please leave a review! View: <a href="${APP_URL}/my-requests/${request.id}">${APP_URL}/my-requests/${request.id}</a>`
       );
     }
 
@@ -318,7 +320,7 @@ export function RequestDetail() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-16">
-        <div className="w-8 h-8 border-2 border-[#1E6B1E] border-t-transparent rounded-full animate-spin" />
+        <div className="w-8 h-8 border-2 border-brand border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -329,7 +331,7 @@ export function RequestDetail() {
         <p className="text-red-600 text-sm bg-red-50 border border-red-200 px-4 py-3 rounded-xl mb-3">
           {error || (lang === "zh" ? "找不到請求" : "Request not found.")}
         </p>
-        <button onClick={load} className="text-sm text-[#1E6B1E] mb-2 block">
+        <button onClick={load} className="text-sm text-brand mb-2 block">
           {lang === "zh" ? "重試" : "Try again"}
         </button>
         <button
@@ -367,7 +369,7 @@ export function RequestDetail() {
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-xl mb-4 flex items-center justify-between">
           <span>{error}</span>
-          <button onClick={load} className="text-xs text-[#1E6B1E] ml-3 shrink-0">
+          <button onClick={load} className="text-xs text-brand ml-3 shrink-0">
             {lang === "zh" ? "重試" : "Try again"}
           </button>
         </div>
@@ -383,7 +385,7 @@ export function RequestDetail() {
         <div className="flex-1">
           <p className="text-xs text-[#6B7280] mb-0.5">{lang === "zh" ? "租用物品" : "Item requested"}</p>
           <p className="text-sm" style={{ fontWeight: 500 }}>{listingTitle}</p>
-          <p className="text-xs text-[#1E6B1E]" style={{ fontWeight: 500 }}>HK${listing.price_per_day}/day</p>
+          <p className="text-xs text-brand" style={{ fontWeight: 500 }}>HK${listing.price_per_day}/day</p>
         </div>
       </div>
 
@@ -391,7 +393,7 @@ export function RequestDetail() {
       <div className="bg-white rounded-xl border border-[#E5E7EB] p-4 mb-4">
         <p className="text-xs text-[#6B7280] mb-3">{lang === "zh" ? "租客資料" : "Renter information"}</p>
         <div className="flex items-center gap-3">
-          <div className="w-11 h-11 rounded-full bg-[#1E6B1E] flex items-center justify-center text-white" style={{ fontWeight: 600, fontSize: 16 }}>
+          <div className="w-11 h-11 rounded-full bg-brand flex items-center justify-center text-white" style={{ fontWeight: 600, fontSize: 16 }}>
             {name[0]?.toUpperCase() ?? "U"}
           </div>
           <div className="flex-1">
@@ -399,7 +401,7 @@ export function RequestDetail() {
             {request.profiles?.email && (
               <a
                 href={`mailto:${request.profiles.email}`}
-                className="text-xs text-[#1E6B1E] underline"
+                className="text-xs text-brand underline"
                 onClick={(e) => e.stopPropagation()}
               >
                 {request.profiles.email}
@@ -415,7 +417,7 @@ export function RequestDetail() {
         {request.status === "accepted" && request.profiles?.phone && (
           <div className="mt-3 pt-3 border-t border-[#E5E7EB]">
             <p className="text-xs text-[#6B7280] mb-1">{lang === "zh" ? "聯絡電話" : "Phone"}</p>
-            <a href={`tel:${request.profiles.phone}`} className="text-sm text-[#1E6B1E]" style={{ fontWeight: 500 }}>
+            <a href={`tel:${request.profiles.phone}`} className="text-sm text-brand" style={{ fontWeight: 500 }}>
               {request.profiles.phone}
             </a>
           </div>
@@ -453,14 +455,14 @@ export function RequestDetail() {
             <p className="text-xs text-[#6B7280]">
               HK${listing.price_per_day} × {days} {lang === "zh" ? "天" : "days"}
             </p>
-            <p className="text-[#1E6B1E]" style={{ fontWeight: 600, fontSize: 16 }}>HK${total}</p>
+            <p className="text-brand" style={{ fontWeight: 600, fontSize: 16 }}>HK${total}</p>
           </div>
         </div>
 
         {request.message && (
           <div className="pt-2 border-t border-[#E5E7EB]">
             <p className="text-xs text-[#6B7280] mb-2">{t("rentersMessage")}</p>
-            <div className="bg-[#F9FAFB] border-l-2 border-[#1E6B1E] pl-3 py-2 rounded-r-lg">
+            <div className="bg-[#F9FAFB] border-l-2 border-brand pl-3 py-2 rounded-r-lg">
               <p className="text-sm text-[#4B5563] italic">"{request.message}"</p>
             </div>
           </div>
@@ -469,9 +471,9 @@ export function RequestDetail() {
 
       {/* ── Section 4: Actions ── */}
       {request.status === "completed" && (
-        <div className="bg-[#1E6B1E]/10 border border-[#1E6B1E]/30 rounded-xl px-4 py-3 mb-4 flex items-center gap-3">
-          <CheckCircle size={20} className="text-[#1E6B1E] shrink-0" />
-          <p className="text-sm text-[#1E6B1E]" style={{ fontWeight: 500 }}>
+        <div className="bg-brand/10 border border-brand/30 rounded-xl px-4 py-3 mb-4 flex items-center gap-3">
+          <CheckCircle size={20} className="text-brand shrink-0" />
+          <p className="text-sm text-brand" style={{ fontWeight: 500 }}>
             {t("rentalCompleted")}
           </p>
         </div>
@@ -490,12 +492,12 @@ export function RequestDetail() {
             <button
               onClick={() => setShowCompleteConfirm(true)}
               disabled={completing}
-              className="w-full py-3 bg-[#1E6B1E] text-white rounded-xl text-sm hover:bg-[#155215] transition-colors disabled:opacity-60 mb-3"
+              className="w-full py-3 bg-brand text-white rounded-xl text-sm hover:bg-brand-hover transition-colors disabled:opacity-60 mb-3"
             >
               {t("markCompleted")}
             </button>
           ) : (
-            <div className="bg-[#1E6B1E]/5 border border-[#1E6B1E]/20 rounded-xl px-4 py-3 mb-3 space-y-3">
+            <div className="bg-brand/5 border border-brand/20 rounded-xl px-4 py-3 mb-3 space-y-3">
               <p className="text-sm text-[#1F2937]">{t("markCompletedConfirm")}</p>
               <div className="flex gap-2">
                 <button
@@ -507,7 +509,7 @@ export function RequestDetail() {
                 <button
                   onClick={handleComplete}
                   disabled={completing}
-                  className="flex-1 py-2 bg-[#1E6B1E] text-white rounded-xl text-sm disabled:opacity-60"
+                  className="flex-1 py-2 bg-brand text-white rounded-xl text-sm disabled:opacity-60"
                 >
                   {completing ? (
                     <span className="flex items-center justify-center gap-2">
@@ -534,7 +536,7 @@ export function RequestDetail() {
           <p className="text-sm text-[#6B7280]">{t("alreadyAccepted")}</p>
           <button
             onClick={() => navigate(`/my-listings/${listingId}/requests`)}
-            className="text-xs text-[#1E6B1E] mt-2"
+            className="text-xs text-brand mt-2"
           >
             ← {lang === "zh" ? "返回請求列表" : "Back to requests"}
           </button>
@@ -544,7 +546,7 @@ export function RequestDetail() {
       {(request.status === "pending" || request.status === "accepted") && (
         <button
           onClick={() => navigate(`/chat/${requestId}`)}
-          className="w-full py-3 border border-[#1E6B1E] text-[#1E6B1E] rounded-xl text-sm flex items-center justify-center gap-2 hover:bg-[#1E6B1E]/5 transition-colors mb-3"
+          className="w-full py-3 border border-brand text-brand rounded-xl text-sm flex items-center justify-center gap-2 hover:bg-brand/5 transition-colors mb-3"
         >
           <MessageCircle size={16} />
           {t("messageRenter")}
@@ -556,7 +558,7 @@ export function RequestDetail() {
           <button
             onClick={() => setShowConfirm(true)}
             disabled={acting}
-            className="w-full py-3 bg-[#1E6B1E] text-white rounded-xl hover:bg-[#155215] transition-colors disabled:opacity-60"
+            className="w-full py-3 bg-brand text-white rounded-xl hover:bg-brand-hover transition-colors disabled:opacity-60"
           >
             {acting ? (
               <span className="flex items-center justify-center gap-2">
@@ -580,7 +582,7 @@ export function RequestDetail() {
         <div className="bg-white rounded-xl border border-[#E5E7EB] p-4 mt-4">
           {existingReview || reviewDone ? (
             <div>
-              <p className="text-sm text-[#1E6B1E]" style={{ fontWeight: 500 }}>
+              <p className="text-sm text-brand" style={{ fontWeight: 500 }}>
                 {t("reviewSubmitted")}
               </p>
               {(existingReview?.comment || reviewComment) && (
@@ -600,12 +602,12 @@ export function RequestDetail() {
                 onChange={(e) => setReviewComment(e.target.value)}
                 placeholder={lang === "zh" ? "這位租客怎麼樣？" : "How was this renter?"}
                 rows={3}
-                className="w-full mt-3 px-4 py-2.5 rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] text-sm resize-none focus:outline-none focus:border-[#1E6B1E]"
+                className="w-full mt-3 px-4 py-2.5 rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] text-sm resize-none focus:outline-none focus:border-brand"
               />
               <button
                 onClick={handleSubmitReview}
                 disabled={!reviewRating || submittingReview}
-                className="w-full mt-3 py-2.5 bg-[#1E6B1E] text-white rounded-xl text-sm disabled:opacity-40"
+                className="w-full mt-3 py-2.5 bg-brand text-white rounded-xl text-sm disabled:opacity-40"
               >
                 {submittingReview ? (
                   <span className="flex items-center justify-center gap-2">
@@ -641,7 +643,7 @@ export function RequestDetail() {
               </button>
               <button
                 onClick={handleAccept}
-                className="flex-1 py-2.5 bg-[#1E6B1E] text-white rounded-xl text-sm hover:bg-[#155215] transition-colors"
+                className="flex-1 py-2.5 bg-brand text-white rounded-xl text-sm hover:bg-brand-hover transition-colors"
               >
                 {t("acceptRequest")}
               </button>

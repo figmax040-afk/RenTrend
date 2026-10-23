@@ -5,6 +5,7 @@ import { useI18n } from "../components/i18n";
 import { listings as mockListings, IMAGES } from "../components/data";
 import { ImageWithFallback } from "../components/figma/ImageWithFallback";
 import { supabase } from "../../lib/supabase";
+import { loginPath } from "../../lib/authRedirect";
 
 /* ── Mock review data ── */
 interface Review {
@@ -252,7 +253,7 @@ export function ListingDetail() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-16">
-        <div className="w-8 h-8 border-2 border-[#1E6B1E] border-t-transparent rounded-full animate-spin" />
+        <div className="w-8 h-8 border-2 border-brand border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -262,7 +263,7 @@ export function ListingDetail() {
   const isOwner = !!currentUserId && !!listing.owner_id && currentUserId === listing.owner_id;
 
   async function handleSave() {
-    if (!currentUserId) { navigate("/login"); return; }
+    if (!currentUserId) { navigate(loginPath()); return; }
     if (saved) {
       await supabase.from("saved_listings").delete()
         .eq("user_id", currentUserId).eq("listing_id", String(listing.id));
@@ -324,10 +325,10 @@ export function ListingDetail() {
 
       <div className="px-4 py-4">
         {/* ── Title & category ── */}
-        <span className="inline-block px-2 py-0.5 rounded-full bg-[#1E6B1E]/10 text-[#1E6B1E] text-xs mb-2">
+        <span className="inline-block px-2 py-0.5 rounded-full bg-brand/10 text-brand text-xs mb-2">
           {lang === "zh" ? listing.categoryZh : listing.category}
         </span>
-        <h1 style={{ fontSize: 22 }} className="text-[#1B3D1B]">
+        <h1 style={{ fontSize: 22 }} className="text-brand-ink">
           {lang === "zh" ? listing.titleZh : listing.title}
         </h1>
 
@@ -349,7 +350,7 @@ export function ListingDetail() {
               onClick={() => setPriceMode(m)}
               className={`px-3 py-1 rounded-full text-xs transition-colors ${
                 priceMode === m
-                  ? "bg-[#1E6B1E] text-white"
+                  ? "bg-brand text-white"
                   : "bg-[#F9FAFB] text-[#6B7280] border border-[#E5E7EB]"
               }`}
             >
@@ -358,7 +359,7 @@ export function ListingDetail() {
           ))}
         </div>
 
-        <p className="text-[#1E6B1E]" style={{ fontSize: 24, fontWeight: 600 }}>
+        <p className="text-brand" style={{ fontSize: 24, fontWeight: 600 }}>
           HK${priceMap[priceMode]}
           <span className="text-sm text-[#6B7280]" style={{ fontWeight: 400 }}>{labelMap[priceMode]}</span>
         </p>
@@ -376,8 +377,8 @@ export function ListingDetail() {
         </div>
 
         {/* ── Owner card ── */}
-        <div className="flex items-center gap-3 mt-4 p-3 rounded-xl bg-[#F0F7F0] border border-[#C8E6C9]">
-          <div className="w-10 h-10 rounded-full bg-[#1E6B1E] flex items-center justify-center text-white text-sm">
+        <div className="flex items-center gap-3 mt-4 p-3 rounded-xl bg-brand-soft border border-brand-border">
+          <div className="w-10 h-10 rounded-full bg-brand flex items-center justify-center text-white text-sm">
             {listing.owner[0]}
           </div>
           <div className="flex-1">
@@ -419,8 +420,8 @@ export function ListingDetail() {
         {/* ── Reviews / Comments section ── */}
         <div className="mt-6">
           <div className="flex items-center gap-2 mb-3">
-            <MessageCircle size={16} className="text-[#1E6B1E]" />
-            <h3 className="text-[#1B3D1B]" style={{ fontSize: 15, fontWeight: 600 }}>
+            <MessageCircle size={16} className="text-brand" />
+            <h3 className="text-brand-ink" style={{ fontSize: 15, fontWeight: 600 }}>
               {numericMockId
                 ? (lang === "zh" ? "租客評價" : "Renter Reviews")
                 : `${t("reviewsFor")} ${ownerName}`}
@@ -449,7 +450,7 @@ export function ListingDetail() {
                 return (
                   <div key={r.id} className="p-3 rounded-xl bg-[#F9FAFB] border border-[#E5E7EB]">
                     <div className="flex items-center gap-2 mb-2">
-                      <div className="w-7 h-7 rounded-full bg-[#1E6B1E]/15 flex items-center justify-center text-[#1E6B1E] text-xs" style={{ fontWeight: 600 }}>
+                      <div className="w-7 h-7 rounded-full bg-brand/15 flex items-center justify-center text-brand text-xs" style={{ fontWeight: 600 }}>
                         {r.author[0]}
                       </div>
                       <div className="flex-1">
@@ -474,14 +475,14 @@ export function ListingDetail() {
       <div className="fixed bottom-0 left-0 right-0 md:sticky bg-white border-t border-[#E5E7EB] px-4 py-3 flex gap-3 max-w-2xl mx-auto">
         {isOwner ? (
           <button
-            className="flex-1 py-3 bg-[#1E6B1E] text-white rounded-xl hover:bg-[#155215] transition-colors"
+            className="flex-1 py-3 bg-brand text-white rounded-xl hover:bg-brand-hover transition-colors"
             onClick={() => navigate(`/my-listings/${listing.id}/requests`)}
           >
             {t("manageListing")}
           </button>
         ) : (
           <button
-            className="flex-1 py-3 bg-[#1E6B1E] text-white rounded-xl hover:bg-[#155215] transition-colors"
+            className="flex-1 py-3 bg-brand text-white rounded-xl hover:bg-brand-hover transition-colors"
             onClick={() => navigate(`/rent/${listing.id}`)}
           >
             {t("requestToRent")}
@@ -492,7 +493,7 @@ export function ListingDetail() {
           className={`px-4 py-3 border rounded-xl transition-colors ${
             saved
               ? "border-red-400 text-red-500 bg-red-50"
-              : "border-[#E5E7EB] text-[#6B7280] hover:text-[#1E6B1E]"
+              : "border-[#E5E7EB] text-[#6B7280] hover:text-brand"
           }`}
         >
           <Heart size={18} className={saved ? "fill-red-500" : ""} />
@@ -501,7 +502,7 @@ export function ListingDetail() {
 
       {/* ── Link copied toast ── */}
       {copied && (
-        <div className="fixed bottom-20 left-1/2 -translate-x-1/2 bg-[#1E6B1E] text-white text-sm px-4 py-2 rounded-xl shadow-lg z-50 whitespace-nowrap">
+        <div className="fixed bottom-20 left-1/2 -translate-x-1/2 bg-brand text-white text-sm px-4 py-2 rounded-xl shadow-lg z-50 whitespace-nowrap">
           Link copied!
         </div>
       )}

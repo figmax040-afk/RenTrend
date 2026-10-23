@@ -55,14 +55,15 @@ export function ResetPassword() {
       {/* Hero */}
       <div className="relative h-52 w-full overflow-hidden">
         <ImageWithFallback src={IMAGES.authHero} alt="" className="w-full h-full object-cover" />
-        <div className="absolute inset-0 bg-gradient-to-b from-[#1E6B1E]/60 to-[#1E6B1E]/10" />
+        <div className="absolute inset-0 bg-gradient-to-b from-white/85 via-white/70 to-[#F9FAFB]" />
+        <div className="absolute inset-0 bg-gradient-to-br from-brand-blue/15 to-brand-green/15" />
         <div className="absolute inset-0 flex items-center justify-center">
-          <img src={logoImg} alt="Lendy" className="h-20 w-auto max-w-[80vw] object-contain bg-white/90 rounded-2xl px-6 py-3 shadow-lg" />
+          <img src={logoImg} alt="Lendy" className="h-16 w-auto max-w-[75vw] object-contain" />
         </div>
       </div>
 
       <div className="flex-1 flex flex-col px-6 max-w-md mx-auto w-full pt-8">
-        <h1 className="text-[#1B3D1B] mb-2" style={{ fontSize: 26 }}>Set new password</h1>
+        <h1 className="text-brand-ink mb-2" style={{ fontSize: 26 }}>Set new password</h1>
 
         {status === "verifying" && (
           <p className="text-[#6B7280] text-sm mt-4">Verifying reset link…</p>
@@ -74,7 +75,7 @@ export function ResetPassword() {
               <AlertCircle size={16} />
               This reset link has expired or is invalid. Please request a new one.
             </div>
-            <Link to="/login" className="block text-center text-sm text-[#1E6B1E] font-medium">
+            <Link to="/login" className="block text-center text-sm text-brand font-medium">
               Back to Login
             </Link>
           </div>
@@ -95,7 +96,7 @@ export function ResetPassword() {
                 placeholder={t("newPassword")}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 rounded-xl border border-[#C8E6C9] bg-white focus:outline-none focus:border-[#1E6B1E] text-sm"
+                className="w-full pl-10 pr-4 py-3 rounded-xl border border-brand-border bg-white focus:outline-none focus:border-brand text-sm"
               />
             </div>
 
@@ -106,14 +107,14 @@ export function ResetPassword() {
                 placeholder={t("confirmPassword")}
                 value={confirm}
                 onChange={(e) => setConfirm(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 rounded-xl border border-[#C8E6C9] bg-white focus:outline-none focus:border-[#1E6B1E] text-sm"
+                className="w-full pl-10 pr-4 py-3 rounded-xl border border-brand-border bg-white focus:outline-none focus:border-brand text-sm"
               />
             </div>
 
             <button
               onClick={handleUpdate}
               disabled={loading}
-              className="w-full py-3 bg-[#1E6B1E] text-white rounded-xl hover:bg-[#155215] transition-colors disabled:opacity-60"
+              className="w-full py-3 bg-brand text-white rounded-xl hover:bg-brand-hover transition-colors disabled:opacity-60"
             >
               {loading ? "Updating..." : t("updatePassword")}
             </button>

@@ -58,7 +58,7 @@ export function Admin() {
             <button
               key={s.key}
               onClick={() => navigate(s.route)}
-              className="bg-white rounded-xl border border-[#E5E7EB] p-4 text-left hover:border-[#1E6B1E] transition-colors"
+              className="bg-white rounded-xl border border-[#E5E7EB] p-4 text-left hover:border-brand transition-colors"
             >
               <Icon size={20} style={{ color: s.color }} />
               {loading ? (
@@ -75,7 +75,7 @@ export function Admin() {
       <h3 className="text-[#1F2937] mb-3">{t("pendingApprovals")}</h3>
       <button
         onClick={() => navigate("/admin/approvals")}
-        className="w-full py-3 bg-white border border-[#E5E7EB] rounded-xl text-sm text-[#1E6B1E] hover:border-[#1E6B1E] transition-colors"
+        className="w-full py-3 bg-white border border-[#E5E7EB] rounded-xl text-sm text-brand hover:border-brand transition-colors"
       >
         View {stats.pendingApprovals} pending approval{stats.pendingApprovals !== 1 ? "s" : ""} →
       </button>

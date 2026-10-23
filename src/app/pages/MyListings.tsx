@@ -4,6 +4,7 @@ import { useI18n } from "../components/i18n";
 import { ImageWithFallback } from "../components/figma/ImageWithFallback";
 import { PlusCircle, MoreVertical, Edit, Trash2 } from "lucide-react";
 import { supabase } from "../../lib/supabase";
+import { loginPath } from "../../lib/authRedirect";
 import { useAuth } from "../../lib/useAuth";
 import { IMAGES } from "../components/data";
 
@@ -29,7 +30,7 @@ export function MyListingsContent() {
 
   useEffect(() => {
     if (authLoading) return;
-    if (!user) { navigate("/login"); return; }
+    if (!user) { navigate(loginPath()); return; }
     loadData();
   }, [authLoading, user]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -76,7 +77,7 @@ export function MyListingsContent() {
   if (authLoading || dataLoading) {
     return (
       <div className="flex items-center justify-center py-16">
-        <div className="w-8 h-8 border-2 border-[#1E6B1E] border-t-transparent rounded-full animate-spin" />
+        <div className="w-8 h-8 border-2 border-brand border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -85,7 +86,7 @@ export function MyListingsContent() {
     <div onClick={() => setMenuOpen(null)}>
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-[#1F2937]">{t("myListings")}</h2>
-        <button onClick={() => navigate("/create")} className="flex items-center gap-1 px-3 py-1.5 bg-[#1E6B1E] text-white rounded-lg text-sm">
+        <button onClick={() => navigate("/create")} className="flex items-center gap-1 px-3 py-1.5 bg-brand text-white rounded-lg text-sm">
           <PlusCircle size={14} />{t("createListing")}
         </button>
       </div>
@@ -97,7 +98,7 @@ export function MyListingsContent() {
           </p>
           <button
             onClick={() => navigate("/create")}
-            className="px-6 py-2.5 bg-[#1E6B1E] text-white rounded-xl text-sm"
+            className="px-6 py-2.5 bg-brand text-white rounded-xl text-sm"
           >
             {lang === "zh" ? "建立你的第一個刊登" : "Create your first listing"}
           </button>
@@ -115,7 +116,7 @@ export function MyListingsContent() {
                   onClick={() => {
                     if (!isConfirmingDelete) navigate(`/my-listings/${listing.id}/requests`);
                   }}
-                  className="bg-white rounded-xl border border-[#E5E7EB] p-3 flex gap-3 cursor-pointer hover:border-[#1E6B1E] transition-colors"
+                  className="bg-white rounded-xl border border-[#E5E7EB] p-3 flex gap-3 cursor-pointer hover:border-brand transition-colors"
                 >
                   <div className="relative">
                     <ImageWithFallback
@@ -172,7 +173,7 @@ export function MyListingsContent() {
                         )}
                       </div>
                     </div>
-                    <p className="text-xs text-[#1E6B1E]" style={{ fontWeight: 500 }}>HK${listing.price_per_day}/day</p>
+                    <p className="text-xs text-brand" style={{ fontWeight: 500 }}>HK${listing.price_per_day}/day</p>
                     <div className="flex items-center gap-2 mt-1">
                       <span
                         className="text-[10px] px-2 py-0.5 rounded-full"

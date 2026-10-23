@@ -38,7 +38,7 @@ export function AdminListings() {
 
       {loading ? (
         <div className="flex justify-center py-16">
-          <div className="w-8 h-8 border-2 border-[#1E6B1E] border-t-transparent rounded-full animate-spin" />
+          <div className="w-8 h-8 border-2 border-brand border-t-transparent rounded-full animate-spin" />
         </div>
       ) : rows.length === 0 ? (
         <p className="text-center text-[#6B7280] text-sm py-12">{t("noListingsYet")}</p>

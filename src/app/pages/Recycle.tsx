@@ -3,6 +3,7 @@ import { useNavigate } from "react-router";
 import { ArrowLeft, Recycle as RecycleIcon, CheckCircle, Upload } from "lucide-react";
 import { useI18n } from "../components/i18n";
 import { supabase } from "../../lib/supabase";
+import { loginPath } from "../../lib/authRedirect";
 
 declare global { interface Window { google: any; } }
 
@@ -107,7 +108,7 @@ export function Recycle() {
             <div key={s} className="text-xs text-[#6B7280]">{s}</div>
           ))}
         </div>
-        <button onClick={() => navigate("/home")} className="py-3 px-8 bg-[#1E6B1E] text-white rounded-xl">{t("home")}</button>
+        <button onClick={() => navigate("/home")} className="py-3 px-8 bg-brand text-white rounded-xl">{t("home")}</button>
       </div>
     );
   }
@@ -117,24 +118,24 @@ export function Recycle() {
       // Still checking auth
       return (
         <div className="min-h-screen bg-[#F9FAFB] flex items-center justify-center">
-          <div className="w-8 h-8 border-2 border-[#1E6B1E] border-t-transparent rounded-full animate-spin" />
+          <div className="w-8 h-8 border-2 border-brand border-t-transparent rounded-full animate-spin" />
         </div>
       );
     }
 
     return (
       <div className="min-h-screen bg-[#F9FAFB] flex flex-col items-center justify-center px-6 text-center">
-        <div className="w-20 h-20 rounded-full bg-[#1E6B1E]/10 flex items-center justify-center mb-6">
-          <RecycleIcon size={40} className="text-[#1E6B1E]" />
+        <div className="w-20 h-20 rounded-full bg-brand/10 flex items-center justify-center mb-6">
+          <RecycleIcon size={40} className="text-brand" />
         </div>
         <h1 className="text-[#1F2937] whitespace-pre-line mb-3" style={{ fontSize: 24 }}>{t("recycleTitle")}</h1>
         <p className="text-[#6B7280] text-sm mb-8 max-w-sm">{t("recycleSub")}</p>
         {userId ? (
-          <button onClick={() => setShowForm(true)} className="py-3 px-8 bg-[#1E6B1E] text-white rounded-xl">{t("submitAppliance")}</button>
+          <button onClick={() => setShowForm(true)} className="py-3 px-8 bg-brand text-white rounded-xl">{t("submitAppliance")}</button>
         ) : (
           <div className="space-y-3">
             <p className="text-sm text-[#6B7280]">{lang === "zh" ? "請先登入才能提交" : "Sign in to submit an appliance"}</p>
-            <button onClick={() => navigate("/login")} className="py-3 px-8 bg-[#1E6B1E] text-white rounded-xl">{t("logIn")}</button>
+            <button onClick={() => navigate(loginPath())} className="py-3 px-8 bg-brand text-white rounded-xl">{t("logIn")}</button>
           </div>
         )}
       </div>
@@ -160,7 +161,7 @@ export function Recycle() {
             <label className="text-sm text-[#6B7280]">{t("condition")}</label>
             <div className="flex gap-2 mt-2">
               {(["working", "partiallyWorking", "broken"] as const).map((c) => (
-                <button key={c} onClick={() => setCond(c)} className={`flex-1 py-2 rounded-xl text-xs border ${cond === c ? "border-[#1E6B1E] bg-[#1E6B1E]/5 text-[#1E6B1E]" : "border-[#E5E7EB] bg-white text-[#6B7280]"}`}>
+                <button key={c} onClick={() => setCond(c)} className={`flex-1 py-2 rounded-xl text-xs border ${cond === c ? "border-brand bg-brand/5 text-brand" : "border-[#E5E7EB] bg-white text-[#6B7280]"}`}>
                   {t(c)}
                 </button>
               ))}
@@ -173,7 +174,7 @@ export function Recycle() {
               onChange={(e) => setDescription(e.target.value)}
               placeholder={lang === "zh" ? "物品狀態、年份或使用情況..." : "Any details about the item's condition, age, or usage..."}
               rows={3}
-              className="w-full mt-1 px-4 py-2.5 rounded-xl border border-[#E5E7EB] bg-white text-sm resize-none focus:outline-none focus:border-[#1E6B1E]"
+              className="w-full mt-1 px-4 py-2.5 rounded-xl border border-[#E5E7EB] bg-white text-sm resize-none focus:outline-none focus:border-brand"
             />
           </div>
           <div className="border-2 border-dashed border-[#E5E7EB] rounded-xl p-6 flex flex-col items-center text-[#6B7280]">
@@ -206,7 +207,7 @@ export function Recycle() {
           <button
             onClick={handleSubmit}
             disabled={!itemType || loading}
-            className="w-full py-3 bg-[#1E6B1E] text-white rounded-xl disabled:opacity-40"
+            className="w-full py-3 bg-brand text-white rounded-xl disabled:opacity-40"
           >
             {loading ? (
               <span className="flex items-center justify-center gap-2">

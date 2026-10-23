@@ -15,7 +15,7 @@ export function Activity() {
           onClick={() => setSearchParams({ tab: "listings" })}
           className={`flex-1 py-2 rounded-lg text-sm transition-colors ${
             tab === "listings"
-              ? "bg-white text-[#1E6B1E] font-medium shadow-sm"
+              ? "bg-white text-brand font-medium shadow-sm"
               : "text-[#6B7280]"
           }`}
         >
@@ -25,7 +25,7 @@ export function Activity() {
           onClick={() => setSearchParams({ tab: "requests" })}
           className={`flex-1 py-2 rounded-lg text-sm transition-colors ${
             tab === "requests"
-              ? "bg-white text-[#1E6B1E] font-medium shadow-sm"
+              ? "bg-white text-brand font-medium shadow-sm"
               : "text-[#6B7280]"
           }`}
         >

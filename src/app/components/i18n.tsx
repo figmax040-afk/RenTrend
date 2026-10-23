@@ -25,7 +25,7 @@ const translations: Record<string, Record<Lang, string>> = {
   fullName: { en: "Full Name", zh: "全名" },
   phone: { en: "Phone Number", zh: "電話號碼" },
   forgotPassword: { en: "Forgot password?", zh: "忘記密碼？" },
-  verifyStudent: { en: "Create your Lendy account", zh: "加入電易家" },
+  verifyStudent: { en: "Create your Lendy account", zh: "建立你的 Lendy 帳戶" },
   resetPasswordSent: { en: "Check your email for a password reset link.", zh: "請查看電郵以獲取密碼重設連結。" },
   sendResetLink: { en: "Send reset link", zh: "發送密碼重設連結" },
   newPassword: { en: "New Password", zh: "新密碼" },
@@ -111,7 +111,7 @@ const translations: Record<string, Record<Lang, string>> = {
   forParts: { en: "For parts", zh: "部分零件損壞" },
   // Recycle
   recycleTitle: { en: "Leaving the city?\nDon't bin it.", zh: "即將離開？\n別丟棄它。" },
-  recycleSub: { en: "Submit your item and we'll collect it, refurbish if needed, and give it a second life on Lendy.", zh: "提交你的物品，我們會收集、翻新，讓它在電易家上重獲新生。" },
+  recycleSub: { en: "Submit your item and we'll collect it, refurbish if needed, and give it a second life on Lendy.", zh: "提交你的物品，我們會收集、翻新，讓它在 Lendy 上重獲新生。" },
   submitAppliance: { en: "Submit an Appliance", zh: "提交電器" },
   itemType: { en: "Item Type", zh: "物品類型" },
   working: { en: "Working", zh: "正常運作" },
@@ -241,6 +241,19 @@ const translations: Record<string, Record<Lang, string>> = {
   chatPlaceholder: { en: "Type a message...", zh: "輸入訊息..." },
   noMessages: { en: "Start the conversation!", zh: "開始對話吧！" },
   chat: { en: "Chat", zh: "聊天" },
+  // Onboarding & auth
+  next: { en: "Next", zh: "下一步" },
+  skip: { en: "Skip", zh: "略過" },
+  browseFirst: { en: "Browse items first", zh: "先逛逛" },
+  joinLendy: { en: "Join Lendy", zh: "加入 Lendy" },
+  creatingAccount: { en: "Creating account...", zh: "正在建立帳戶..." },
+  loggingIn: { en: "Logging in...", zh: "正在登入..." },
+  sending: { en: "Sending...", zh: "正在發送..." },
+  resetYourPassword: { en: "Reset your password", zh: "重設你的密碼" },
+  errFillAllFields: { en: "Please fill in all fields.", zh: "請填寫所有欄位。" },
+  errPasswordLength: { en: "Password must be at least 6 characters.", zh: "密碼最少需要 6 個字元。" },
+  errEmailPassword: { en: "Please enter your email and password.", zh: "請輸入你的電郵和密碼。" },
+  errEnterEmail: { en: "Please enter your email.", zh: "請輸入你的電郵。" },
 };
 
 interface I18nContextType {

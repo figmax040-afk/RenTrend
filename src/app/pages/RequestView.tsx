@@ -4,8 +4,10 @@ import { ArrowLeft, Shield, Star, MessageCircle } from "lucide-react";
 import { useI18n } from "../components/i18n";
 import { ImageWithFallback } from "../components/figma/ImageWithFallback";
 import { supabase } from "../../lib/supabase";
+import listingPlaceholder from "../../assets/listing-placeholder.svg";
+import { loginPath } from "../../lib/authRedirect";
 
-const FALLBACK_IMAGE = "https://placehold.co/400x300?text=Lendy";
+const FALLBACK_IMAGE = listingPlaceholder;
 
 type OwnerProfile = {
   id: string;
@@ -102,7 +104,7 @@ export function RequestView() {
 
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { navigate("/login"); return; }
+      if (!user) { navigate(loginPath()); return; }
       setCurrentUserId(user.id);
 
       // Step 1: fetch request
@@ -223,7 +225,7 @@ export function RequestView() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-16">
-        <div className="w-8 h-8 border-2 border-[#1E6B1E] border-t-transparent rounded-full animate-spin" />
+        <div className="w-8 h-8 border-2 border-brand border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -234,7 +236,7 @@ export function RequestView() {
         <p className="text-red-600 text-sm bg-red-50 border border-red-200 px-4 py-3 rounded-xl mb-3">
           {error || (lang === "zh" ? "找不到請求" : "Request not found.")}
         </p>
-        <button onClick={load} className="text-sm text-[#1E6B1E] mb-2 block">
+        <button onClick={load} className="text-sm text-brand mb-2 block">
           {lang === "zh" ? "重試" : "Try again"}
         </button>
         <button onClick={() => navigate("/activity?tab=requests")} className="text-sm text-[#6B7280]">
@@ -277,10 +279,10 @@ export function RequestView() {
           className="w-full h-40 object-cover rounded-xl"
         />
         <div className="p-3">
-          <p className="text-[#1B3D1B] mb-0.5" style={{ fontWeight: 600, fontSize: 16 }}>
+          <p className="text-brand-ink mb-0.5" style={{ fontWeight: 600, fontSize: 16 }}>
             {listing.title}
           </p>
-          <p className="text-sm text-[#1E6B1E]" style={{ fontWeight: 500 }}>
+          <p className="text-sm text-brand" style={{ fontWeight: 500 }}>
             HK${listing.price_per_day}/day
           </p>
           {listing.district && (
@@ -320,9 +322,9 @@ export function RequestView() {
       {request.status === "completed" && (
         <div
           className="rounded-xl px-4 py-3 mb-4"
-          style={{ backgroundColor: "#1E6B1E19", border: "1px solid #1E6B1E40" }}
+          style={{ backgroundColor: "#1A7A8619", border: "1px solid #1A7A8640" }}
         >
-          <p className="text-sm" style={{ color: "#1E6B1E", fontWeight: 500 }}>
+          <p className="text-sm" style={{ color: "var(--brand)", fontWeight: 500 }}>
             {t("rentalCompleted")}
           </p>
         </div>
@@ -379,7 +381,7 @@ export function RequestView() {
             <p className="text-xs text-[#6B7280] mb-2">
               {lang === "zh" ? "你的留言" : "Your message"}
             </p>
-            <div className="bg-[#F9FAFB] border-l-2 border-[#1E6B1E] pl-3 py-2 rounded-r-lg">
+            <div className="bg-[#F9FAFB] border-l-2 border-brand pl-3 py-2 rounded-r-lg">
               <p className="text-sm text-[#4B5563] italic">"{request.message}"</p>
             </div>
           </div>
@@ -399,7 +401,7 @@ export function RequestView() {
           </div>
           <div className="flex justify-between items-center pt-1 border-t border-[#E5E7EB]">
             <p className="text-sm text-[#1F2937]" style={{ fontWeight: 600 }}>{t("total")}</p>
-            <p className="text-[#1E6B1E]" style={{ fontWeight: 700, fontSize: 16 }}>
+            <p className="text-brand" style={{ fontWeight: 700, fontSize: 16 }}>
               HK${total}
             </p>
           </div>
@@ -413,7 +415,7 @@ export function RequestView() {
         </p>
         <div className="flex items-center gap-3">
           <div
-            className="w-11 h-11 rounded-full bg-[#1E6B1E] flex items-center justify-center text-white shrink-0"
+            className="w-11 h-11 rounded-full bg-brand flex items-center justify-center text-white shrink-0"
             style={{ fontWeight: 600, fontSize: 16 }}
           >
             {ownerName[0]?.toUpperCase() ?? "O"}
@@ -432,15 +434,15 @@ export function RequestView() {
       {request.status === "accepted" && (
         <div
           className="rounded-xl px-4 py-3 mb-4"
-          style={{ backgroundColor: "#1E6B1E0D", border: "1px solid #1E6B1E30" }}
+          style={{ backgroundColor: "#1A7A860D", border: "1px solid #1A7A8630" }}
         >
-          <p className="text-sm text-[#1E6B1E] mb-2" style={{ fontWeight: 500 }}>
+          <p className="text-sm text-brand mb-2" style={{ fontWeight: 500 }}>
             {t("ownerAccepted")}
           </p>
           {ownerProfile?.email && (
             <a
               href={`mailto:${ownerProfile.email}`}
-              className="block text-sm text-[#1E6B1E] underline mb-1"
+              className="block text-sm text-brand underline mb-1"
             >
               {ownerProfile.email}
             </a>
@@ -448,7 +450,7 @@ export function RequestView() {
           {ownerProfile?.phone && (
             <a
               href={`tel:${ownerProfile.phone}`}
-              className="block text-sm text-[#1E6B1E] underline"
+              className="block text-sm text-brand underline"
             >
               {ownerProfile.phone}
             </a>
@@ -461,7 +463,7 @@ export function RequestView() {
         <div className="bg-white rounded-xl border border-[#E5E7EB] p-4 mb-4">
           {existingReview || reviewDone ? (
             <div>
-              <p className="text-sm text-[#1E6B1E]" style={{ fontWeight: 500 }}>
+              <p className="text-sm text-brand" style={{ fontWeight: 500 }}>
                 {t("reviewSubmitted")}
               </p>
               {(existingReview?.comment || reviewComment) && (
@@ -481,12 +483,12 @@ export function RequestView() {
                 onChange={(e) => setReviewComment(e.target.value)}
                 placeholder={lang === "zh" ? "你的租用體驗如何？" : "How was your experience?"}
                 rows={3}
-                className="w-full mt-3 px-4 py-2.5 rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] text-sm resize-none focus:outline-none focus:border-[#1E6B1E]"
+                className="w-full mt-3 px-4 py-2.5 rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] text-sm resize-none focus:outline-none focus:border-brand"
               />
               <button
                 onClick={handleSubmitReview}
                 disabled={!reviewRating || submittingReview}
-                className="w-full mt-3 py-2.5 bg-[#1E6B1E] text-white rounded-xl text-sm disabled:opacity-40"
+                className="w-full mt-3 py-2.5 bg-brand text-white rounded-xl text-sm disabled:opacity-40"
               >
                 {submittingReview ? (
                   <span className="flex items-center justify-center gap-2">
@@ -504,7 +506,7 @@ export function RequestView() {
       {(request.status === "pending" || request.status === "accepted") && (
         <button
           onClick={() => navigate(`/chat/${requestId}`)}
-          className="w-full py-3 border border-[#1E6B1E] text-[#1E6B1E] rounded-xl text-sm flex items-center justify-center gap-2 hover:bg-[#1E6B1E]/5 transition-colors mb-3"
+          className="w-full py-3 border border-brand text-brand rounded-xl text-sm flex items-center justify-center gap-2 hover:bg-brand/5 transition-colors mb-3"
         >
           <MessageCircle size={16} />
           {t("messageOwner")}

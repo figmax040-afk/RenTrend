@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router";
 import { ArrowLeft } from "lucide-react";
 import { supabase } from "../../lib/supabase";
+import { loginPath } from "../../lib/authRedirect";
 import { useI18n } from "../components/i18n";
 
 export function EditProfile() {
@@ -22,7 +23,7 @@ export function EditProfile() {
   useEffect(() => {
     async function load() {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { navigate("/login"); return; }
+      if (!user) { navigate(loginPath()); return; }
       setUserId(user.id);
 
       const { data } = await supabase
@@ -83,7 +84,7 @@ export function EditProfile() {
     setError("");
     setSaving(true);
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { navigate("/login"); return; }
+    if (!user) { navigate(loginPath()); return; }
 
     const { error: upsertError } = await supabase
       .from("profiles")
@@ -108,7 +109,7 @@ export function EditProfile() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-16">
-        <div className="w-8 h-8 border-2 border-[#1E6B1E] border-t-transparent rounded-full animate-spin" />
+        <div className="w-8 h-8 border-2 border-brand border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -125,7 +126,7 @@ export function EditProfile() {
         <div className="relative">
           {uploading ? (
             <div className="w-20 h-20 rounded-full bg-[#E5E7EB] flex items-center justify-center">
-              <div className="w-6 h-6 border-2 border-[#1E6B1E] border-t-transparent rounded-full animate-spin" />
+              <div className="w-6 h-6 border-2 border-brand border-t-transparent rounded-full animate-spin" />
             </div>
           ) : displayAvatar ? (
             <img
@@ -134,7 +135,7 @@ export function EditProfile() {
               className="w-20 h-20 rounded-full object-cover"
             />
           ) : (
-            <div className="w-20 h-20 rounded-full bg-[#1E6B1E] flex items-center justify-center text-white text-2xl">
+            <div className="w-20 h-20 rounded-full bg-brand flex items-center justify-center text-white text-2xl">
               {initial}
             </div>
           )}
@@ -142,7 +143,7 @@ export function EditProfile() {
         <button
           onClick={() => fileInputRef.current?.click()}
           disabled={uploading}
-          className="mt-2 text-sm text-[#1E6B1E] disabled:opacity-50"
+          className="mt-2 text-sm text-brand disabled:opacity-50"
         >
           {t("changePhoto")}
         </button>
@@ -165,7 +166,7 @@ export function EditProfile() {
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder={lang === "zh" ? "你的名字" : "Your name"}
-            className="w-full mt-1 px-4 py-2.5 rounded-xl border border-[#E5E7EB] bg-white text-sm focus:outline-none focus:border-[#1E6B1E]"
+            className="w-full mt-1 px-4 py-2.5 rounded-xl border border-[#E5E7EB] bg-white text-sm focus:outline-none focus:border-brand"
           />
         </div>
         <div>
@@ -175,7 +176,7 @@ export function EditProfile() {
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
             placeholder="+852 xxxx xxxx"
-            className="w-full mt-1 px-4 py-2.5 rounded-xl border border-[#E5E7EB] bg-white text-sm focus:outline-none focus:border-[#1E6B1E]"
+            className="w-full mt-1 px-4 py-2.5 rounded-xl border border-[#E5E7EB] bg-white text-sm focus:outline-none focus:border-brand"
           />
         </div>
 
@@ -186,7 +187,7 @@ export function EditProfile() {
         <button
           onClick={handleSave}
           disabled={saving}
-          className="w-full py-3 bg-[#1E6B1E] text-white rounded-xl hover:bg-[#155215] transition-colors disabled:opacity-60"
+          className="w-full py-3 bg-brand text-white rounded-xl hover:bg-brand-hover transition-colors disabled:opacity-60"
         >
           {saving ? t("saving") : t("saveChanges")}
         </button>

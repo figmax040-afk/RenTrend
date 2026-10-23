@@ -4,8 +4,10 @@ import { useI18n } from "../components/i18n";
 import { ImageWithFallback } from "../components/figma/ImageWithFallback";
 import { MoreVertical } from "lucide-react";
 import { supabase } from "../../lib/supabase";
+import listingPlaceholder from "../../assets/listing-placeholder.svg";
+import { loginPath } from "../../lib/authRedirect";
 
-const FALLBACK_IMAGE = "https://placehold.co/400x300?text=Lendy";
+const FALLBACK_IMAGE = listingPlaceholder;
 
 type EnrichedRequest = {
   id: string;
@@ -76,7 +78,7 @@ export function MyRequestsContent() {
       try {
         setLoading(true);
         const { data: { user } } = await supabase.auth.getUser();
-        if (!user) { navigate("/login"); return; }
+        if (!user) { navigate(loginPath()); return; }
 
         const { data: reqs, error } = await supabase
           .from("requests")
@@ -136,7 +138,7 @@ export function MyRequestsContent() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-16">
-        <div className="w-8 h-8 border-2 border-[#1E6B1E] border-t-transparent rounded-full animate-spin" />
+        <div className="w-8 h-8 border-2 border-brand border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -145,7 +147,7 @@ export function MyRequestsContent() {
     return (
       <div className="py-8 text-center">
         <p className="text-red-600 text-sm bg-red-50 border border-red-200 px-4 py-3 rounded-xl mb-3">{error}</p>
-        <button onClick={() => window.location.reload()} className="text-sm text-[#1E6B1E]">{lang === "zh" ? "重試" : "Try again"}</button>
+        <button onClick={() => window.location.reload()} className="text-sm text-brand">{lang === "zh" ? "重試" : "Try again"}</button>
       </div>
     );
   }
@@ -168,7 +170,7 @@ export function MyRequestsContent() {
         {tabs.map((tb) => (
           <button key={tb} onClick={() => setTab(tb)}
             className={`px-4 py-1.5 rounded-full text-sm border transition-colors ${
-              tab === tb ? "bg-[#1E6B1E] text-white border-[#1E6B1E]" : "bg-white text-[#6B7280] border-[#E5E7EB]"
+              tab === tb ? "bg-brand text-white border-brand" : "bg-white text-[#6B7280] border-[#E5E7EB]"
             }`}>
             {t(tb)}
           </button>
@@ -191,7 +193,7 @@ export function MyRequestsContent() {
               <div key={r.id} className="relative">
                 <div
                   onClick={() => { if (!isCancelConfirming && !isDeleteConfirming) navigate(`/my-requests/${r.id}`); }}
-                  className="bg-white rounded-xl border border-[#E5E7EB] p-3 flex gap-3 cursor-pointer hover:border-[#1E6B1E] transition-colors"
+                  className="bg-white rounded-xl border border-[#E5E7EB] p-3 flex gap-3 cursor-pointer hover:border-brand transition-colors"
                 >
                   <ImageWithFallback src={image} alt="" className="w-20 h-20 rounded-lg object-cover shrink-0" />
                   <div className="flex-1 min-w-0">
@@ -207,7 +209,7 @@ export function MyRequestsContent() {
                         {t(statusKeyMap[r.status] ?? r.status)}
                       </span>
                       {r.total_price > 0 && (
-                        <span className="text-xs text-[#1E6B1E]" style={{ fontWeight: 500 }}>
+                        <span className="text-xs text-brand" style={{ fontWeight: 500 }}>
                           HK${r.total_price}
                         </span>
                       )}
