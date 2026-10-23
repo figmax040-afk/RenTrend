@@ -38,29 +38,30 @@ export function VerifyEmail() {
     <div className="min-h-screen bg-[#F9FAFB] flex flex-col">
       <div className="relative h-52 w-full overflow-hidden">
         <ImageWithFallback src={IMAGES.authHero} alt="" className="w-full h-full object-cover" />
-        <div className="absolute inset-0 bg-gradient-to-b from-[#1E6B1E]/60 to-[#1E6B1E]/10" />
+        <div className="absolute inset-0 bg-gradient-to-b from-white/85 via-white/70 to-[#F9FAFB]" />
+        <div className="absolute inset-0 bg-gradient-to-br from-brand-blue/15 to-brand-green/15" />
         <div className="absolute inset-0 flex items-center justify-center">
-          <img src={logoImg} alt="Lendy" className="h-20 w-auto max-w-[80vw] object-contain bg-white/90 rounded-2xl px-6 py-3 shadow-lg" />
+          <img src={logoImg} alt="Lendy" className="h-16 w-auto max-w-[75vw] object-contain" />
         </div>
       </div>
 
       <div className="flex-1 flex flex-col items-center justify-center px-6 max-w-md mx-auto w-full gap-6">
         {status === "verifying" && (
           <>
-            <Loader2 size={40} className="text-[#1E6B1E] animate-spin" />
+            <Loader2 size={40} className="text-brand animate-spin" />
             <p className="text-[#6B7280] text-sm">Verifying your email…</p>
           </>
         )}
 
         {status === "success" && (
           <>
-            <div className="w-20 h-20 rounded-full bg-[#1E6B1E]/10 flex items-center justify-center">
-              <CheckCircle size={40} className="text-[#1E6B1E]" />
+            <div className="w-20 h-20 rounded-full bg-brand/10 flex items-center justify-center">
+              <CheckCircle size={40} className="text-brand" />
             </div>
-            <h1 className="text-[#1B3D1B] text-center" style={{ fontSize: 26 }}>Email verified!</h1>
+            <h1 className="text-brand-ink text-center" style={{ fontSize: 26 }}>Email verified!</h1>
             <button
               onClick={() => navigate("/home")}
-              className="w-full py-3 bg-[#1E6B1E] text-white rounded-xl hover:bg-[#155215] transition-colors"
+              className="w-full py-3 bg-brand text-white rounded-xl hover:bg-brand-hover transition-colors"
             >
               Go to Home
             </button>
@@ -77,7 +78,7 @@ export function VerifyEmail() {
             </p>
             <button
               onClick={() => navigate("/signup")}
-              className="w-full py-3 bg-white text-[#1E6B1E] rounded-xl border border-[#C8E6C9] hover:bg-[#F0F7F0] transition-colors"
+              className="w-full py-3 bg-white text-brand rounded-xl border border-brand-border hover:bg-brand-soft transition-colors"
             >
               Back to Sign Up
             </button>
@@ -86,10 +87,10 @@ export function VerifyEmail() {
 
         {status === "check-email" && (
           <>
-            <div className="w-20 h-20 rounded-full bg-[#1E6B1E]/10 flex items-center justify-center">
-              <MailCheck size={40} className="text-[#1E6B1E]" />
+            <div className="w-20 h-20 rounded-full bg-brand/10 flex items-center justify-center">
+              <MailCheck size={40} className="text-brand" />
             </div>
-            <h1 className="text-[#1B3D1B] text-center" style={{ fontSize: 26 }}>Check your email</h1>
+            <h1 className="text-brand-ink text-center" style={{ fontSize: 26 }}>Check your email</h1>
             <p className="text-[#6B7280] text-sm text-center">
               {stateEmail
                 ? `We sent a confirmation link to ${stateEmail}. Click it to activate your account.`
@@ -98,7 +99,7 @@ export function VerifyEmail() {
             <p className="text-[#9CA3AF] text-xs text-center">Didn't receive it? Check your spam folder.</p>
             <button
               onClick={() => navigate("/login")}
-              className="w-full py-3 bg-white text-[#1E6B1E] rounded-xl border border-[#C8E6C9] hover:bg-[#F0F7F0] transition-colors"
+              className="w-full py-3 bg-white text-brand rounded-xl border border-brand-border hover:bg-brand-soft transition-colors"
             >
               Back to Login
             </button>

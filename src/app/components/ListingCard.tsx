@@ -50,7 +50,7 @@ export function ListingCard({ id, image, title, price, distance, category, avail
         <p className="text-sm text-[#6B7280] mb-0.5">{categoryLabel}</p>
         <h4 className="text-sm truncate" style={{ fontWeight: 500 }}>{title}</h4>
         <div className="flex items-center justify-between mt-1.5">
-          <span className="text-[#1E6B1E]" style={{ fontWeight: 600, fontSize: 14 }}>HK${price}<span className="text-[#6B7280]" style={{ fontWeight: 400, fontSize: 11 }}>/day</span></span>
+          <span className="text-brand" style={{ fontWeight: 600, fontSize: 14 }}>HK${price}<span className="text-[#6B7280]" style={{ fontWeight: 400, fontSize: 11 }}>/day</span></span>
           <span className="flex items-center gap-0.5 text-[#6B7280]" style={{ fontSize: 11 }}><MapPin size={10} />{distance}</span>
         </div>
       </div>

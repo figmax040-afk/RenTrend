@@ -5,6 +5,7 @@ import { useI18n } from "../components/i18n";
 import { ListingCard } from "../components/ListingCard";
 import { listings as mockListings } from "../components/data";
 import { supabase } from "../../lib/supabase";
+import listingPlaceholder from "../../assets/listing-placeholder.svg";
 import { useAuth } from "../../lib/useAuth";
 
 declare global { interface Window { google: any; } }
@@ -108,7 +109,6 @@ export function Browse() {
 
   useEffect(() => {
     if (authLoading) return;
-    if (!user) { navigate("/login"); return; }
 
     supabase
       .from("listings")
@@ -123,7 +123,7 @@ export function Browse() {
         if (data && data.length > 0) {
           const mapped: UiListing[] = data.map((l) => ({
             id: l.id,
-            image: l.image_url ?? "https://placehold.co/400x300?text=Lendy",
+            image: l.image_url ?? listingPlaceholder,
             title: l.title,
             titleZh: l.title_zh ?? l.title,
             price: l.price_per_day,
@@ -204,7 +204,7 @@ export function Browse() {
   if (authLoading || dataLoading) {
     return (
       <div className="flex items-center justify-center py-16">
-        <div className="w-8 h-8 border-2 border-[#1E6B1E] border-t-transparent rounded-full animate-spin" />
+        <div className="w-8 h-8 border-2 border-brand border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -218,16 +218,16 @@ export function Browse() {
           <input
             value={query} onChange={(e) => setQuery(e.target.value)}
             placeholder={t("searchPlaceholder")}
-            className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-[#E5E7EB] bg-white focus:outline-none focus:border-[#1E6B1E] text-sm"
+            className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-[#E5E7EB] bg-white focus:outline-none focus:border-brand text-sm"
           />
         </div>
         <button
           onClick={() => setShowFilter(!showFilter)}
-          className="relative p-2.5 rounded-xl border border-[#E5E7EB] bg-white text-[#6B7280] hover:text-[#1E6B1E]"
+          className="relative p-2.5 rounded-xl border border-[#E5E7EB] bg-white text-[#6B7280] hover:text-brand"
         >
           <SlidersHorizontal size={18} />
           {activeFilterCount > 0 && (
-            <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-[#1E6B1E] text-white rounded-full text-[10px] flex items-center justify-center">
+            <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-brand text-white rounded-full text-[10px] flex items-center justify-center">
               {activeFilterCount}
             </span>
           )}
@@ -251,7 +251,7 @@ export function Browse() {
           <button
             key={c}
             onClick={() => handleCatClick(c)}
-            className={`px-3 py-1.5 rounded-full text-xs whitespace-nowrap border transition-colors ${selectedCat === c ? "bg-[#1E6B1E] text-white border-[#1E6B1E]" : "bg-white text-[#6B7280] border-[#E5E7EB]"}`}
+            className={`px-3 py-1.5 rounded-full text-xs whitespace-nowrap border transition-colors ${selectedCat === c ? "bg-brand text-white border-brand" : "bg-white text-[#6B7280] border-[#E5E7EB]"}`}
           >
             {t(c)}
           </button>
@@ -285,7 +285,7 @@ export function Browse() {
                   if (!e.target.value) setLocationFilter(null);
                 }}
                 placeholder="Search a location in Hong Kong..."
-                className="w-full pl-8 pr-8 py-2 rounded-xl border border-[#E5E7EB] bg-white text-sm focus:outline-none focus:border-[#1E6B1E]"
+                className="w-full pl-8 pr-8 py-2 rounded-xl border border-[#E5E7EB] bg-white text-sm focus:outline-none focus:border-brand"
               />
               {locationFilter && (
                 <button
@@ -297,7 +297,7 @@ export function Browse() {
               )}
             </div>
             {locationFilter && (
-              <p className="text-[10px] text-[#1E6B1E] mt-1">Filtering near: {locationFilter.address}</p>
+              <p className="text-[10px] text-brand mt-1">Filtering near: {locationFilter.address}</p>
             )}
           </div>
 
@@ -307,7 +307,7 @@ export function Browse() {
             <input
               type="range" min={5} max={100} value={priceRange}
               onChange={(e) => setPriceRange(Number(e.target.value))}
-              className="w-full mt-1 accent-[#1E6B1E]"
+              className="w-full mt-1 accent-brand"
             />
           </div>
 
@@ -322,7 +322,7 @@ export function Browse() {
                   <button
                     key={key}
                     onClick={() => setSelectedConditions(toggleArr(selectedConditions, val))}
-                    className={`px-3 py-1.5 rounded-full text-xs border transition-colors ${active ? "bg-[#1E6B1E] text-white border-[#1E6B1E]" : "bg-white text-[#6B7280] border-[#E5E7EB]"}`}
+                    className={`px-3 py-1.5 rounded-full text-xs border transition-colors ${active ? "bg-brand text-white border-brand" : "bg-white text-[#6B7280] border-[#E5E7EB]"}`}
                   >
                     {t(key)}
                   </button>
@@ -336,7 +336,7 @@ export function Browse() {
             <span className="text-xs text-[#6B7280]">Available now only</span>
             <button
               onClick={() => setAvailableOnly(!availableOnly)}
-              className={`w-10 h-5 rounded-full transition-colors relative ${availableOnly ? "bg-[#1E6B1E]" : "bg-[#E5E7EB]"}`}
+              className={`w-10 h-5 rounded-full transition-colors relative ${availableOnly ? "bg-brand" : "bg-[#E5E7EB]"}`}
             >
               <div className={`w-4 h-4 rounded-full bg-white absolute top-0.5 transition-all ${availableOnly ? "left-5" : "left-0.5"}`} />
             </button>
@@ -353,7 +353,7 @@ export function Browse() {
                     <button
                       key={brand}
                       onClick={() => setSelectedBrands(toggleArr(selectedBrands, brand))}
-                      className={`px-3 py-1.5 rounded-full text-xs border transition-colors ${active ? "bg-[#1E6B1E] text-white border-[#1E6B1E]" : "bg-white text-[#6B7280] border-[#E5E7EB]"}`}
+                      className={`px-3 py-1.5 rounded-full text-xs border transition-colors ${active ? "bg-brand text-white border-brand" : "bg-white text-[#6B7280] border-[#E5E7EB]"}`}
                     >
                       {brand}
                     </button>
@@ -388,16 +388,16 @@ export function Browse() {
       {/* Recycle banner */}
       <div
         onClick={() => navigate("/recycle")}
-        className="mx-0 mt-6 mb-4 p-4 rounded-xl bg-[#1E6B1E]/8 border border-[#C8E6C9] flex items-center gap-3 cursor-pointer hover:bg-[#1E6B1E]/12 transition-colors"
+        className="mx-0 mt-6 mb-4 p-4 rounded-xl bg-brand/8 border border-brand-border flex items-center gap-3 cursor-pointer hover:bg-brand/12 transition-colors"
       >
-        <div className="w-10 h-10 rounded-full bg-[#1E6B1E]/15 flex items-center justify-center flex-shrink-0">
-          <Recycle size={20} className="text-[#1E6B1E]" />
+        <div className="w-10 h-10 rounded-full bg-brand/15 flex items-center justify-center flex-shrink-0">
+          <Recycle size={20} className="text-brand" />
         </div>
         <div className="flex-1">
-          <p className="text-sm font-medium text-[#1E6B1E]">{t("recycleTitle").split("\n")[0]}</p>
+          <p className="text-sm font-medium text-brand">{t("recycleTitle").split("\n")[0]}</p>
           <p className="text-xs text-[#6B7280] mt-0.5">{t("recycleSub").substring(0, 60)}...</p>
         </div>
-        <ChevronRight size={16} className="text-[#1E6B1E]" />
+        <ChevronRight size={16} className="text-brand" />
       </div>
     </div>
   );

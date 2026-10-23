@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router";
 import { ArrowLeft, ArrowUp } from "lucide-react";
 import { useI18n } from "../components/i18n";
 import { supabase } from "../../lib/supabase";
+import { loginPath } from "../../lib/authRedirect";
 
 type Message = {
   id: string;
@@ -92,7 +93,7 @@ export function Chat() {
   const load = useCallback(async () => {
     setLoading(true);
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { navigate("/login"); return; }
+    if (!user) { navigate(loginPath()); return; }
     setCurrentUserId(user.id);
 
     const { data: request } = await supabase
@@ -189,7 +190,7 @@ export function Chat() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-16">
-        <div className="w-8 h-8 border-2 border-[#1E6B1E] border-t-transparent rounded-full animate-spin" />
+        <div className="w-8 h-8 border-2 border-brand border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -210,7 +211,7 @@ export function Chat() {
             className="w-10 h-10 rounded-full object-cover shrink-0"
           />
         ) : (
-          <div className="w-10 h-10 rounded-full bg-[#1E6B1E] flex items-center justify-center text-white shrink-0" style={{ fontWeight: 600, fontSize: 16 }}>
+          <div className="w-10 h-10 rounded-full bg-brand flex items-center justify-center text-white shrink-0" style={{ fontWeight: 600, fontSize: 16 }}>
             {initial}
           </div>
         )}
@@ -239,7 +240,7 @@ export function Chat() {
         {messages.length === 0 ? (
           <div className="flex items-center justify-center h-full">
             <div className="text-center px-8">
-              <div className="w-16 h-16 rounded-full bg-[#1E6B1E]/10 flex items-center justify-center mx-auto mb-3">
+              <div className="w-16 h-16 rounded-full bg-brand/10 flex items-center justify-center mx-auto mb-3">
                 <span style={{ fontSize: 28 }}>💬</span>
               </div>
               <p className="text-[#1F2937] text-sm font-medium mb-1">{t("noMessages")}</p>
@@ -258,7 +259,7 @@ export function Chat() {
                 <div
                   className={`max-w-[75%] px-4 py-2.5 text-sm ${
                     isMine
-                      ? "bg-[#1E6B1E] text-white rounded-2xl rounded-br-sm"
+                      ? "bg-brand text-white rounded-2xl rounded-br-sm"
                       : "bg-white border border-[#E5E7EB] text-[#1F2937] rounded-2xl rounded-bl-sm"
                   }`}
                   style={{ wordBreak: "break-word" }}
@@ -285,13 +286,13 @@ export function Chat() {
             onKeyDown={handleKeyDown}
             placeholder={t("chatPlaceholder")}
             rows={1}
-            className="flex-1 px-4 py-2.5 rounded-xl border border-[#E5E7EB] bg-white text-sm resize-none focus:outline-none focus:border-[#1E6B1E] leading-snug"
+            className="flex-1 px-4 py-2.5 rounded-xl border border-[#E5E7EB] bg-white text-sm resize-none focus:outline-none focus:border-brand leading-snug"
             style={{ maxHeight: 120, overflowY: "auto" }}
           />
           <button
             onClick={sendMessage}
             disabled={!input.trim() || sending}
-            className="w-10 h-10 rounded-full bg-[#1E6B1E] text-white flex items-center justify-center shrink-0 disabled:opacity-40 hover:bg-[#155215] transition-colors"
+            className="w-10 h-10 rounded-full bg-brand text-white flex items-center justify-center shrink-0 disabled:opacity-40 hover:bg-brand-hover transition-colors"
           >
             {sending ? (
               <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />

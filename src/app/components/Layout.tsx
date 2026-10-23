@@ -5,8 +5,7 @@ import { useI18n } from "./i18n";
 import { supabase } from "../../lib/supabase";
 import logoImg from "../../assets/lendy-logo.png";
 
-// Brand colour palette (originally derived from the old logo greens)
-// Primary: #1E6B1E  |  Hover: #155215  |  Light tint: rgba(30,107,30,0.1)
+// Brand colours come from the Lendy logo; tokens (brand, brand-hover, …) live in styles/theme.css
 
 const navItems = [
   { key: "home",     icon: Home,       path: "/home" },
@@ -15,6 +14,9 @@ const navItems = [
   { key: "activity", icon: Package,    path: "/activity" },
   { key: "profile",  icon: User,       path: "/profile" },
 ];
+
+// Top-level tabs get the mobile brand bar; detail pages keep their own headers
+const mobileBrandBarPaths = ["/home", "/browse", "/create", "/activity", "/profile"];
 
 export function Layout() {
   const navigate  = useNavigate();
@@ -26,7 +28,7 @@ export function Layout() {
   useEffect(() => {
     async function checkCounts() {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      if (!user) { setPendingCount(0); setUnreadCount(0); return; }
 
       // Pending requests for lister
       const { data: listings } = await supabase
@@ -42,6 +44,8 @@ export function Layout() {
           .in("listing_id", listingIds)
           .eq("status", "pending");
         setPendingCount(count || 0);
+      } else {
+        setPendingCount(0);
       }
 
       // Unread messages: get all request IDs where user is renter or lister
@@ -67,10 +71,16 @@ export function Layout() {
           .neq("sender_id", user.id)
           .in("request_id", allRequestIds);
         setUnreadCount(msgCount || 0);
+      } else {
+        setUnreadCount(0);
       }
     }
     checkCounts();
-  }, []);
+
+    // Also refresh when the user comes back to the tab
+    window.addEventListener("focus", checkCounts);
+    return () => window.removeEventListener("focus", checkCounts);
+  }, [location.pathname]);
 
   return (
     <div className="flex flex-col min-h-screen bg-[#F9FAFB]">
@@ -94,8 +104,8 @@ export function Layout() {
                 onClick={() => navigate(item.path)}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-colors ${
                   active
-                    ? "bg-[#1E6B1E]/10 text-[#1E6B1E]"
-                    : "text-[#6B7280] hover:text-[#1E6B1E]"
+                    ? "bg-brand/10 text-brand"
+                    : "text-[#6B7280] hover:text-brand"
                 }`}
               >
                 <div className="relative">
@@ -114,13 +124,29 @@ export function Layout() {
           {/* Language toggle */}
           <button
             onClick={() => setLang(lang === "en" ? "zh" : "en")}
-            className="flex items-center gap-1 ml-2 px-3 py-1.5 rounded-lg text-[#6B7280] hover:text-[#1E6B1E] border border-[#E5E7EB]"
+            className="flex items-center gap-1 ml-2 px-3 py-1.5 rounded-lg text-[#6B7280] hover:text-brand border border-[#E5E7EB]"
           >
             <Globe size={16} />
             <span className="text-sm">{lang === "en" ? "中文" : "EN"}</span>
           </button>
         </nav>
       </header>
+
+      {/* ── Mobile brand bar ── */}
+      {mobileBrandBarPaths.includes(location.pathname) && (
+        <header className="md:hidden flex items-center justify-between px-4 pt-3 pb-1 bg-[#F9FAFB]">
+          <button onClick={() => navigate("/home")} className="focus:outline-none" aria-label="Lendy home">
+            <img src={logoImg} alt="Lendy" className="h-8 w-auto object-contain" />
+          </button>
+          <button
+            onClick={() => setLang(lang === "en" ? "zh" : "en")}
+            className="flex items-center gap-1 px-2.5 py-1 rounded-full text-[#6B7280] hover:text-brand border border-[#E5E7EB] bg-white"
+          >
+            <Globe size={14} />
+            <span className="text-xs">{lang === "en" ? "中文" : "EN"}</span>
+          </button>
+        </header>
+      )}
 
       {/* ── Page content ── */}
       <main className="flex-1 pb-20 md:pb-4">
@@ -136,7 +162,7 @@ export function Layout() {
               key={item.key}
               onClick={() => navigate(item.path)}
               className={`flex flex-col items-center gap-0.5 px-2 py-1 ${
-                active ? "text-[#1E6B1E]" : "text-[#6B7280]"
+                active ? "text-brand" : "text-[#6B7280]"
               }`}
             >
               <div className="relative">

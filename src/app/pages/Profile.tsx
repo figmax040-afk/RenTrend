@@ -3,6 +3,7 @@ import { useNavigate } from "react-router";
 import { Shield, Edit, Bell, Mail, LogOut, Globe, ChevronRight, BarChart3, Star } from "lucide-react";
 import { useI18n } from "../components/i18n";
 import { supabase } from "../../lib/supabase";
+import { loginPath } from "../../lib/authRedirect";
 
 type ProfileRow = {
   name: string | null;
@@ -30,7 +31,7 @@ export function Profile() {
   useEffect(() => {
     async function loadUser() {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { navigate("/login"); return; }
+      if (!user) { navigate(loginPath()); return; }
 
       const userEmail = user.email ?? "";
       setEmail(userEmail);
@@ -85,7 +86,7 @@ export function Profile() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="w-8 h-8 border-2 border-[#1E6B1E] border-t-transparent rounded-full animate-spin" />
+        <div className="w-8 h-8 border-2 border-brand border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -101,7 +102,7 @@ export function Profile() {
             className="w-20 h-20 rounded-full object-cover mb-3"
           />
         ) : (
-          <div className="w-20 h-20 rounded-full bg-[#1E6B1E] flex items-center justify-center text-white text-2xl mb-3">
+          <div className="w-20 h-20 rounded-full bg-brand flex items-center justify-center text-white text-2xl mb-3">
             {initials}
           </div>
         )}
@@ -125,14 +126,14 @@ export function Profile() {
       {/* Stats */}
       <div className="grid grid-cols-2 gap-3 mb-6">
         <div className="bg-white rounded-xl border border-[#E5E7EB] p-4 text-center">
-          <p className="text-2xl text-[#1E6B1E]" style={{ fontWeight: 600 }}>{itemsListed}</p>
+          <p className="text-2xl text-brand" style={{ fontWeight: 600 }}>{itemsListed}</p>
           <p className="text-xs text-[#6B7280]">{t("itemsListed")}</p>
         </div>
         <button
           onClick={() => navigate("/earnings")}
-          className="bg-white rounded-xl border border-[#E5E7EB] p-4 text-center hover:border-[#1E6B1E] transition-colors relative"
+          className="bg-white rounded-xl border border-[#E5E7EB] p-4 text-center hover:border-brand transition-colors relative"
         >
-          <p className="text-2xl text-[#1E6B1E]" style={{ fontWeight: 600 }}>{rentalsCompleted}</p>
+          <p className="text-2xl text-brand" style={{ fontWeight: 600 }}>{rentalsCompleted}</p>
           <p className="text-xs text-[#6B7280]">{t("rentalsCompleted")}</p>
           <ChevronRight size={12} className="absolute top-2 right-2 text-[#D1D5DB]" />
         </button>
@@ -149,7 +150,7 @@ export function Profile() {
           </div>
           <button
             onClick={() => setLang(lang === "en" ? "zh" : "en")}
-            className="px-3 py-1 rounded-full text-xs border border-[#E5E7EB] text-[#1E6B1E]"
+            className="px-3 py-1 rounded-full text-xs border border-[#E5E7EB] text-brand"
           >
             {lang === "en" ? "中文" : "English"}
           </button>
@@ -183,7 +184,7 @@ function MenuItem({ icon: Icon, label, onClick, toggle }: {
         <span className="text-sm">{label}</span>
       </div>
       {toggle ? (
-        <div className={`w-10 h-5 rounded-full transition-colors ${on ? "bg-[#1E6B1E]" : "bg-[#E5E7EB]"} relative`}>
+        <div className={`w-10 h-5 rounded-full transition-colors ${on ? "bg-brand" : "bg-[#E5E7EB]"} relative`}>
           <div className={`w-4 h-4 rounded-full bg-white absolute top-0.5 transition-all ${on ? "left-5" : "left-0.5"}`} />
         </div>
       ) : (

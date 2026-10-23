@@ -5,6 +5,8 @@ import { useI18n } from "../components/i18n";
 import { listings as mockListings, IMAGES } from "../components/data";
 import { ImageWithFallback } from "../components/figma/ImageWithFallback";
 import { supabase } from "../../lib/supabase";
+import { loginPath } from "../../lib/authRedirect";
+import { APP_URL } from "../../lib/appUrl";
 import { sendEmail } from "../../lib/sendEmail";
 
 type ListingSummary = {
@@ -67,7 +69,7 @@ export function RentRequest() {
 
     async function load() {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { navigate("/login"); return; }
+      if (!user) { navigate(loginPath()); return; }
 
       if (!isNaN(numericId)) {
         const found = mockListings.find((l) => l.id === numericId);
@@ -119,7 +121,7 @@ export function RentRequest() {
     setSending(true);
 
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { navigate("/login"); return; }
+    if (!user) { navigate(loginPath()); return; }
 
     const breakdown = calculateOptimalPrice(
       totalDays,
@@ -163,7 +165,7 @@ export function RentRequest() {
           await sendEmail(
             listerProfile.email,
             `New rental request for ${title}`,
-            `Hi ${listerProfile.name || "there"}, <strong>${renterProfile?.name || "A user"}</strong> has requested to rent your <strong>${title}</strong> from ${startDate} to ${endDate}. Log in to Lendy to review and respond: <a href="https://ren-trend.vercel.app/activity?tab=listings">https://ren-trend.vercel.app/activity?tab=listings</a>`
+            `Hi ${listerProfile.name || "there"}, <strong>${renterProfile?.name || "A user"}</strong> has requested to rent your <strong>${title}</strong> from ${startDate} to ${endDate}. Log in to Lendy to review and respond: <a href="${APP_URL}/activity?tab=listings">${APP_URL}/activity?tab=listings</a>`
           );
         }
       }
@@ -174,7 +176,7 @@ export function RentRequest() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-16">
-        <div className="w-8 h-8 border-2 border-[#1E6B1E] border-t-transparent rounded-full animate-spin" />
+        <div className="w-8 h-8 border-2 border-brand border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -201,8 +203,8 @@ export function RentRequest() {
         </div>
         <h1 className="text-[#1F2937] mb-2" style={{ fontSize: 22 }}>{t("requestSent")}</h1>
         <p className="text-[#6B7280] text-sm mb-6">{t("requestSentMsg")}</p>
-        <button onClick={() => navigate("/activity?tab=requests")} className="w-full max-w-xs py-3 bg-[#1E6B1E] text-white rounded-xl mb-3">{t("viewMyRequests")}</button>
-        <button onClick={() => navigate("/browse")} className="text-sm text-[#1E6B1E]">{t("backToBrowse")}</button>
+        <button onClick={() => navigate("/activity?tab=requests")} className="w-full max-w-xs py-3 bg-brand text-white rounded-xl mb-3">{t("viewMyRequests")}</button>
+        <button onClick={() => navigate("/browse")} className="text-sm text-brand">{t("backToBrowse")}</button>
       </div>
     );
   }
@@ -222,7 +224,7 @@ export function RentRequest() {
           <div className="text-sm">
             <p style={{ fontWeight: 500 }}>{lang === "zh" ? listing.titleZh : listing.title}</p>
             <p className="text-[#6B7280] text-xs">{lang === "zh" ? listing.universityZh : listing.university}</p>
-            <p className="text-[#1E6B1E]" style={{ fontWeight: 600 }}>HK${listing.price}<span className="text-[#6B7280]" style={{ fontWeight: 400 }}>/day</span></p>
+            <p className="text-brand" style={{ fontWeight: 600 }}>HK${listing.price}<span className="text-[#6B7280]" style={{ fontWeight: 400 }}>/day</span></p>
           </div>
         </div>
 
@@ -239,7 +241,7 @@ export function RentRequest() {
                 className="flex-1 py-2 px-2 rounded-xl bg-[#F3F4F6] text-center"
               >
                 {value ? (
-                  <span className="text-xs text-[#1E6B1E]" style={{ fontWeight: 600 }}>
+                  <span className="text-xs text-brand" style={{ fontWeight: 600 }}>
                     HK${value}
                   </span>
                 ) : (
@@ -302,7 +304,7 @@ export function RentRequest() {
                 </div>
                 <div className="flex justify-between" style={{ fontWeight: 600 }}>
                   <span>{t("total")}</span>
-                  <span className="text-[#1E6B1E]">HK${grandTotal}</span>
+                  <span className="text-brand">HK${grandTotal}</span>
                 </div>
               </div>
             </div>
@@ -315,7 +317,7 @@ export function RentRequest() {
               value={msg} onChange={(e) => setMsg(e.target.value)}
               placeholder={t("messagePlaceholder")}
               rows={3}
-              className="w-full mt-1 px-4 py-2.5 rounded-xl border border-[#E5E7EB] bg-white text-sm resize-none focus:outline-none focus:border-[#1E6B1E]"
+              className="w-full mt-1 px-4 py-2.5 rounded-xl border border-[#E5E7EB] bg-white text-sm resize-none focus:outline-none focus:border-brand"
             />
           </div>
 
@@ -327,7 +329,7 @@ export function RentRequest() {
                 <button
                   key={p}
                   onClick={() => setPickup(p)}
-                  className={`flex-1 py-2.5 rounded-xl text-sm border transition-colors ${pickup === p ? "bg-[#1E6B1E] text-white border-[#1E6B1E]" : "bg-white text-[#6B7280] border-[#E5E7EB]"}`}
+                  className={`flex-1 py-2.5 rounded-xl text-sm border transition-colors ${pickup === p ? "bg-brand text-white border-brand" : "bg-white text-[#6B7280] border-[#E5E7EB]"}`}
                 >
                   {p === "collect" ? t("iCanCollect") : t("canYouDeliver")}
                 </button>
@@ -338,7 +340,7 @@ export function RentRequest() {
           {/* Disclaimer & terms */}
           <p className="text-xs text-[#F4A261] bg-[#F4A261]/10 p-3 rounded-xl">{t("disclaimer")}</p>
           <label className="flex items-start gap-2 text-sm text-[#6B7280]">
-            <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} className="mt-0.5 accent-[#1E6B1E]" />
+            <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} className="mt-0.5 accent-brand" />
             {t("agreeTerms")}
           </label>
 
@@ -349,7 +351,7 @@ export function RentRequest() {
           <button
             onClick={handleSubmit}
             disabled={!startDate || !endDate || !agreed || sending}
-            className="w-full py-3 bg-[#1E6B1E] text-white rounded-xl disabled:opacity-40"
+            className="w-full py-3 bg-brand text-white rounded-xl disabled:opacity-40"
           >
             {sending ? "Sending..." : t("sendRequest")}
           </button>

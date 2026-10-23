@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 import { ArrowLeft, CheckCircle } from "lucide-react";
 import { supabase } from "../../lib/supabase";
+import { loginPath } from "../../lib/authRedirect";
 import { useI18n } from "../components/i18n";
 
 type Prefs = {
@@ -37,7 +38,7 @@ export function EmailPreferences() {
   useEffect(() => {
     async function load() {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { navigate("/login"); return; }
+      if (!user) { navigate(loginPath()); return; }
 
       const { data } = await supabase
         .from("profiles")
@@ -61,7 +62,7 @@ export function EmailPreferences() {
     setError("");
     setSaving(true);
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { navigate("/login"); return; }
+    if (!user) { navigate(loginPath()); return; }
 
     const { error: upsertError } = await supabase
       .from("profiles")
@@ -79,7 +80,7 @@ export function EmailPreferences() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-16">
-        <div className="w-8 h-8 border-2 border-[#1E6B1E] border-t-transparent rounded-full animate-spin" />
+        <div className="w-8 h-8 border-2 border-brand border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -100,7 +101,7 @@ export function EmailPreferences() {
             </div>
             <button
               onClick={() => toggle(key)}
-              className={`w-11 h-6 rounded-full transition-colors relative flex-shrink-0 ${prefs[key] ? "bg-[#1E6B1E]" : "bg-[#E5E7EB]"}`}
+              className={`w-11 h-6 rounded-full transition-colors relative flex-shrink-0 ${prefs[key] ? "bg-brand" : "bg-[#E5E7EB]"}`}
             >
               <div className={`w-5 h-5 rounded-full bg-white absolute top-0.5 transition-all ${prefs[key] ? "left-5.5" : "left-0.5"}`} />
             </button>
@@ -122,7 +123,7 @@ export function EmailPreferences() {
       <button
         onClick={handleSave}
         disabled={saving}
-        className="w-full py-3 bg-[#1E6B1E] text-white rounded-xl hover:bg-[#155215] transition-colors disabled:opacity-60"
+        className="w-full py-3 bg-brand text-white rounded-xl hover:bg-brand-hover transition-colors disabled:opacity-60"
       >
         {saving ? t("saving") : t("emailPrefs")}
       </button>

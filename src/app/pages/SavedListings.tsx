@@ -3,6 +3,8 @@ import { useNavigate } from "react-router";
 import { ArrowLeft, Heart } from "lucide-react";
 import { useI18n } from "../components/i18n";
 import { supabase } from "../../lib/supabase";
+import listingPlaceholder from "../../assets/listing-placeholder.svg";
+import { loginPath } from "../../lib/authRedirect";
 import { ListingCard } from "../components/ListingCard";
 
 type SavedItem = {
@@ -30,7 +32,7 @@ export function SavedListings() {
   useEffect(() => {
     async function load() {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { navigate("/login"); return; }
+      if (!user) { navigate(loginPath()); return; }
 
       const { data } = await supabase
         .from("saved_listings")
@@ -52,7 +54,7 @@ export function SavedListings() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-16">
-        <div className="w-8 h-8 border-2 border-[#1E6B1E] border-t-transparent rounded-full animate-spin" />
+        <div className="w-8 h-8 border-2 border-brand border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -73,7 +75,7 @@ export function SavedListings() {
           <p className="text-xs text-[#9CA3AF] mb-4">{t("browseToSave")}</p>
           <button
             onClick={() => navigate("/browse")}
-            className="px-4 py-2 bg-[#1E6B1E] text-white rounded-xl text-sm"
+            className="px-4 py-2 bg-brand text-white rounded-xl text-sm"
           >
             {t("browse")}
           </button>
@@ -84,7 +86,7 @@ export function SavedListings() {
             <div key={item.id} className="relative">
               <ListingCard
                 id={item.listings.id}
-                image={item.listings.image_url ?? "https://placehold.co/400x300?text=Lendy"}
+                image={item.listings.image_url ?? listingPlaceholder}
                 title={lang === "zh" ? item.listings.title : item.listings.title}
                 price={item.listings.price_per_day}
                 distance={item.listings.district ?? "HK"}

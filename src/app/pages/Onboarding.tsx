@@ -1,29 +1,41 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 import { ChevronRight, Recycle, Clock, Package, Globe } from "lucide-react";
 import { useI18n } from "../components/i18n";
 import { IMAGES } from "../components/data";
 import { ImageWithFallback } from "../components/figma/ImageWithFallback";
 import logoImg from "../../assets/lendy-logo.png";
+import { useAuth } from "../../lib/useAuth";
 
 const slides = [
-  { key: "slide1Title", icon: Package, color: "#1E6B1E" },
-  { key: "slide2Title", icon: Clock,   color: "#F4A261" },
-  { key: "slide3Title", icon: Recycle, color: "#4CAF50" },
+  { key: "slide1Title", icon: Package, color: "#1A7A86" },
+  { key: "slide2Title", icon: Clock,   color: "#3F94CA" },
+  { key: "slide3Title", icon: Recycle, color: "#3E9E74" },
 ];
 
 export function Onboarding() {
   const [current, setCurrent] = useState(0);
   const navigate = useNavigate();
   const { t, lang, setLang } = useI18n();
+  const { user, loading } = useAuth();
+
+  // Returning users who are already signed in skip the intro
+  useEffect(() => {
+    if (!loading && user) navigate("/home", { replace: true });
+  }, [loading, user, navigate]);
 
   return (
-    <div className="min-h-screen bg-[#F0F7F0] flex flex-col">
-      {/* Language toggle */}
-      <div className="flex justify-end p-4">
+    <div className="min-h-screen bg-brand-soft flex flex-col">
+      {/* Skip + language toggle */}
+      <div className="flex items-center justify-between p-4">
+        {current < 2 ? (
+          <button onClick={() => setCurrent(2)} className="px-3 py-1.5 text-sm text-[#6B7280] hover:text-brand">
+            {t("skip")}
+          </button>
+        ) : <span />}
         <button
           onClick={() => setLang(lang === "en" ? "zh" : "en")}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-[#C8E6C9] bg-white text-[#6B7280] hover:text-[#1E6B1E]"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-brand-border bg-white text-[#6B7280] hover:text-brand"
         >
           <Globe size={16} />
           <span className="text-sm">{lang === "en" ? "中文" : "EN"}</span>
@@ -57,7 +69,7 @@ export function Onboarding() {
             );
           })()}
           <h1
-            className="text-[#1B3D1B] whitespace-pre-line"
+            className="text-brand-ink whitespace-pre-line"
             style={{ fontSize: 24, lineHeight: 1.35 }}
           >
             {t(slides[current].key)}
@@ -70,8 +82,9 @@ export function Onboarding() {
             <button
               key={i}
               onClick={() => setCurrent(i)}
+              aria-label={`${i + 1} / ${slides.length}`}
               className={`w-2.5 h-2.5 rounded-full transition-colors ${
-                i === current ? "bg-[#1E6B1E]" : "bg-[#C8E6C9]"
+                i === current ? "bg-brand" : "bg-brand-border"
               }`}
             />
           ))}
@@ -81,23 +94,30 @@ export function Onboarding() {
         {current < 2 ? (
           <button
             onClick={() => setCurrent(current + 1)}
-            className="w-full py-3 bg-[#1E6B1E] text-white rounded-xl flex items-center justify-center gap-1 hover:bg-[#155215] transition-colors"
+            className="w-full py-3 bg-brand text-white rounded-xl flex items-center justify-center gap-1 hover:bg-brand-hover transition-colors"
           >
+            {t("next")}
             <ChevronRight size={18} />
           </button>
         ) : (
           <div className="w-full space-y-3">
             <button
               onClick={() => navigate("/signup")}
-              className="w-full py-3 bg-[#1E6B1E] text-white rounded-xl hover:bg-[#155215] transition-colors"
+              className="w-full py-3 bg-brand text-white rounded-xl hover:bg-brand-hover transition-colors"
             >
               {t("getStarted")}
             </button>
             <button
               onClick={() => navigate("/login")}
-              className="w-full py-3 bg-white text-[#1E6B1E] rounded-xl border border-[#C8E6C9] hover:bg-[#F0F7F0] transition-colors"
+              className="w-full py-3 bg-white text-brand rounded-xl border border-brand-border hover:bg-brand-soft transition-colors"
             >
               {t("haveAccount")}
+            </button>
+            <button
+              onClick={() => navigate("/browse")}
+              className="w-full py-2 text-sm text-brand hover:underline"
+            >
+              {t("browseFirst")}
             </button>
           </div>
         )}

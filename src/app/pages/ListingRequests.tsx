@@ -4,6 +4,7 @@ import { ArrowLeft, ChevronRight } from "lucide-react";
 import { useI18n } from "../components/i18n";
 import { ImageWithFallback } from "../components/figma/ImageWithFallback";
 import { supabase } from "../../lib/supabase";
+import { loginPath } from "../../lib/authRedirect";
 import { IMAGES } from "../components/data";
 
 type Listing = {
@@ -82,7 +83,7 @@ export function ListingRequests() {
 
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { navigate("/login"); return; }
+      if (!user) { navigate(loginPath()); return; }
 
       const { data: listingData, error: listingErr } = await supabase
         .from("listings")
@@ -151,7 +152,7 @@ export function ListingRequests() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-16">
-        <div className="w-8 h-8 border-2 border-[#1E6B1E] border-t-transparent rounded-full animate-spin" />
+        <div className="w-8 h-8 border-2 border-brand border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -162,7 +163,7 @@ export function ListingRequests() {
     return (
       <div className="max-w-lg mx-auto px-4 pt-8 text-center">
         <p className="text-red-600 text-sm bg-red-50 border border-red-200 px-4 py-3 rounded-xl mb-3">{error}</p>
-        <button onClick={load} className="text-sm text-[#1E6B1E]">
+        <button onClick={load} className="text-sm text-brand">
           {lang === "zh" ? "重試" : "Try again"}
         </button>
       </div>
@@ -192,7 +193,7 @@ export function ListingRequests() {
         />
         <div className="flex-1">
           <p className="text-sm" style={{ fontWeight: 500 }}>{listingTitle}</p>
-          <p className="text-xs text-[#1E6B1E]" style={{ fontWeight: 500 }}>HK${listing.price_per_day}/day</p>
+          <p className="text-xs text-brand" style={{ fontWeight: 500 }}>HK${listing.price_per_day}/day</p>
           <span
             className="text-[10px] px-2 py-0.5 rounded-full mt-1 inline-block"
             style={{
@@ -228,7 +229,7 @@ export function ListingRequests() {
               onClick={() => setActiveTab(key)}
               className={`flex-1 py-1.5 rounded-lg text-xs transition-colors ${
                 activeTab === key
-                  ? "bg-white text-[#1E6B1E] shadow-sm"
+                  ? "bg-white text-brand shadow-sm"
                   : "text-[#6B7280]"
               }`}
               style={{ fontWeight: activeTab === key ? 600 : 400 }}
@@ -258,10 +259,10 @@ export function ListingRequests() {
               <div
                 key={req.id}
                 onClick={() => navigate(`/my-listings/${listingId}/requests/${req.id}`)}
-                className="bg-white rounded-xl border border-[#E5E7EB] p-4 cursor-pointer hover:border-[#1E6B1E] transition-colors"
+                className="bg-white rounded-xl border border-[#E5E7EB] p-4 cursor-pointer hover:border-brand transition-colors"
               >
                 <div className="flex items-center gap-3 mb-3">
-                  <div className="w-9 h-9 rounded-full bg-[#1E6B1E] flex items-center justify-center text-white text-sm" style={{ fontWeight: 600 }}>
+                  <div className="w-9 h-9 rounded-full bg-brand flex items-center justify-center text-white text-sm" style={{ fontWeight: 600 }}>
                     {name[0]?.toUpperCase() ?? "U"}
                   </div>
                   <div className="flex-1">
@@ -279,7 +280,7 @@ export function ListingRequests() {
                   </div>
                   <div>
                     <p className="text-[10px] text-[#9CA3AF] mb-0.5">{lang === "zh" ? "總金額" : "Total"}</p>
-                    <p className="text-[#1E6B1E]" style={{ fontWeight: 600 }}>HK${total}</p>
+                    <p className="text-brand" style={{ fontWeight: 600 }}>HK${total}</p>
                     {req.pickup_preference && (
                       <p className="text-[10px] mt-0.5">
                         {req.pickup_preference === "collect"

@@ -6,6 +6,7 @@ import { ListingCard } from "../components/ListingCard";
 import { listings as mockListings, IMAGES } from "../components/data";
 import { ImageWithFallback } from "../components/figma/ImageWithFallback";
 import { supabase } from "../../lib/supabase";
+import listingPlaceholder from "../../assets/listing-placeholder.svg";
 import { useAuth } from "../../lib/useAuth";
 
 const categories = [
@@ -33,7 +34,7 @@ type UiListing = {
 function dbToUi(l: Record<string, any>): UiListing {
   return {
     id: l.id,
-    image: l.image_url ?? "https://placehold.co/400x300?text=Lendy",
+    image: l.image_url ?? listingPlaceholder,
     title: l.title,
     titleZh: l.title_zh ?? l.title,
     price: l.price_per_day,
@@ -54,7 +55,6 @@ export function Home() {
 
   useEffect(() => {
     if (authLoading) return;
-    if (!user) { navigate("/login"); return; }
 
     supabase
       .from("listings")
@@ -82,7 +82,7 @@ export function Home() {
   if (authLoading || dataLoading) {
     return (
       <div className="flex items-center justify-center py-16">
-        <div className="w-8 h-8 border-2 border-[#1E6B1E] border-t-transparent rounded-full animate-spin" />
+        <div className="w-8 h-8 border-2 border-brand border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -108,7 +108,7 @@ export function Home() {
       {/* Hero banner */}
       <div className="mx-4 mt-4 rounded-2xl overflow-hidden relative h-40 md:h-56">
         <ImageWithFallback src={IMAGES.campus} alt="Home electronics" className="w-full h-full object-cover" />
-        <div className="absolute inset-0 bg-gradient-to-r from-[#1E6B1E]/80 to-transparent flex items-center pl-6">
+        <div className="absolute inset-0 bg-gradient-to-r from-brand/80 to-transparent flex items-center pl-6">
           <div>
             <h2 className="text-white mb-1" style={{ fontSize: 20 }}>{t("heroTitle")}</h2>
             <p className="text-white/80 text-sm">HKD · Hong Kong</p>
@@ -123,9 +123,9 @@ export function Home() {
             <button
               key={cat.key}
               onClick={() => navigate(`/browse?category=${cat.key}`)}
-              className="flex flex-col items-center gap-1.5 min-w-[64px] py-3 px-2 rounded-xl bg-white border border-[#E5E7EB] hover:border-[#1E6B1E] transition-colors"
+              className="flex flex-col items-center gap-1.5 min-w-[64px] py-3 px-2 rounded-xl bg-white border border-[#E5E7EB] hover:border-brand transition-colors"
             >
-              <cat.icon size={20} className="text-[#1E6B1E]" />
+              <cat.icon size={20} className="text-brand" />
               <span className="text-[11px] text-[#6B7280] whitespace-nowrap">{t(cat.key)}</span>
             </button>
           ))}
@@ -191,7 +191,7 @@ function Section({ title, onSeeAll, children }: { title: string; onSeeAll: () =>
     <div className="px-4 mt-6">
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-[#1F2937]">{title}</h3>
-        <button onClick={onSeeAll} className="text-sm text-[#1E6B1E]">{t("seeAll")}</button>
+        <button onClick={onSeeAll} className="text-sm text-brand">{t("seeAll")}</button>
       </div>
       {children}
     </div>

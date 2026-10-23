@@ -3,6 +3,7 @@ import { useNavigate } from "react-router";
 import { ArrowLeft, Download, TrendingUp } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { supabase } from "../../lib/supabase";
+import { loginPath } from "../../lib/authRedirect";
 import { useI18n } from "../components/i18n";
 
 type EarningRow = {
@@ -48,7 +49,7 @@ export function Earnings() {
   useEffect(() => {
     async function load() {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { navigate("/login"); return; }
+      if (!user) { navigate(loginPath()); return; }
 
       // 1. Get user's listings
       const { data: listingsData, error: lErr } = await supabase
@@ -146,7 +147,7 @@ export function Earnings() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-16">
-        <div className="w-8 h-8 border-2 border-[#1E6B1E] border-t-transparent rounded-full animate-spin" />
+        <div className="w-8 h-8 border-2 border-brand border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -171,7 +172,7 @@ export function Earnings() {
           { label: t("completed"), value: String(completedCount) },
         ].map(({ label, value }) => (
           <div key={label} className="bg-white rounded-xl border border-[#E5E7EB] p-3 text-center">
-            <p className="text-lg text-[#1E6B1E]" style={{ fontWeight: 600 }}>{value}</p>
+            <p className="text-lg text-brand" style={{ fontWeight: 600 }}>{value}</p>
             <p className="text-[10px] text-[#6B7280] mt-0.5">{label}</p>
           </div>
         ))}
@@ -194,7 +195,7 @@ export function Earnings() {
                 formatter={(value: number) => [`HK$${value}`, "Earnings"]}
                 contentStyle={{ borderRadius: "0.75rem", border: "1px solid #E5E7EB", fontSize: 12 }}
               />
-              <Bar dataKey="amount" fill="#1E6B1E" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="amount" fill="#1A7A86" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         ) : (
@@ -213,7 +214,7 @@ export function Earnings() {
             <p className="text-sm text-[#6B7280]">{t("earningsEmptyHistory")}</p>
             <button
               onClick={() => navigate("/create")}
-              className="mt-3 px-5 py-2 bg-[#1E6B1E] text-white rounded-xl text-sm"
+              className="mt-3 px-5 py-2 bg-brand text-white rounded-xl text-sm"
             >
               {t("createListing")}
             </button>
@@ -228,7 +229,7 @@ export function Earnings() {
                     {r.renter_name} · {fmtDate(r.start_date)} – {fmtDate(r.end_date)}
                   </p>
                 </div>
-                <span className="ml-3 text-sm text-[#1E6B1E]" style={{ fontWeight: 600 }}>HK${r.total_price}</span>
+                <span className="ml-3 text-sm text-brand" style={{ fontWeight: 600 }}>HK${r.total_price}</span>
               </div>
             ))}
           </div>
@@ -239,7 +240,7 @@ export function Earnings() {
       {hasData && (
         <button
           onClick={exportCSV}
-          className="w-full py-3 border border-[#E5E7EB] rounded-xl text-sm text-[#6B7280] flex items-center justify-center gap-2 hover:border-[#1E6B1E] hover:text-[#1E6B1E] transition-colors"
+          className="w-full py-3 border border-[#E5E7EB] rounded-xl text-sm text-[#6B7280] flex items-center justify-center gap-2 hover:border-brand hover:text-brand transition-colors"
         >
           <Download size={16} />
           {t("exportSummary")}

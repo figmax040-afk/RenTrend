@@ -82,7 +82,7 @@ export function AdminRecycling() {
 
       {loading ? (
         <div className="flex justify-center py-16">
-          <div className="w-8 h-8 border-2 border-[#1E6B1E] border-t-transparent rounded-full animate-spin" />
+          <div className="w-8 h-8 border-2 border-brand border-t-transparent rounded-full animate-spin" />
         </div>
       ) : submissions.length === 0 ? (
         <p className="text-center text-[#6B7280] text-sm py-12">{t("noSubmissionsYet")}</p>
@@ -135,7 +135,7 @@ export function AdminRecycling() {
                   </button>
                   <button
                     onClick={() => updateStatus(s.id, "listed")}
-                    className="flex-1 py-1.5 bg-[#1E6B1E] text-white rounded-lg text-xs"
+                    className="flex-1 py-1.5 bg-brand text-white rounded-lg text-xs"
                   >
                     {t("markListed")}
                   </button>
@@ -144,7 +144,7 @@ export function AdminRecycling() {
               {s.status === "collected" && (
                 <button
                   onClick={() => updateStatus(s.id, "listed")}
-                  className="w-full py-1.5 bg-[#1E6B1E] text-white rounded-lg text-xs"
+                  className="w-full py-1.5 bg-brand text-white rounded-lg text-xs"
                 >
                   {t("markListed")}
                 </button>

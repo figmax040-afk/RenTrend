@@ -1,10 +1,11 @@
 import { useState } from "react";
-import { useNavigate, useLocation } from "react-router";
+import { useNavigate, useLocation, useSearchParams } from "react-router";
 import { Mail, Lock, ArrowLeft, Globe, AlertCircle, User, Phone, MailCheck, CheckCircle } from "lucide-react";
 import { useI18n } from "../components/i18n";
 import { IMAGES } from "../components/data";
 import { ImageWithFallback } from "../components/figma/ImageWithFallback";
 import { supabase } from "../../lib/supabase";
+import { safeNext } from "../../lib/authRedirect";
 
 import logoImg from "../../assets/lendy-logo.png";
 
@@ -17,9 +18,10 @@ function AuthHero() {
         alt="Home electronics"
         className="w-full h-full object-cover"
       />
-      <div className="absolute inset-0 bg-gradient-to-b from-[#1E6B1E]/60 to-[#1E6B1E]/10" />
+      <div className="absolute inset-0 bg-gradient-to-b from-white/85 via-white/70 to-[#F9FAFB]" />
+      <div className="absolute inset-0 bg-gradient-to-br from-brand-blue/15 to-brand-green/15" />
       <div className="absolute inset-0 flex items-center justify-center">
-        <img src={logoImg} alt="Lendy" className="h-20 w-auto max-w-[80vw] object-contain bg-white/90 rounded-2xl px-6 py-3 shadow-lg" />
+        <img src={logoImg} alt="Lendy" className="h-16 w-auto max-w-[75vw] object-contain" />
       </div>
     </div>
   );
@@ -28,6 +30,10 @@ function AuthHero() {
 /* ── Sign Up ── */
 export function SignUp() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const nextParam = searchParams.get("next");
+  const next = safeNext(nextParam);
+  const loginLink = nextParam ? `/login?next=${encodeURIComponent(next)}` : "/login";
   const { t, lang, setLang } = useI18n();
   const [name,      setName]      = useState("");
   const [phone,     setPhone]     = useState("");
@@ -40,11 +46,11 @@ export function SignUp() {
   async function handleSignUp() {
     setError("");
     if (!name || !phone || !email || !password) {
-      setError("Please fill in all fields.");
+      setError(t("errFillAllFields"));
       return;
     }
     if (password.length < 6) {
-      setError("Password must be at least 6 characters.");
+      setError(t("errPasswordLength"));
       return;
     }
     setLoading(true);
@@ -60,7 +66,7 @@ export function SignUp() {
       // Email confirmation required — show inline confirmation
       setEmailSent(true);
     } else {
-      navigate("/home");
+      navigate(next);
     }
   }
 
@@ -69,17 +75,17 @@ export function SignUp() {
       <div className="min-h-screen bg-[#F9FAFB] flex flex-col">
         <AuthHero />
         <div className="flex-1 flex flex-col items-center justify-center px-6 max-w-md mx-auto w-full gap-4 text-center">
-          <div className="w-20 h-20 rounded-full bg-[#1E6B1E]/10 flex items-center justify-center">
-            <CheckCircle size={40} className="text-[#1E6B1E]" />
+          <div className="w-20 h-20 rounded-full bg-brand/10 flex items-center justify-center">
+            <CheckCircle size={40} className="text-brand" />
           </div>
-          <h1 className="text-[#1B3D1B]" style={{ fontSize: 26 }}>Check your email</h1>
+          <h1 className="text-brand-ink" style={{ fontSize: 26 }}>Check your email</h1>
           <p className="text-[#6B7280] text-sm">
-            We sent a confirmation link to <span className="text-[#1E6B1E] font-medium">{email}</span>. Click it to activate your account.
+            We sent a confirmation link to <span className="text-brand font-medium">{email}</span>. Click it to activate your account.
           </p>
           <p className="text-[#9CA3AF] text-xs">Didn't receive it? Check your spam folder.</p>
           <button
-            onClick={() => navigate("/login")}
-            className="w-full py-3 bg-white text-[#1E6B1E] rounded-xl border border-[#C8E6C9] hover:bg-[#F0F7F0] transition-colors mt-2"
+            onClick={() => navigate(loginLink)}
+            className="w-full py-3 bg-white text-brand rounded-xl border border-brand-border hover:bg-brand-soft transition-colors mt-2"
           >
             {t("backToLogin")}
           </button>
@@ -91,12 +97,12 @@ export function SignUp() {
   return (
     <div className="min-h-screen bg-[#F9FAFB] flex flex-col">
       <div className="flex items-center justify-between p-4 absolute top-0 left-0 right-0 z-10">
-        <button onClick={() => navigate("/")} className="w-8 h-8 rounded-full bg-white/80 flex items-center justify-center text-[#1E6B1E]">
+        <button onClick={() => navigate("/")} className="w-8 h-8 rounded-full bg-white/80 flex items-center justify-center text-brand">
           <ArrowLeft size={18} />
         </button>
         <button
           onClick={() => setLang(lang === "en" ? "zh" : "en")}
-          className="flex items-center gap-1 text-sm text-white bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full"
+          className="flex items-center gap-1 text-sm text-brand bg-white/80 border border-brand-border backdrop-blur-sm px-3 py-1 rounded-full"
         >
           <Globe size={14} />{lang === "en" ? "中文" : "EN"}
         </button>
@@ -105,7 +111,7 @@ export function SignUp() {
       <AuthHero />
 
       <div className="flex-1 flex flex-col px-6 max-w-md mx-auto w-full pt-6">
-        <h1 className="text-[#1B3D1B] mb-1" style={{ fontSize: 26 }}>Join Lendy</h1>
+        <h1 className="text-brand-ink mb-1" style={{ fontSize: 26 }}>{t("joinLendy")}</h1>
         <p className="text-[#6B7280] text-sm mb-6">{t("verifyStudent")}</p>
 
         {error && (
@@ -123,7 +129,7 @@ export function SignUp() {
               placeholder={t("fullName")}
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 rounded-xl border border-[#C8E6C9] bg-white focus:outline-none focus:border-[#1E6B1E] text-sm"
+              className="w-full pl-10 pr-4 py-3 rounded-xl border border-brand-border bg-white focus:outline-none focus:border-brand text-sm"
             />
           </div>
 
@@ -134,7 +140,7 @@ export function SignUp() {
               placeholder={t("phone")}
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 rounded-xl border border-[#C8E6C9] bg-white focus:outline-none focus:border-[#1E6B1E] text-sm"
+              className="w-full pl-10 pr-4 py-3 rounded-xl border border-brand-border bg-white focus:outline-none focus:border-brand text-sm"
             />
           </div>
 
@@ -145,7 +151,7 @@ export function SignUp() {
               placeholder={t("email")}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 rounded-xl border border-[#C8E6C9] bg-white focus:outline-none focus:border-[#1E6B1E] text-sm"
+              className="w-full pl-10 pr-4 py-3 rounded-xl border border-brand-border bg-white focus:outline-none focus:border-brand text-sm"
             />
           </div>
 
@@ -156,22 +162,22 @@ export function SignUp() {
               placeholder={t("password")}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 rounded-xl border border-[#C8E6C9] bg-white focus:outline-none focus:border-[#1E6B1E] text-sm"
+              className="w-full pl-10 pr-4 py-3 rounded-xl border border-brand-border bg-white focus:outline-none focus:border-brand text-sm"
             />
           </div>
 
           <button
             onClick={handleSignUp}
             disabled={loading}
-            className="w-full py-3 bg-[#1E6B1E] text-white rounded-xl hover:bg-[#155215] transition-colors disabled:opacity-60"
+            className="w-full py-3 bg-brand text-white rounded-xl hover:bg-brand-hover transition-colors disabled:opacity-60"
           >
-            {loading ? "Creating account..." : t("signUp")}
+            {loading ? t("creatingAccount") : t("signUp")}
           </button>
         </div>
 
         <p className="text-center text-sm text-[#6B7280] mt-6">
           {t("hasAccount")}{" "}
-          <button onClick={() => navigate("/login")} className="text-[#1E6B1E]" style={{ fontWeight: 500 }}>
+          <button onClick={() => navigate(loginLink)} className="text-brand" style={{ fontWeight: 500 }}>
             {t("logIn")}
           </button>
         </p>
@@ -184,6 +190,10 @@ export function SignUp() {
 export function Login() {
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchParams] = useSearchParams();
+  const nextParam = searchParams.get("next");
+  const next = safeNext(nextParam);
+  const signupLink = nextParam ? `/signup?next=${encodeURIComponent(next)}` : "/signup";
   const { t, lang, setLang } = useI18n();
   const [email,         setEmail]         = useState("");
   const [password,      setPassword]      = useState("");
@@ -200,7 +210,7 @@ export function Login() {
   async function handleLogin() {
     setError("");
     if (!email || !password) {
-      setError("Please enter your email and password.");
+      setError(t("errEmailPassword"));
       return;
     }
     setLoading(true);
@@ -213,13 +223,13 @@ export function Login() {
         setError(loginError.message);
       }
     } else {
-      navigate("/home");
+      navigate(next);
     }
   }
 
   async function handleForgot() {
     setForgotError("");
-    if (!forgotEmail) { setForgotError("Please enter your email."); return; }
+    if (!forgotEmail) { setForgotError(t("errEnterEmail")); return; }
     setForgotLoading(true);
     const { error: resetError } = await supabase.auth.resetPasswordForEmail(forgotEmail, {
       redirectTo: `${window.location.origin}/reset-password`,
@@ -238,12 +248,12 @@ export function Login() {
   return (
     <div className="min-h-screen bg-[#F9FAFB] flex flex-col">
       <div className="flex items-center justify-between p-4 absolute top-0 left-0 right-0 z-10">
-        <button onClick={() => navigate("/")} className="w-8 h-8 rounded-full bg-white/80 flex items-center justify-center text-[#1E6B1E]">
+        <button onClick={() => navigate("/")} className="w-8 h-8 rounded-full bg-white/80 flex items-center justify-center text-brand">
           <ArrowLeft size={18} />
         </button>
         <button
           onClick={() => setLang(lang === "en" ? "zh" : "en")}
-          className="flex items-center gap-1 text-sm text-white bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full"
+          className="flex items-center gap-1 text-sm text-brand bg-white/80 border border-brand-border backdrop-blur-sm px-3 py-1 rounded-full"
         >
           <Globe size={14} />{lang === "en" ? "中文" : "EN"}
         </button>
@@ -252,7 +262,7 @@ export function Login() {
       <AuthHero />
 
       <div className="flex-1 flex flex-col px-6 max-w-md mx-auto w-full pt-6">
-        <h1 className="text-[#1B3D1B] mb-6" style={{ fontSize: 26 }}>{t("logIn")}</h1>
+        <h1 className="text-brand-ink mb-6" style={{ fontSize: 26 }}>{t("logIn")}</h1>
 
         {successBanner && (
           <div className="flex items-center gap-2 bg-green-50 border border-green-200 text-green-700 text-sm px-4 py-3 rounded-xl mb-4">
@@ -276,7 +286,7 @@ export function Login() {
               placeholder={t("email")}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 rounded-xl border border-[#C8E6C9] bg-white focus:outline-none focus:border-[#1E6B1E] text-sm"
+              className="w-full pl-10 pr-4 py-3 rounded-xl border border-brand-border bg-white focus:outline-none focus:border-brand text-sm"
             />
           </div>
 
@@ -287,18 +297,18 @@ export function Login() {
               placeholder={t("password")}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 rounded-xl border border-[#C8E6C9] bg-white focus:outline-none focus:border-[#1E6B1E] text-sm"
+              className="w-full pl-10 pr-4 py-3 rounded-xl border border-brand-border bg-white focus:outline-none focus:border-brand text-sm"
             />
           </div>
 
           <div className="text-right">
-            <button onClick={openForgot} className="text-sm text-[#1E6B1E]">{t("forgotPassword")}</button>
+            <button onClick={openForgot} className="text-sm text-brand">{t("forgotPassword")}</button>
           </div>
 
           {/* Forgot password inline panel */}
           {showForgot && (
-            <div className="bg-[#F0F7F0] border border-[#C8E6C9] rounded-xl p-4 space-y-3">
-              <p className="text-sm" style={{ fontWeight: 500 }}>Reset your password</p>
+            <div className="bg-brand-soft border border-brand-border rounded-xl p-4 space-y-3">
+              <p className="text-sm" style={{ fontWeight: 500 }}>{t("resetYourPassword")}</p>
               {forgotSent ? (
                 <div className="flex items-center gap-2 text-green-700 text-sm">
                   <MailCheck size={16} />
@@ -318,15 +328,15 @@ export function Login() {
                       placeholder={t("email")}
                       value={forgotEmail}
                       onChange={(e) => setForgotEmail(e.target.value)}
-                      className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-[#C8E6C9] bg-white focus:outline-none focus:border-[#1E6B1E] text-sm"
+                      className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-brand-border bg-white focus:outline-none focus:border-brand text-sm"
                     />
                   </div>
                   <button
                     onClick={handleForgot}
                     disabled={forgotLoading}
-                    className="w-full py-2.5 bg-[#1E6B1E] text-white rounded-xl text-sm disabled:opacity-60"
+                    className="w-full py-2.5 bg-brand text-white rounded-xl text-sm disabled:opacity-60"
                   >
-                    {forgotLoading ? "Sending..." : t("sendResetLink")}
+                    {forgotLoading ? t("sending") : t("sendResetLink")}
                   </button>
                 </>
               )}
@@ -339,15 +349,15 @@ export function Login() {
           <button
             onClick={handleLogin}
             disabled={loading}
-            className="w-full py-3 bg-[#1E6B1E] text-white rounded-xl hover:bg-[#155215] transition-colors disabled:opacity-60"
+            className="w-full py-3 bg-brand text-white rounded-xl hover:bg-brand-hover transition-colors disabled:opacity-60"
           >
-            {loading ? "Logging in..." : t("logIn")}
+            {loading ? t("loggingIn") : t("logIn")}
           </button>
         </div>
 
         <p className="text-center text-sm text-[#6B7280] mt-6">
           {t("noAccount")}{" "}
-          <button onClick={() => navigate("/signup")} className="text-[#1E6B1E]" style={{ fontWeight: 500 }}>
+          <button onClick={() => navigate(signupLink)} className="text-brand" style={{ fontWeight: 500 }}>
             {t("signUp")}
           </button>
         </p>
@@ -383,12 +393,12 @@ export function VerifyEmail() {
   return (
     <div className="min-h-screen bg-[#F9FAFB] flex flex-col">
       <div className="flex items-center justify-between p-4 absolute top-0 left-0 right-0 z-10">
-        <button onClick={() => navigate("/login")} className="w-8 h-8 rounded-full bg-white/80 flex items-center justify-center text-[#1E6B1E]">
+        <button onClick={() => navigate("/login")} className="w-8 h-8 rounded-full bg-white/80 flex items-center justify-center text-brand">
           <ArrowLeft size={18} />
         </button>
         <button
           onClick={() => setLang(lang === "en" ? "zh" : "en")}
-          className="flex items-center gap-1 text-sm text-white bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full"
+          className="flex items-center gap-1 text-sm text-brand bg-white/80 border border-brand-border backdrop-blur-sm px-3 py-1 rounded-full"
         >
           <Globe size={14} />{lang === "en" ? "中文" : "EN"}
         </button>
@@ -397,16 +407,16 @@ export function VerifyEmail() {
       <AuthHero />
 
       <div className="flex-1 flex flex-col items-center px-6 max-w-md mx-auto w-full pt-10">
-        <div className="w-20 h-20 rounded-full bg-[#1E6B1E]/10 flex items-center justify-center mb-6">
-          <MailCheck size={40} className="text-[#1E6B1E]" />
+        <div className="w-20 h-20 rounded-full bg-brand/10 flex items-center justify-center mb-6">
+          <MailCheck size={40} className="text-brand" />
         </div>
 
-        <h1 className="text-[#1B3D1B] text-center mb-3" style={{ fontSize: 26 }}>
+        <h1 className="text-brand-ink text-center mb-3" style={{ fontSize: 26 }}>
           {t("checkYourEmail")}
         </h1>
         <p className="text-[#6B7280] text-sm text-center mb-2">{t("verifyEmailMsg")}</p>
         {email && (
-          <p className="text-[#1E6B1E] text-sm font-medium text-center mb-8">{email}</p>
+          <p className="text-brand text-sm font-medium text-center mb-8">{email}</p>
         )}
 
         {error && (
@@ -426,13 +436,13 @@ export function VerifyEmail() {
           <button
             onClick={handleResend}
             disabled={resendLoading || !email}
-            className="w-full py-3 bg-[#1E6B1E] text-white rounded-xl hover:bg-[#155215] transition-colors disabled:opacity-60"
+            className="w-full py-3 bg-brand text-white rounded-xl hover:bg-brand-hover transition-colors disabled:opacity-60"
           >
-            {resendLoading ? "Sending..." : t("resendEmail")}
+            {resendLoading ? t("sending") : t("resendEmail")}
           </button>
           <button
             onClick={() => navigate("/login")}
-            className="w-full py-3 bg-white text-[#1E6B1E] rounded-xl border border-[#C8E6C9] hover:bg-[#F0F7F0] transition-colors"
+            className="w-full py-3 bg-white text-brand rounded-xl border border-brand-border hover:bg-brand-soft transition-colors"
           >
             {t("backToLogin")}
           </button>

@@ -3,6 +3,8 @@ import { useParams, useNavigate } from "react-router";
 import { ArrowLeft } from "lucide-react";
 import { useI18n } from "../components/i18n";
 import { supabase } from "../../lib/supabase";
+import listingPlaceholder from "../../assets/listing-placeholder.svg";
+import { loginPath } from "../../lib/authRedirect";
 
 type ListingInfo = {
   id: string;
@@ -51,7 +53,7 @@ export function EditRequest() {
   useEffect(() => {
     async function load() {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { navigate("/login"); return; }
+      if (!user) { navigate(loginPath()); return; }
 
       const { data: req, error: reqErr } = await supabase
         .from("requests")
@@ -120,7 +122,7 @@ export function EditRequest() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-16">
-        <div className="w-8 h-8 border-2 border-[#1E6B1E] border-t-transparent rounded-full animate-spin" />
+        <div className="w-8 h-8 border-2 border-brand border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -129,7 +131,7 @@ export function EditRequest() {
     return (
       <div className="max-w-lg mx-auto px-4 pt-8 text-center">
         <p className="text-[#6B7280] text-sm">{error || (lang === "zh" ? "找不到請求" : "Request not found.")}</p>
-        <button onClick={() => navigate("/activity?tab=requests")} className="mt-4 text-[#1E6B1E] text-sm">← {lang === "zh" ? "返回" : "Back"}</button>
+        <button onClick={() => navigate("/activity?tab=requests")} className="mt-4 text-brand text-sm">← {lang === "zh" ? "返回" : "Back"}</button>
       </div>
     );
   }
@@ -154,13 +156,13 @@ export function EditRequest() {
         {/* Item summary */}
         <div className="flex gap-3 p-3 rounded-xl bg-white border border-[#E5E7EB] mb-5">
           <img
-            src={listing.image_url ?? "https://placehold.co/400x300?text=Lendy"}
+            src={listing.image_url ?? listingPlaceholder}
             alt=""
             className="w-16 h-16 rounded-lg object-cover"
           />
           <div className="text-sm">
             <p style={{ fontWeight: 500 }}>{listing.title}</p>
-            <p className="text-[#1E6B1E]" style={{ fontWeight: 600 }}>
+            <p className="text-brand" style={{ fontWeight: 600 }}>
               HK${listing.price_per_day}<span className="text-[#6B7280]" style={{ fontWeight: 400 }}>/day</span>
             </p>
           </div>
@@ -176,7 +178,7 @@ export function EditRequest() {
             ].map(({ label, value }) => (
               <div key={label} className="flex-1 py-2 px-2 rounded-xl bg-[#F3F4F6] text-center">
                 {value ? (
-                  <span className="text-xs text-[#1E6B1E]" style={{ fontWeight: 600 }}>HK${value}</span>
+                  <span className="text-xs text-brand" style={{ fontWeight: 600 }}>HK${value}</span>
                 ) : (
                   <span className="text-xs text-[#9CA3AF]">—</span>
                 )}
@@ -229,7 +231,7 @@ export function EditRequest() {
                 </div>
                 <div className="flex justify-between" style={{ fontWeight: 600 }}>
                   <span>{t("total")}</span>
-                  <span className="text-[#1E6B1E]">HK${grandTotal}</span>
+                  <span className="text-brand">HK${grandTotal}</span>
                 </div>
               </div>
             </div>
@@ -240,7 +242,7 @@ export function EditRequest() {
             <label className="text-sm text-[#6B7280]">{t("messageToOwner")}</label>
             <textarea value={msg} onChange={(e) => setMsg(e.target.value)}
               placeholder={t("messagePlaceholder")} rows={3}
-              className="w-full mt-1 px-4 py-2.5 rounded-xl border border-[#E5E7EB] bg-white text-sm resize-none focus:outline-none focus:border-[#1E6B1E]" />
+              className="w-full mt-1 px-4 py-2.5 rounded-xl border border-[#E5E7EB] bg-white text-sm resize-none focus:outline-none focus:border-brand" />
           </div>
 
           {/* Pickup preference */}
@@ -249,7 +251,7 @@ export function EditRequest() {
             <div className="flex gap-2 mt-2">
               {(["collect", "deliver"] as const).map((p) => (
                 <button key={p} onClick={() => setPickup(p)}
-                  className={`flex-1 py-2.5 rounded-xl text-sm border transition-colors ${pickup === p ? "bg-[#1E6B1E] text-white border-[#1E6B1E]" : "bg-white text-[#6B7280] border-[#E5E7EB]"}`}>
+                  className={`flex-1 py-2.5 rounded-xl text-sm border transition-colors ${pickup === p ? "bg-brand text-white border-brand" : "bg-white text-[#6B7280] border-[#E5E7EB]"}`}>
                   {p === "collect" ? t("iCanCollect") : t("canYouDeliver")}
                 </button>
               ))}
@@ -263,7 +265,7 @@ export function EditRequest() {
           <button
             onClick={handleSave}
             disabled={!startDate || !endDate || saving}
-            className="w-full py-3 bg-[#1E6B1E] text-white rounded-xl disabled:opacity-40"
+            className="w-full py-3 bg-brand text-white rounded-xl disabled:opacity-40"
           >
             {saving ? t("saving") : t("saveChanges")}
           </button>
