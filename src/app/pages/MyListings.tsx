@@ -27,6 +27,7 @@ export function MyListingsContent() {
   const [menuOpen, setMenuOpen] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   useEffect(() => {
     if (authLoading) return;
@@ -67,7 +68,15 @@ export function MyListingsContent() {
 
   async function handleDelete(listingId: string) {
     setDeleting(true);
-    await supabase.from("listings").delete().eq("id", listingId);
+    setDeleteError(null);
+    // .select() returns the deleted rows, so a delete blocked by RLS (0 rows, no error) is detectable
+    const { data, error } = await supabase.from("listings").delete().eq("id", listingId).select("id");
+    if (error || !data || data.length === 0) {
+      console.error("Delete listing failed:", error ?? "no rows deleted (blocked by RLS policy?)");
+      setDeleteError(error?.message ?? (lang === "zh" ? "無法刪除（沒有權限）" : "Could not delete (permission denied)"));
+      setDeleting(false);
+      return;
+    }
     setConfirmDelete(null);
     setMenuOpen(null);
     await loadData();
@@ -163,7 +172,7 @@ export function MyListingsContent() {
                               {t("editListing")}
                             </button>
                             <button
-                              onClick={(e) => { e.stopPropagation(); setConfirmDelete(listing.id); setMenuOpen(null); }}
+                              onClick={(e) => { e.stopPropagation(); setConfirmDelete(listing.id); setDeleteError(null); setMenuOpen(null); }}
                               className="w-full text-left px-4 py-2.5 text-sm text-[#EF4444] hover:bg-red-50 flex items-center gap-2 rounded-b-xl"
                             >
                               <Trash2 size={14} />
@@ -200,6 +209,7 @@ export function MyListingsContent() {
                     onClick={(e) => e.stopPropagation()}
                   >
                     <p className="text-sm text-[#1F2937] mb-2">{t("deleteConfirm")}</p>
+                    {deleteError && <p className="text-xs text-[#EF4444] mb-2">{deleteError}</p>}
                     <div className="flex gap-2">
                       <button
                         onClick={() => setConfirmDelete(null)}
