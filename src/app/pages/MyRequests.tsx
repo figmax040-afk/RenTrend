@@ -89,17 +89,22 @@ export function MyRequestsContent() {
         if (error) throw error;
         if (!reqs || reqs.length === 0) { setRequests([]); setLoading(false); return; }
 
-        const listingIds = [...new Set(reqs.map((r) => r.listing_id))];
-        const { data: listings } = await supabase
-          .from("listings")
-          .select("id, title, image_url, price_per_day, deposit, owner_id")
-          .in("id", listingIds);
+        // listing_id is null once the owner deletes the listing
+        const listingIds = [...new Set(reqs.map((r) => r.listing_id).filter(Boolean))];
+        const { data: listings } = listingIds.length > 0
+          ? await supabase
+              .from("listings")
+              .select("id, title, image_url, price_per_day, deposit, owner_id")
+              .in("id", listingIds)
+          : { data: [] };
 
         const ownerIds = [...new Set((listings || []).map((l) => l.owner_id))];
-        const { data: profiles } = await supabase
-          .from("profiles")
-          .select("id, name, email")
-          .in("id", ownerIds);
+        const { data: profiles } = ownerIds.length > 0
+          ? await supabase
+              .from("profiles")
+              .select("id, name, email")
+              .in("id", ownerIds)
+          : { data: [] };
 
         const enriched: EnrichedRequest[] = reqs.map((r) => {
           const listing = listings?.find((l) => l.id === r.listing_id) ?? null;
@@ -120,7 +125,9 @@ export function MyRequestsContent() {
   async function handleCancel(requestId: string) {
     setActing(true);
     const { error } = await supabase.from("requests").update({ status: "cancelled" }).eq("id", requestId);
-    if (!error) {
+    if (error) {
+      setError(error.message);
+    } else {
       setRequests((prev) => prev.map((r) => r.id === requestId ? { ...r, status: "cancelled" } : r));
     }
     setConfirmCancel(null);
@@ -129,8 +136,12 @@ export function MyRequestsContent() {
 
   async function handleDelete(requestId: string) {
     setActing(true);
-    await supabase.from("requests").delete().eq("id", requestId);
-    setRequests((prev) => prev.filter((r) => r.id !== requestId));
+    const { error } = await supabase.from("requests").delete().eq("id", requestId);
+    if (error) {
+      setError(error.message);
+    } else {
+      setRequests((prev) => prev.filter((r) => r.id !== requestId));
+    }
     setConfirmDelete(null);
     setActing(false);
   }
@@ -182,7 +193,7 @@ export function MyRequestsContent() {
       ) : (
         <div className="space-y-3">
           {filtered.map((r) => {
-            const title = r.listing?.title ?? "—";
+            const title = r.listing?.title ?? t("listingRemovedShort");
             const image = r.listing?.image_url ?? FALLBACK_IMAGE;
             const owner = ownerDisplayName(r.owner);
             const isMenuOpen = menuOpen === r.id;

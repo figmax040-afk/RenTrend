@@ -8,6 +8,7 @@ import { loginPath } from "../../lib/authRedirect";
 import { APP_URL } from "../../lib/appUrl";
 import { sendEmail } from "../../lib/sendEmail";
 import { IMAGES } from "../components/data";
+import { breakdownFromRequest } from "../../lib/pricing";
 
 type Listing = {
   id: string;
@@ -15,6 +16,9 @@ type Listing = {
   title_zh: string | null;
   image_url: string | null;
   price_per_day: number;
+  price_weekly: number | null;
+  price_monthly: number | null;
+  deposit: number | null;
 };
 
 type RenterProfile = {
@@ -34,6 +38,7 @@ type Request = {
   status: string;
   pickup_preference: string | null;
   total_price: number | null;
+  breakdown_json: Record<string, number | null> | null;
   profiles: RenterProfile | null;
 };
 
@@ -104,7 +109,7 @@ export function RequestDetail() {
 
       const { data: listingData, error: listingErr } = await supabase
         .from("listings")
-        .select("id, title, title_zh, image_url, price_per_day")
+        .select("id, title, title_zh, image_url, price_per_day, price_weekly, price_monthly, deposit")
         .eq("id", listingId)
         .eq("owner_id", user.id)
         .single();
@@ -119,6 +124,7 @@ export function RequestDetail() {
         .from("requests")
         .select("*")
         .eq("id", requestId)
+        .eq("listing_id", listingId)
         .single();
 
       if (reqErr || !reqData) {
@@ -178,12 +184,19 @@ export function RequestDetail() {
       return;
     }
 
-    await supabase
+    const { error: declineOthersErr } = await supabase
       .from("requests")
       .update({ status: "rejected" })
       .eq("listing_id", listingId)
       .eq("status", "pending")
       .neq("id", request.id);
+    if (declineOthersErr) {
+      setError(lang === "zh"
+        ? "已接受此請求，但未能自動拒絕其他請求，請手動處理。"
+        : "Request accepted, but other pending requests couldn't be declined automatically. Please decline them manually.");
+    } else {
+      setAllRequests((prev) => prev.map((r) => r.id !== request.id && r.status === "pending" ? { ...r, status: "rejected" } : r));
+    }
 
     setRequest((prev) => prev ? { ...prev, status: "accepted" } : prev);
     setActing(false);
@@ -346,7 +359,9 @@ export function RequestDetail() {
 
   const name = renterName(request);
   const days = daysBetween(request.start_date, request.end_date);
-  const total = request.total_price ?? listing.price_per_day * days;
+  const lines = breakdownFromRequest(request, listing);
+  const total = lines?.total ?? request.total_price ?? listing.price_per_day * days;
+  const deposit = listing.deposit ?? 0;
   const listingTitle = lang === "zh" && listing.title_zh ? listing.title_zh : listing.title;
 
   const hasAcceptedOther = allRequests.some(
@@ -450,13 +465,35 @@ export function RequestDetail() {
           </div>
         </div>
 
-        <div className="pt-2 border-t border-[#E5E7EB]">
-          <div className="flex justify-between items-center">
-            <p className="text-xs text-[#6B7280]">
-              HK${listing.price_per_day} × {days} {lang === "zh" ? "天" : "days"}
-            </p>
+        <div className="pt-2 border-t border-[#E5E7EB] space-y-1.5">
+          {lines && lines.months > 0 && (
+            <div className="flex justify-between items-center text-xs text-[#6B7280]">
+              <span>{lines.months} {lang === "zh" ? "個月" : `month${lines.months > 1 ? "s" : ""}`} × HK${lines.priceMonth}</span>
+              <span>HK${lines.months * (lines.priceMonth ?? 0)}</span>
+            </div>
+          )}
+          {lines && lines.weeks > 0 && (
+            <div className="flex justify-between items-center text-xs text-[#6B7280]">
+              <span>{lines.weeks} {lang === "zh" ? "週" : `week${lines.weeks > 1 ? "s" : ""}`} × HK${lines.priceWeek}</span>
+              <span>HK${lines.weeks * (lines.priceWeek ?? 0)}</span>
+            </div>
+          )}
+          {lines && lines.days > 0 && (
+            <div className="flex justify-between items-center text-xs text-[#6B7280]">
+              <span>{lines.days} {lang === "zh" ? "天" : `day${lines.days > 1 ? "s" : ""}`} × HK${lines.priceDay}</span>
+              <span>HK${lines.days * lines.priceDay}</span>
+            </div>
+          )}
+          <div className="flex justify-between items-center pt-1">
+            <p className="text-xs text-[#1F2937]" style={{ fontWeight: 600 }}>{t("rentalTotal")}</p>
             <p className="text-brand" style={{ fontWeight: 600, fontSize: 16 }}>HK${total}</p>
           </div>
+          {deposit > 0 && (
+            <div className="flex justify-between items-center text-xs text-[#6B7280]">
+              <span>{t("deposit")}</span>
+              <span>HK${deposit}</span>
+            </div>
+          )}
         </div>
 
         {request.message && (

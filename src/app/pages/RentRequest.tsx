@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router";
 import { ArrowLeft, CheckCircle } from "lucide-react";
 import { useI18n } from "../components/i18n";
@@ -8,6 +8,8 @@ import { supabase } from "../../lib/supabase";
 import { loginPath } from "../../lib/authRedirect";
 import { APP_URL } from "../../lib/appUrl";
 import { sendEmail } from "../../lib/sendEmail";
+import { calculateOptimalPrice } from "../../lib/pricing";
+import { todayHK } from "../../lib/dates";
 
 type ListingSummary = {
   id: string | number;
@@ -23,31 +25,6 @@ type ListingSummary = {
   universityZh: string;
 };
 
-type PriceBreakdown = {
-  months: number;
-  weeks: number;
-  days: number;
-  total: number;
-};
-
-function calculateOptimalPrice(
-  totalDays: number,
-  priceDay: number,
-  priceWeek: number | null,
-  priceMonth: number | null
-): PriceBreakdown {
-  const pw = priceWeek && priceWeek > 0 ? priceWeek : 0;
-  const pm = priceMonth && priceMonth > 0 ? priceMonth : 0;
-
-  const months = pm > 0 ? Math.floor(totalDays / 30) : 0;
-  const remainingAfterMonths = totalDays - months * 30;
-  const weeks = pw > 0 ? Math.floor(remainingAfterMonths / 7) : 0;
-  const remainingDays = remainingAfterMonths - weeks * 7;
-
-  const total = months * pm + weeks * pw + remainingDays * priceDay;
-  return { months, weeks, days: remainingDays, total };
-}
-
 export function RentRequest() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -62,6 +39,9 @@ export function RentRequest() {
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
   const [submitError, setSubmitError] = useState("");
+  const [blocked, setBlocked] = useState<"demo" | "unavailable" | null>(null);
+  const [existingRequestId, setExistingRequestId] = useState<string | null>(null);
+  const submittingRef = useRef(false);
 
   useEffect(() => {
     if (!id) return;
@@ -73,6 +53,8 @@ export function RentRequest() {
 
       if (!isNaN(numericId)) {
         const found = mockListings.find((l) => l.id === numericId);
+        // Demo listings aren't in the database, so they can't be requested
+        setBlocked("demo");
         if (found) {
           setListing({
             id: found.id, owner_id: null,
@@ -89,12 +71,15 @@ export function RentRequest() {
 
       const { data } = await supabase
         .from("listings")
-        .select("id, owner_id, title, title_zh, image_url, price_per_day, price_weekly, price_monthly, deposit, university")
+        .select("id, owner_id, title, title_zh, image_url, price_per_day, price_weekly, price_monthly, deposit, university, is_active, approval_status")
         .eq("id", id)
         .single();
 
       if (data) {
         if (data.owner_id === user.id) { navigate("/activity?tab=listings"); return; }
+        if (!data.is_active || (data.approval_status && data.approval_status !== "approved")) {
+          setBlocked("unavailable");
+        }
         setListing({
           id: data.id,
           owner_id: data.owner_id,
@@ -116,12 +101,32 @@ export function RentRequest() {
   }, [id, navigate]);
 
   async function handleSubmit() {
-    if (!listing || !startDate || !endDate || !agreed) return;
+    if (!listing || !startDate || !endDate || !agreed || blocked) return;
+    // Guard against double taps before React re-renders the disabled button
+    if (submittingRef.current) return;
+    submittingRef.current = true;
     setSubmitError("");
+    setExistingRequestId(null);
     setSending(true);
+    const finish = () => { submittingRef.current = false; setSending(false); };
 
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { navigate(loginPath()); return; }
+    if (!user) { finish(); navigate(loginPath()); return; }
+
+    const { data: existing } = await supabase
+      .from("requests")
+      .select("id")
+      .eq("listing_id", listing.id)
+      .eq("renter_id", user.id)
+      .in("status", ["pending", "accepted"])
+      .limit(1)
+      .maybeSingle();
+    if (existing) {
+      setExistingRequestId(existing.id);
+      setSubmitError(t("alreadyRequested"));
+      finish();
+      return;
+    }
 
     const breakdown = calculateOptimalPrice(
       totalDays,
@@ -150,11 +155,14 @@ export function RentRequest() {
       },
     });
 
-    setSending(false);
     if (error) {
       setSubmitError(error.message);
-    } else {
-      // Email lister (non-blocking)
+      finish();
+      return;
+    }
+
+    // Email lister — a failure here must not hide the fact that the request was sent
+    try {
       if (listing.owner_id) {
         const [{ data: listerProfile }, { data: renterProfile }] = await Promise.all([
           supabase.from("profiles").select("name, email").eq("id", listing.owner_id).single(),
@@ -169,8 +177,11 @@ export function RentRequest() {
           );
         }
       }
-      setSent(true);
+    } catch (err) {
+      console.error("Request email failed (non-critical):", err);
     }
+    setSent(true);
+    finish();
   }
 
   if (loading) {
@@ -183,7 +194,7 @@ export function RentRequest() {
 
   if (!listing) return null;
 
-  const today = new Date().toISOString().split("T")[0];
+  const today = todayHK();
 
   const totalDays = startDate && endDate
     ? Math.max(1, Math.ceil((new Date(endDate).getTime() - new Date(startDate).getTime()) / 86400000))
@@ -194,6 +205,20 @@ export function RentRequest() {
     : null;
 
   const grandTotal = breakdown ? breakdown.total + listing.deposit : 0;
+
+  if (blocked) {
+    return (
+      <div className="min-h-screen bg-[#F9FAFB] flex flex-col items-center justify-center px-6 text-center">
+        <p className="text-[#1F2937] mb-2" style={{ fontWeight: 600 }}>
+          {lang === "zh" ? listing.titleZh : listing.title}
+        </p>
+        <p className="text-[#6B7280] text-sm mb-6">
+          {t(blocked === "demo" ? "demoListing" : "currentlyUnavailable")}
+        </p>
+        <button onClick={() => navigate("/browse")} className="w-full max-w-xs py-3 bg-brand text-white rounded-xl">{t("backToBrowse")}</button>
+      </div>
+    );
+  }
 
   if (sent) {
     return (
@@ -345,7 +370,14 @@ export function RentRequest() {
           </label>
 
           {submitError && (
-            <p className="text-sm text-red-600 bg-red-50 border border-red-200 px-4 py-3 rounded-xl">{submitError}</p>
+            <p className="text-sm text-red-600 bg-red-50 border border-red-200 px-4 py-3 rounded-xl">
+              {submitError}
+              {existingRequestId && (
+                <button onClick={() => navigate(`/my-requests/${existingRequestId}`)} className="block mt-1 text-brand underline">
+                  {t("viewRequest")}
+                </button>
+              )}
+            </p>
           )}
 
           <button

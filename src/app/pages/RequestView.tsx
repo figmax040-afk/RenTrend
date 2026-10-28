@@ -6,6 +6,7 @@ import { ImageWithFallback } from "../components/figma/ImageWithFallback";
 import { supabase } from "../../lib/supabase";
 import listingPlaceholder from "../../assets/listing-placeholder.svg";
 import { loginPath } from "../../lib/authRedirect";
+import { breakdownFromRequest } from "../../lib/pricing";
 
 const FALLBACK_IMAGE = listingPlaceholder;
 
@@ -38,6 +39,7 @@ type RequestData = {
   status: string;
   pickup_preference: string | null;
   total_price: number | null;
+  breakdown_json: Record<string, number | null> | null;
 };
 
 function fmtFull(d: string) {
@@ -127,12 +129,14 @@ export function RequestView() {
 
       setRequest(req as RequestData);
 
-      // Step 2: fetch listing
-      const { data: listingData } = await supabase
-        .from("listings")
-        .select("id, title, image_url, price_per_day, price_weekly, price_monthly, deposit, district, owner_id")
-        .eq("id", req.listing_id)
-        .single();
+      // Step 2: fetch listing (it may have been deleted by the owner)
+      const { data: listingData } = req.listing_id
+        ? await supabase
+            .from("listings")
+            .select("id, title, image_url, price_per_day, price_weekly, price_monthly, deposit, district, owner_id")
+            .eq("id", req.listing_id)
+            .maybeSingle()
+        : { data: null };
 
       setListing(listingData ?? null);
 
@@ -230,7 +234,7 @@ export function RequestView() {
     );
   }
 
-  if (!request || !listing) {
+  if (!request) {
     return (
       <div className="max-w-lg mx-auto px-4 pt-8 text-center">
         <p className="text-red-600 text-sm bg-red-50 border border-red-200 px-4 py-3 rounded-xl mb-3">
@@ -248,9 +252,11 @@ export function RequestView() {
 
   const ownerName = ownerDisplayName(ownerProfile);
   const days = daysBetween(request.start_date, request.end_date);
-  const dailyTotal = listing.price_per_day * days;
-  const deposit = listing.deposit ?? 0;
-  const total = request.total_price ?? dailyTotal + deposit;
+  const lines = breakdownFromRequest(request, listing);
+  const rentTotal = lines?.total ?? request.total_price ?? 0;
+  const deposit = listing?.deposit ?? 0;
+  // total_price is rent only; the renter was quoted rent + deposit when requesting
+  const total = rentTotal + deposit;
 
   return (
     <div className="max-w-lg mx-auto px-4 pt-4 pb-10">
@@ -271,21 +277,29 @@ export function RequestView() {
         </div>
       )}
 
+      {!listing && (
+        <div className="bg-[#F3F4F6] border border-[#E5E7EB] text-[#4B5563] text-sm px-4 py-3 rounded-xl mb-4">
+          {t("listingRemoved")}
+        </div>
+      )}
+
       {/* ── Section 1: Item requested ── */}
       <div className="bg-white rounded-xl border border-[#E5E7EB] overflow-hidden mb-4">
         <ImageWithFallback
-          src={listing.image_url ?? FALLBACK_IMAGE}
+          src={listing?.image_url ?? FALLBACK_IMAGE}
           alt=""
           className="w-full h-40 object-cover rounded-xl"
         />
         <div className="p-3">
           <p className="text-brand-ink mb-0.5" style={{ fontWeight: 600, fontSize: 16 }}>
-            {listing.title}
+            {listing?.title ?? t("listingRemovedShort")}
           </p>
-          <p className="text-sm text-brand" style={{ fontWeight: 500 }}>
-            HK${listing.price_per_day}/day
-          </p>
-          {listing.district && (
+          {listing && (
+            <p className="text-sm text-brand" style={{ fontWeight: 500 }}>
+              HK${listing.price_per_day}/day
+            </p>
+          )}
+          {listing?.district && (
             <p className="text-xs text-[#6B7280] mt-0.5">{listing.district}</p>
           )}
         </div>
@@ -389,12 +403,24 @@ export function RequestView() {
 
         {/* Price breakdown */}
         <div className="pt-2 border-t border-[#E5E7EB] space-y-1.5">
-          <div className="flex justify-between items-center">
-            <p className="text-xs text-[#6B7280]">
-              HK${listing.price_per_day} × {days} {lang === "zh" ? "天" : "days"}
-            </p>
-            <p className="text-sm text-[#1F2937]">HK${dailyTotal}</p>
-          </div>
+          {lines && lines.months > 0 && (
+            <div className="flex justify-between items-center">
+              <p className="text-xs text-[#6B7280]">{lines.months} {lang === "zh" ? "個月" : `month${lines.months > 1 ? "s" : ""}`} × HK${lines.priceMonth}</p>
+              <p className="text-sm text-[#1F2937]">HK${lines.months * (lines.priceMonth ?? 0)}</p>
+            </div>
+          )}
+          {lines && lines.weeks > 0 && (
+            <div className="flex justify-between items-center">
+              <p className="text-xs text-[#6B7280]">{lines.weeks} {lang === "zh" ? "週" : `week${lines.weeks > 1 ? "s" : ""}`} × HK${lines.priceWeek}</p>
+              <p className="text-sm text-[#1F2937]">HK${lines.weeks * (lines.priceWeek ?? 0)}</p>
+            </div>
+          )}
+          {lines && lines.days > 0 && (
+            <div className="flex justify-between items-center">
+              <p className="text-xs text-[#6B7280]">{lines.days} {lang === "zh" ? "天" : `day${lines.days > 1 ? "s" : ""}`} × HK${lines.priceDay}</p>
+              <p className="text-sm text-[#1F2937]">HK${lines.days * lines.priceDay}</p>
+            </div>
+          )}
           <div className="flex justify-between items-center">
             <p className="text-xs text-[#6B7280]">{t("deposit")}</p>
             <p className="text-sm text-[#1F2937]">HK${deposit}</p>
@@ -459,7 +485,7 @@ export function RequestView() {
       )}
 
       {/* ── Section 6: Review (completed only) ── */}
-      {request.status === "completed" && reviewChecked && (
+      {request.status === "completed" && reviewChecked && listing && (
         <div className="bg-white rounded-xl border border-[#E5E7EB] p-4 mb-4">
           {existingReview || reviewDone ? (
             <div>

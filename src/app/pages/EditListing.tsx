@@ -4,6 +4,7 @@ import { ArrowLeft, Camera, X, ChefHat, Monitor, Sofa, Camera as CameraIcon, Win
 import { useI18n } from "../components/i18n";
 import { supabase } from "../../lib/supabase";
 import { loginPath } from "../../lib/authRedirect";
+import { CONDITION_KEYS, CONDITION_VALUES, conditionKeyFromStored, type ConditionKey } from "../../lib/conditions";
 
 declare global { interface Window { google: any; } }
 
@@ -17,19 +18,13 @@ const catIcons = [
 ];
 
 const stepKeys = ["details", "pricing", "availability", "review"];
-const conditions = ["worksPerf", "minorIssues", "forParts"];
+const conditions = CONDITION_KEYS;
 
 const BRANDS = [
   "Philips", "Panasonic", "Sony", "Samsung", "LG", "Xiaomi", "Dyson",
   "Tefal", "Midea", "Cornell", "Sharp", "IKEA", "Canon", "Nikon",
   "Fujifilm", "GoPro", "Honeywell", "Mistral", "Other / Unlisted brand",
 ];
-
-const conditionReverseMap: Record<string, string> = {
-  "Works perfectly": "worksPerf",
-  "Minor issues": "minorIssues",
-  "For parts": "forParts",
-};
 
 export function EditListing() {
   const { listingId } = useParams<{ listingId: string }>();
@@ -50,7 +45,7 @@ export function EditListing() {
   const [brand, setBrand]             = useState("");
   const [customBrand, setCustomBrand] = useState("");
   const [cat, setCat]                 = useState("");
-  const [cond, setCond]               = useState("worksPerf");
+  const [cond, setCond]               = useState<ConditionKey>("worksPerf");
   const [damagedParts, setDamagedParts] = useState("");
   const [desc, setDesc]               = useState("");
 
@@ -71,6 +66,7 @@ export function EditListing() {
   const [saving, setSaving]         = useState(false);
   const [saveError, setSaveError]   = useState("");
   const [saved, setSaved]           = useState(false);
+  const [wasRejected, setWasRejected] = useState(false);
 
   // Load listing data
   useEffect(() => {
@@ -92,7 +88,7 @@ export function EditListing() {
       setDesc(data.description ?? "");
       setCat(data.category ?? "");
 
-      const condKey = conditionReverseMap[data.condition] ?? "worksPerf";
+      const condKey = conditionKeyFromStored(data.condition) ?? "worksPerf";
       setCond(condKey);
       setDamagedParts(data.damaged_parts ?? "");
 
@@ -119,6 +115,7 @@ export function EditListing() {
 
       // Step 3
       setAvail(data.is_active ?? true);
+      setWasRejected(data.approval_status === "rejected");
       setLocation(data.location_address ?? data.district ?? "");
       setLocationLat(data.location_lat ?? null);
       setLocationLng(data.location_lng ?? null);
@@ -194,10 +191,11 @@ export function EditListing() {
   }
 
   async function handleSave() {
+    if (uploading.some(Boolean)) return;
     setSaveError("");
     setSaving(true);
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { navigate(loginPath()); return; }
+    if (!user) { setSaving(false); navigate(loginPath()); return; }
 
     const finalBrand = brand === "Other / Unlisted brand" ? customBrand : brand;
     const urls = imageUrls.filter((u): u is string => u !== null);
@@ -208,7 +206,7 @@ export function EditListing() {
         title,
         brand: finalBrand || null,
         category: cat,
-        condition: t(cond),
+        condition: CONDITION_VALUES[cond],
         damaged_parts: cond === "forParts" ? damagedParts : null,
         description: desc,
         price_per_day: Number(daily),
@@ -222,6 +220,8 @@ export function EditListing() {
         is_active: avail,
         image_url: urls[0] ?? null,
         images: urls.length > 0 ? urls : null,
+        // Editing a rejected listing sends it back for review
+        ...(wasRejected ? { approval_status: "pending" } : {}),
       })
       .eq("id", listingId);
 
@@ -428,8 +428,8 @@ export function EditListing() {
               {desc && <p className="text-[#6B7280]">{desc}</p>}
             </div>
             {saveError && <p className="text-sm text-red-600 bg-red-50 border border-red-200 px-4 py-3 rounded-xl">{saveError}</p>}
-            <button onClick={handleSave} disabled={saving} className="w-full py-3 bg-brand text-white rounded-xl disabled:opacity-60">
-              {saving ? t("saving") : t("saveChanges")}
+            <button onClick={handleSave} disabled={saving || uploading.some(Boolean)} className="w-full py-3 bg-brand text-white rounded-xl disabled:opacity-60">
+              {uploading.some(Boolean) ? t("waitingForUploads") : saving ? t("saving") : t("saveChanges")}
             </button>
             <button onClick={() => navigate("/activity?tab=listings")} className="w-full py-3 border border-[#E5E7EB] rounded-xl text-sm text-[#6B7280]">
               {t("back")}

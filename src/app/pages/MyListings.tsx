@@ -7,6 +7,9 @@ import { supabase } from "../../lib/supabase";
 import { loginPath } from "../../lib/authRedirect";
 import { useAuth } from "../../lib/useAuth";
 import { IMAGES } from "../components/data";
+import { sendEmail } from "../../lib/sendEmail";
+import { APP_URL } from "../../lib/appUrl";
+import { todayHK } from "../../lib/dates";
 
 type DbListing = {
   id: string;
@@ -15,6 +18,7 @@ type DbListing = {
   image_url: string | null;
   price_per_day: number;
   is_active: boolean;
+  approval_status: string | null;
 };
 
 export function MyListingsContent() {
@@ -27,6 +31,7 @@ export function MyListingsContent() {
   const [menuOpen, setMenuOpen] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<{ id: string; message: string; rented: boolean } | null>(null);
 
   useEffect(() => {
     if (authLoading) return;
@@ -40,7 +45,7 @@ export function MyListingsContent() {
 
     const { data: listingsData } = await supabase
       .from("listings")
-      .select("id, title, title_zh, image_url, price_per_day, is_active")
+      .select("id, title, title_zh, image_url, price_per_day, is_active, approval_status")
       .eq("owner_id", user.id)
       .order("created_at", { ascending: false });
 
@@ -65,13 +70,74 @@ export function MyListingsContent() {
     setDataLoading(false);
   }
 
-  async function handleDelete(listingId: string) {
+  async function handleDelete(listing: DbListing) {
     setDeleting(true);
-    await supabase.from("listings").delete().eq("id", listingId);
+    setDeleteError(null);
+    const fail = (message: string, rented = false) => {
+      setDeleteError({ id: listing.id, message, rented });
+      setDeleting(false);
+    };
+
+    const { data: openReqs, error: reqErr } = await supabase
+      .from("requests")
+      .select("id, renter_id, status, start_date, end_date")
+      .eq("listing_id", listing.id)
+      .in("status", ["pending", "accepted"]);
+    if (reqErr) return fail(t("deleteFailed"));
+
+    const today = todayHK();
+    const reqs = openReqs ?? [];
+    // An accepted rental that has started means the item is already with the renter.
+    if (reqs.some((r) => r.status === "accepted" && r.start_date <= today)) {
+      return fail(t("deleteBlockedRented"), true);
+    }
+
+    const pendingIds = reqs.filter((r) => r.status === "pending").map((r) => r.id);
+    const acceptedIds = reqs.filter((r) => r.status === "accepted").map((r) => r.id);
+    if (pendingIds.length > 0) {
+      const { error } = await supabase.from("requests").update({ status: "rejected" }).in("id", pendingIds);
+      if (error) return fail(t("deleteFailed"));
+    }
+    if (acceptedIds.length > 0) {
+      const { error } = await supabase.from("requests").update({ status: "cancelled" }).in("id", acceptedIds);
+      if (error) return fail(t("deleteFailed"));
+    }
+
+    const { error: delErr } = await supabase.from("listings").delete().eq("id", listing.id);
+    if (delErr) {
+      // Put the requests back the way they were so renters aren't left with a silent rejection
+      if (pendingIds.length > 0) await supabase.from("requests").update({ status: "pending" }).in("id", pendingIds);
+      if (acceptedIds.length > 0) await supabase.from("requests").update({ status: "accepted" }).in("id", acceptedIds);
+      return fail(`${t("deleteFailed")} (${delErr.message})`);
+    }
+
+    // Notify affected renters (non-blocking for the owner)
+    const renterIds = [...new Set(reqs.map((r) => r.renter_id))];
+    if (renterIds.length > 0) {
+      const { data: renters } = await supabase.from("profiles").select("name, email").in("id", renterIds);
+      await Promise.all((renters ?? []).filter((p) => p.email).map((p) =>
+        sendEmail(
+          p.email!,
+          `${listing.title} is no longer available`,
+          `Hi ${p.name || "there"}, the owner has removed <strong>${listing.title}</strong> from Lendy, so your rental request was cancelled. Browse other items: <a href="${APP_URL}/browse">${APP_URL}/browse</a>`
+        )
+      ));
+    }
+
     setConfirmDelete(null);
     setMenuOpen(null);
-    await loadData();
     setDeleting(false);
+    await loadData();
+  }
+
+  async function handleMarkUnavailable(listingId: string) {
+    setDeleting(true);
+    const { error } = await supabase.from("listings").update({ is_active: false }).eq("id", listingId);
+    setDeleting(false);
+    if (error) { setDeleteError({ id: listingId, message: error.message, rented: true }); return; }
+    setDeleteError(null);
+    setConfirmDelete(null);
+    setMyListings((prev) => prev.map((l) => l.id === listingId ? { ...l, is_active: false } : l));
   }
 
   if (authLoading || dataLoading) {
@@ -163,7 +229,7 @@ export function MyListingsContent() {
                               {t("editListing")}
                             </button>
                             <button
-                              onClick={(e) => { e.stopPropagation(); setConfirmDelete(listing.id); setMenuOpen(null); }}
+                              onClick={(e) => { e.stopPropagation(); setConfirmDelete(listing.id); setDeleteError(null); setMenuOpen(null); }}
                               className="w-full text-left px-4 py-2.5 text-sm text-[#EF4444] hover:bg-red-50 flex items-center gap-2 rounded-b-xl"
                             >
                               <Trash2 size={14} />
@@ -184,6 +250,17 @@ export function MyListingsContent() {
                       >
                         {t(listing.is_active ? "active" : "unavailable")}
                       </span>
+                      {listing.approval_status && listing.approval_status !== "approved" && (
+                        <span
+                          className="text-[10px] px-2 py-0.5 rounded-full"
+                          style={{
+                            backgroundColor: listing.approval_status === "rejected" ? "#EF444415" : "#F4A26115",
+                            color: listing.approval_status === "rejected" ? "#EF4444" : "#F4A261",
+                          }}
+                        >
+                          {t(listing.approval_status === "rejected" ? "rejectedListing" : "pendingReview")}
+                        </span>
+                      )}
                       {reqCount > 0 && (
                         <span className="text-[10px] text-[#F4A261]">
                           {reqCount} {t("requests")}
@@ -199,21 +276,37 @@ export function MyListingsContent() {
                     className="mt-1 bg-red-50 border border-red-200 rounded-xl px-4 py-3"
                     onClick={(e) => e.stopPropagation()}
                   >
-                    <p className="text-sm text-[#1F2937] mb-2">{t("deleteConfirm")}</p>
-                    <div className="flex gap-2">
+                    <p className="text-sm text-[#1F2937] mb-1">{t("deleteConfirm")}</p>
+                    {reqCount > 0 && <p className="text-xs text-[#6B7280] mb-2">{t("deleteWillCancel")}</p>}
+                    {deleteError?.id === listing.id && (
+                      <p className="text-xs text-red-600 mb-2">{deleteError.message}</p>
+                    )}
+                    <div className="flex gap-2 mt-2">
                       <button
-                        onClick={() => setConfirmDelete(null)}
+                        onClick={() => { setConfirmDelete(null); setDeleteError(null); }}
                         className="flex-1 py-1.5 border border-[#E5E7EB] text-[#6B7280] rounded-lg text-xs"
                       >
                         {lang === "zh" ? "取消" : "Cancel"}
                       </button>
-                      <button
-                        onClick={() => handleDelete(listing.id)}
-                        disabled={deleting}
-                        className="flex-1 py-1.5 bg-[#EF4444] text-white rounded-lg text-xs disabled:opacity-60"
-                      >
-                        {deleting ? "…" : t("delete")}
-                      </button>
+                      {deleteError?.id === listing.id && deleteError.rented ? (
+                        listing.is_active && (
+                          <button
+                            onClick={() => handleMarkUnavailable(listing.id)}
+                            disabled={deleting}
+                            className="flex-1 py-1.5 bg-brand text-white rounded-lg text-xs disabled:opacity-60"
+                          >
+                            {deleting ? "…" : t("markUnavailable")}
+                          </button>
+                        )
+                      ) : (
+                        <button
+                          onClick={() => handleDelete(listing)}
+                          disabled={deleting}
+                          className="flex-1 py-1.5 bg-[#EF4444] text-white rounded-lg text-xs disabled:opacity-60"
+                        >
+                          {deleting ? "…" : t("delete")}
+                        </button>
+                      )}
                     </div>
                   </div>
                 )}
