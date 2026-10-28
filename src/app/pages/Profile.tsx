@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 import { Shield, Edit, Bell, Mail, LogOut, Globe, ChevronRight, BarChart3, Star } from "lucide-react";
-import { useI18n } from "../components/i18n";
+import { useI18n, LANGS } from "../components/i18n";
 import { supabase } from "../../lib/supabase";
 import { loginPath } from "../../lib/authRedirect";
 
@@ -16,7 +16,7 @@ type ProfileRow = {
 
 export function Profile() {
   const navigate = useNavigate();
-  const { t, lang, setLang } = useI18n();
+  const { t, lang, setLang, isZh, zh } = useI18n();
   const [email, setEmail] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [initials, setInitials] = useState("?");
@@ -116,7 +116,7 @@ export function Profile() {
           <div className="flex items-center gap-1 mt-1">
             <Star size={12} className="text-[#F59E0B] fill-[#F59E0B]" />
             <span className="text-xs" style={{ color: "#F59E0B" }}>
-              {ratingAsLister.toFixed(1)} ({reviewCountAsLister} {lang === "zh" ? "個評價" : "reviews"})
+              {ratingAsLister.toFixed(1)} ({reviewCountAsLister} {isZh ? zh("個評價") : "reviews"})
             </span>
           </div>
         )}
@@ -148,12 +148,19 @@ export function Profile() {
             <Globe size={18} className="text-[#6B7280]" />
             <span className="text-sm font-medium">{t("language")}</span>
           </div>
-          <button
-            onClick={() => setLang(lang === "en" ? "zh" : "en")}
-            className="px-3 py-1 rounded-full text-xs border border-[#E5E7EB] text-brand"
-          >
-            {lang === "en" ? "中文" : "English"}
-          </button>
+          <div className="flex rounded-full border border-[#E5E7EB] overflow-hidden text-xs">
+            {LANGS.map((l) => (
+              <button
+                key={l.code}
+                onClick={() => setLang(l.code)}
+                aria-pressed={lang === l.code}
+                title={l.label}
+                className={`px-3 py-1 transition-colors ${lang === l.code ? "bg-brand text-white" : "text-brand"}`}
+              >
+                {l.short}
+              </button>
+            ))}
+          </div>
         </div>
         <MenuItem icon={Bell} label={t("notifications")} onClick={() => {}} toggle />
         <MenuItem icon={Mail} label={t("emailPrefs")} onClick={() => navigate("/email-preferences")} />

@@ -7,7 +7,7 @@ import { useI18n } from "../components/i18n";
 
 export function EditProfile() {
   const navigate = useNavigate();
-  const { t, lang } = useI18n();
+  const { t, isZh, zh } = useI18n();
   const [userId, setUserId] = useState("");
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
@@ -165,7 +165,7 @@ export function EditProfile() {
           <input
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder={lang === "zh" ? "你的名字" : "Your name"}
+            placeholder={isZh ? zh("你的名字") : "Your name"}
             className="w-full mt-1 px-4 py-2.5 rounded-xl border border-[#E5E7EB] bg-white text-sm focus:outline-none focus:border-brand"
           />
         </div>

@@ -25,7 +25,7 @@ type SavedItem = {
 
 export function SavedListings() {
   const navigate = useNavigate();
-  const { t, lang } = useI18n();
+  const { t, isZh, zh } = useI18n();
   const [items, setItems] = useState<SavedItem[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -87,7 +87,7 @@ export function SavedListings() {
               <ListingCard
                 id={item.listings.id}
                 image={item.listings.image_url ?? listingPlaceholder}
-                title={lang === "zh" ? item.listings.title : item.listings.title}
+                title={isZh ? zh(item.listings.title) : item.listings.title}
                 price={item.listings.price_per_day}
                 distance={item.listings.district ?? "HK"}
                 category={item.listings.category}

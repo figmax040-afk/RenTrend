@@ -19,7 +19,7 @@ type DbListing = {
 
 export function MyListingsContent() {
   const navigate = useNavigate();
-  const { t, lang } = useI18n();
+  const { t, isZh, zh } = useI18n();
   const { user, loading: authLoading } = useAuth();
   const [myListings, setMyListings] = useState<DbListing[]>([]);
   const [pendingCounts, setPendingCounts] = useState<Record<string, number>>({});
@@ -94,13 +94,13 @@ export function MyListingsContent() {
       {myListings.length === 0 ? (
         <div className="text-center py-16">
           <p className="text-[#6B7280] text-sm mb-4">
-            {lang === "zh" ? "你還沒有刊登物品" : "You haven't listed anything yet"}
+            {isZh ? zh("你還沒有刊登物品") : "You haven't listed anything yet"}
           </p>
           <button
             onClick={() => navigate("/create")}
             className="px-6 py-2.5 bg-brand text-white rounded-xl text-sm"
           >
-            {lang === "zh" ? "建立你的第一個刊登" : "Create your first listing"}
+            {isZh ? zh("建立你的第一個刊登") : "Create your first listing"}
           </button>
         </div>
       ) : (
@@ -136,7 +136,7 @@ export function MyListingsContent() {
                   <div className="flex-1">
                     <div className="flex items-center justify-between">
                       <p className="text-sm" style={{ fontWeight: 500 }}>
-                        {lang === "zh" && listing.title_zh ? listing.title_zh : listing.title}
+                        {isZh && listing.title_zh ? zh(listing.title_zh) : listing.title}
                       </p>
                       <div className="relative">
                         <button
@@ -205,7 +205,7 @@ export function MyListingsContent() {
                         onClick={() => setConfirmDelete(null)}
                         className="flex-1 py-1.5 border border-[#E5E7EB] text-[#6B7280] rounded-lg text-xs"
                       >
-                        {lang === "zh" ? "取消" : "Cancel"}
+                        {isZh ? zh("取消") : "Cancel"}
                       </button>
                       <button
                         onClick={() => handleDelete(listing.id)}

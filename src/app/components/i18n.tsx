@@ -1,8 +1,58 @@
-import { createContext, useContext, useState, ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react";
+import { Converter, CustomConverter } from "opencc-js/t2cn";
 
-type Lang = "en" | "zh";
+// "zh" is Traditional Chinese (Hong Kong), "zh-CN" is Simplified Chinese (Mainland).
+// Simplified strings are derived from the Traditional ones at runtime, so only `zh` is stored below.
+export type Lang = "en" | "zh" | "zh-CN";
 
-const translations: Record<string, Record<Lang, string>> = {
+export const LANGS: { code: Lang; label: string; short: string }[] = [
+  { code: "en",    label: "English",  short: "EN" },
+  { code: "zh",    label: "繁體中文", short: "繁" },
+  { code: "zh-CN", label: "简体中文", short: "简" },
+];
+
+const HTML_LANG: Record<Lang, string> = { en: "en", zh: "zh-HK", "zh-CN": "zh-CN" };
+const STORAGE_KEY = "lendy.lang";
+
+const hkToCn = Converter({ from: "hk", to: "cn" });
+
+// Mainland wording for terms where a character-level conversion still reads as Hong Kong usage.
+// Keys are already-simplified text; longest match wins.
+const mainlandTerms = CustomConverter([
+  ["帐号", "账号"], ["帐户", "账户"],
+  ["登入", "登录"], ["登出", "退出登录"],
+  ["电邮地址", "邮箱地址"], ["你的电邮", "你的邮箱"], ["电邮", "邮件"],
+  ["连结", "链接"], ["重设", "重置"], ["搜寻", "搜索"],
+  ["按金", "押金"], ["相片", "照片"], ["储存", "保存"],
+  ["讯息", "消息"], ["联络", "联系"], ["设定", "设置"], ["汇出", "导出"],
+  ["栏位", "字段"], ["字元", "字符"], ["载入", "加载"], ["略过", "跳过"],
+  ["建立", "创建"], ["交收", "交接"], ["冷气", "空调"],
+  ["重新整理页面", "刷新页面"], ["即时可租", "现在可租"], ["即时更新", "实时更新"],
+  ["最近新增", "最近上新"], ["新增", "添加"],
+  ["管理员面板", "管理后台"],
+  ["发布刊登", "发布物品"], ["刊登物品", "发布物品"], ["刊登你的", "发布你的"],
+  ["总刊登数", "物品总数"], ["已刊登", "已发布"], ["新刊登", "新发布"], ["刊登", "物品"],
+]);
+
+const simplifiedCache = new Map<string, string>();
+function toSimplified(text: string): string {
+  let out = simplifiedCache.get(text);
+  if (out === undefined) {
+    out = mainlandTerms(hkToCn(text));
+    simplifiedCache.set(text, out);
+  }
+  return out;
+}
+
+function initialLang(): Lang {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored === "en" || stored === "zh" || stored === "zh-CN") return stored;
+  } catch { /* storage unavailable */ }
+  return "en";
+}
+
+const translations: Record<string, { en: string; zh: string }> = {
   // Nav
   home:      { en: "Home",      zh: "首頁" },
   browse:    { en: "Browse",    zh: "瀏覽" },
@@ -48,6 +98,8 @@ const translations: Record<string, Record<Lang, string>> = {
   recentlyAdded: { en: "Recently Added", zh: "最近新增" },
   lastMinute: { en: "Last Minute — Available Today", zh: "限時 — 今日可租" },
   seeAll: { en: "See all", zh: "查看全部" },
+  homeEmptyTitle: { en: "No items listed yet", zh: "暫無物品" },
+  homeEmptySub: { en: "Be the first to list an appliance in your area.", zh: "成為第一個在你所在地區放租電器的人。" },
   // Categories
   kitchen: { en: "Kitchen", zh: "廚房用具" },
   electronics: { en: "Electronics", zh: "電子用品" },
@@ -259,20 +311,42 @@ const translations: Record<string, Record<Lang, string>> = {
 interface I18nContextType {
   lang: Lang;
   setLang: (l: Lang) => void;
+  /** True for either Chinese interface; pick the Traditional source text, then pass it through `zh`. */
+  isZh: boolean;
   t: (key: string) => string;
+  /** Renders Traditional Chinese text in the active Chinese script. */
+  zh: (text: string) => string;
 }
 
 const I18nContext = createContext<I18nContextType>({
   lang: "en",
   setLang: () => {},
+  isZh: false,
   t: (k) => k,
+  zh: (text) => text,
 });
 
 export function I18nProvider({ children }: { children: ReactNode }) {
-  const [lang, setLang] = useState<Lang>("en");
-  const t = (key: string) => translations[key]?.[lang] || key;
+  const [lang, setLangState] = useState<Lang>(initialLang);
+
+  const setLang = useCallback((l: Lang) => {
+    setLangState(l);
+    try { localStorage.setItem(STORAGE_KEY, l); } catch { /* storage unavailable */ }
+  }, []);
+
+  useEffect(() => {
+    document.documentElement.lang = HTML_LANG[lang];
+  }, [lang]);
+
+  const isZh = lang !== "en";
+  const zh = (text: string) => (lang === "zh-CN" && text ? toSimplified(text) : text);
+  const t = (key: string) => {
+    const entry = translations[key];
+    if (!entry) return key;
+    return isZh ? zh(entry.zh) : entry.en;
+  };
   return (
-    <I18nContext.Provider value={{ lang, setLang, t }}>
+    <I18nContext.Provider value={{ lang, setLang, isZh, t, zh }}>
       {children}
     </I18nContext.Provider>
   );

@@ -62,7 +62,7 @@ function ownerDisplayName(owner: { name: string | null; email: string | null } |
 }
 
 export function MyRequestsContent() {
-  const { t, lang } = useI18n();
+  const { t, isZh, zh } = useI18n();
   const navigate = useNavigate();
   const [requests, setRequests] = useState<EnrichedRequest[]>([]);
   const [loading, setLoading] = useState(true);
@@ -147,7 +147,7 @@ export function MyRequestsContent() {
     return (
       <div className="py-8 text-center">
         <p className="text-red-600 text-sm bg-red-50 border border-red-200 px-4 py-3 rounded-xl mb-3">{error}</p>
-        <button onClick={() => window.location.reload()} className="text-sm text-brand">{lang === "zh" ? "重試" : "Try again"}</button>
+        <button onClick={() => window.location.reload()} className="text-sm text-brand">{isZh ? zh("重試") : "Try again"}</button>
       </div>
     );
   }
@@ -159,9 +159,9 @@ export function MyRequestsContent() {
   });
 
   const emptyMsg: Record<(typeof tabs)[number], string> = {
-    active: lang === "zh" ? "暫無進行中的租約" : "No active rentals",
-    pending: lang === "zh" ? "暫無待處理的請求" : "No pending requests",
-    past: lang === "zh" ? "暫無過去的請求" : "No past requests",
+    active: isZh ? zh("暫無進行中的租約") : "No active rentals",
+    pending: isZh ? zh("暫無待處理的請求") : "No pending requests",
+    past: isZh ? zh("暫無過去的請求") : "No past requests",
   };
 
   return (
@@ -267,7 +267,7 @@ export function MyRequestsContent() {
                     <p className="text-sm text-[#1F2937] mb-2">{t("cancelConfirm")}</p>
                     <div className="flex gap-2">
                       <button onClick={() => setConfirmCancel(null)} className="flex-1 py-1.5 border border-[#E5E7EB] text-[#6B7280] rounded-lg text-xs">
-                        {lang === "zh" ? "返回" : "Go back"}
+                        {isZh ? zh("返回") : "Go back"}
                       </button>
                       <button onClick={() => handleCancel(r.id)} disabled={acting}
                         className="flex-1 py-1.5 bg-[#F4A261] text-white rounded-lg text-xs disabled:opacity-60">
@@ -283,7 +283,7 @@ export function MyRequestsContent() {
                     <p className="text-sm text-[#1F2937] mb-2">{t("deleteConfirm")}</p>
                     <div className="flex gap-2">
                       <button onClick={() => setConfirmDelete(null)} className="flex-1 py-1.5 border border-[#E5E7EB] text-[#6B7280] rounded-lg text-xs">
-                        {lang === "zh" ? "取消" : "Cancel"}
+                        {isZh ? zh("取消") : "Cancel"}
                       </button>
                       <button onClick={() => handleDelete(r.id)} disabled={acting}
                         className="flex-1 py-1.5 bg-[#EF4444] text-white rounded-lg text-xs disabled:opacity-60">

@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router";
 import { ArrowLeft, CheckCircle } from "lucide-react";
 import { useI18n } from "../components/i18n";
-import { listings as mockListings, IMAGES } from "../components/data";
+import { IMAGES } from "../components/data";
 import { ImageWithFallback } from "../components/figma/ImageWithFallback";
 import { supabase } from "../../lib/supabase";
 import { loginPath } from "../../lib/authRedirect";
@@ -51,7 +51,7 @@ function calculateOptimalPrice(
 export function RentRequest() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { t, lang } = useI18n();
+  const { t, isZh, zh } = useI18n();
   const [listing, setListing] = useState<ListingSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [startDate, setStartDate] = useState("");
@@ -65,27 +65,10 @@ export function RentRequest() {
 
   useEffect(() => {
     if (!id) return;
-    const numericId = Number(id);
 
     async function load() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { navigate(loginPath()); return; }
-
-      if (!isNaN(numericId)) {
-        const found = mockListings.find((l) => l.id === numericId);
-        if (found) {
-          setListing({
-            id: found.id, owner_id: null,
-            title: found.title, titleZh: found.titleZh,
-            image: found.image, price: found.price,
-            priceWeekly: found.weeklyPrice, priceMonthly: found.monthlyPrice,
-            deposit: found.deposit,
-            university: found.university, universityZh: found.universityZh,
-          });
-        }
-        setLoading(false);
-        return;
-      }
 
       const { data } = await supabase
         .from("listings")
@@ -161,7 +144,7 @@ export function RentRequest() {
           supabase.from("profiles").select("name").eq("id", user.id).single(),
         ]);
         if (listerProfile?.email) {
-          const title = lang === "zh" ? listing.titleZh : listing.title;
+          const title = isZh ? zh(listing.titleZh) : listing.title;
           await sendEmail(
             listerProfile.email,
             `New rental request for ${title}`,
@@ -222,8 +205,8 @@ export function RentRequest() {
         <div className="flex gap-3 p-3 rounded-xl bg-white border border-[#E5E7EB] mb-5">
           <ImageWithFallback src={listing.image} alt="" className="w-16 h-16 rounded-lg object-cover" />
           <div className="text-sm">
-            <p style={{ fontWeight: 500 }}>{lang === "zh" ? listing.titleZh : listing.title}</p>
-            <p className="text-[#6B7280] text-xs">{lang === "zh" ? listing.universityZh : listing.university}</p>
+            <p style={{ fontWeight: 500 }}>{isZh ? zh(listing.titleZh) : listing.title}</p>
+            <p className="text-[#6B7280] text-xs">{isZh ? zh(listing.universityZh) : listing.university}</p>
             <p className="text-brand" style={{ fontWeight: 600 }}>HK${listing.price}<span className="text-[#6B7280]" style={{ fontWeight: 400 }}>/day</span></p>
           </div>
         </div>

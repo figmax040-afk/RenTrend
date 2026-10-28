@@ -70,7 +70,7 @@ function StarSelector({ value, onChange }: { value: number; onChange: (v: number
 export function RequestDetail() {
   const { listingId, requestId } = useParams<{ listingId: string; requestId: string }>();
   const navigate = useNavigate();
-  const { t, lang } = useI18n();
+  const { t, lang, isZh, zh } = useI18n();
 
   const [listing, setListing] = useState<Listing | null>(null);
   const [request, setRequest] = useState<Request | null>(null);
@@ -122,7 +122,7 @@ export function RequestDetail() {
         .single();
 
       if (reqErr || !reqData) {
-        setError(lang === "zh" ? "找不到該請求" : "Request not found.");
+        setError(isZh ? zh("找不到該請求") : "Request not found.");
         setLoading(false);
         return;
       }
@@ -154,7 +154,7 @@ export function RequestDetail() {
       }
     } catch (err: any) {
       console.error("RequestDetail fetch error:", err);
-      setError(lang === "zh" ? "載入請求時出錯" : "Failed to load request.");
+      setError(isZh ? zh("載入請求時出錯") : "Failed to load request.");
     } finally {
       setLoading(false);
     }
@@ -173,7 +173,7 @@ export function RequestDetail() {
       .eq("id", request.id);
 
     if (acceptErr) {
-      setError(lang === "zh" ? "接受請求時出錯，請重試" : "Failed to accept request. Please try again.");
+      setError(isZh ? zh("接受請求時出錯，請重試") : "Failed to accept request. Please try again.");
       setActing(false);
       return;
     }
@@ -190,7 +190,7 @@ export function RequestDetail() {
 
     // Email renter
     const renterEmail = request.profiles?.email;
-    const listingTitle = lang === "zh" && listing.title_zh ? listing.title_zh : listing.title;
+    const listingTitle = isZh && listing.title_zh ? zh(listing.title_zh) : listing.title;
     if (renterEmail) {
       await sendEmail(
         renterEmail,
@@ -210,7 +210,7 @@ export function RequestDetail() {
       .eq("id", request.id);
 
     if (declineErr) {
-      setError(lang === "zh" ? "拒絕請求時出錯，請重試" : "Failed to decline request. Please try again.");
+      setError(isZh ? zh("拒絕請求時出錯，請重試") : "Failed to decline request. Please try again.");
       setActing(false);
       return;
     }
@@ -220,7 +220,7 @@ export function RequestDetail() {
 
     // Email renter
     const renterEmail = request.profiles?.email;
-    const listingTitle = lang === "zh" && listing.title_zh ? listing.title_zh : listing.title;
+    const listingTitle = isZh && listing.title_zh ? zh(listing.title_zh) : listing.title;
     if (renterEmail) {
       await sendEmail(
         renterEmail,
@@ -242,7 +242,7 @@ export function RequestDetail() {
 
     if (completeErr) {
       console.error("Mark complete error:", completeErr);
-      setError(lang === "zh" ? "標記完成時出錯" : "Failed to mark as completed.");
+      setError(isZh ? zh("標記完成時出錯") : "Failed to mark as completed.");
       setCompleting(false);
       return;
     }
@@ -250,7 +250,7 @@ export function RequestDetail() {
     // Update local state immediately
     setRequest((prev) => prev ? { ...prev, status: "completed", completed_at: new Date().toISOString() } as Request & { completed_at: string } : prev);
 
-    const listingTitle = lang === "zh" && listing.title_zh ? listing.title_zh : listing.title;
+    const listingTitle = isZh && listing.title_zh ? zh(listing.title_zh) : listing.title;
 
     // Check existing review now that it's completed
     const { data: rev } = await supabase
@@ -329,16 +329,16 @@ export function RequestDetail() {
     return (
       <div className="max-w-lg mx-auto px-4 pt-8 text-center">
         <p className="text-red-600 text-sm bg-red-50 border border-red-200 px-4 py-3 rounded-xl mb-3">
-          {error || (lang === "zh" ? "找不到請求" : "Request not found.")}
+          {error || (isZh ? zh("找不到請求") : "Request not found.")}
         </p>
         <button onClick={load} className="text-sm text-brand mb-2 block">
-          {lang === "zh" ? "重試" : "Try again"}
+          {isZh ? zh("重試") : "Try again"}
         </button>
         <button
           onClick={() => navigate(`/my-listings/${listingId}/requests`)}
           className="text-sm text-[#6B7280]"
         >
-          ← {lang === "zh" ? "返回" : "Back"}
+          ← {isZh ? zh("返回") : "Back"}
         </button>
       </div>
     );
@@ -347,7 +347,7 @@ export function RequestDetail() {
   const name = renterName(request);
   const days = daysBetween(request.start_date, request.end_date);
   const total = request.total_price ?? listing.price_per_day * days;
-  const listingTitle = lang === "zh" && listing.title_zh ? listing.title_zh : listing.title;
+  const listingTitle = isZh && listing.title_zh ? zh(listing.title_zh) : listing.title;
 
   const hasAcceptedOther = allRequests.some(
     (r) => r.id !== request.id && r.status === "accepted"
@@ -361,7 +361,7 @@ export function RequestDetail() {
           <ArrowLeft size={20} />
         </button>
         <h2 className="text-[#1F2937]" style={{ fontWeight: 600 }}>
-          {lang === "zh" ? "租用請求詳情" : "Rental Request"}
+          {isZh ? zh("租用請求詳情") : "Rental Request"}
         </h2>
       </div>
 
@@ -370,7 +370,7 @@ export function RequestDetail() {
         <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-xl mb-4 flex items-center justify-between">
           <span>{error}</span>
           <button onClick={load} className="text-xs text-brand ml-3 shrink-0">
-            {lang === "zh" ? "重試" : "Try again"}
+            {isZh ? zh("重試") : "Try again"}
           </button>
         </div>
       )}
@@ -383,7 +383,7 @@ export function RequestDetail() {
           className="w-16 h-16 rounded-lg object-cover"
         />
         <div className="flex-1">
-          <p className="text-xs text-[#6B7280] mb-0.5">{lang === "zh" ? "租用物品" : "Item requested"}</p>
+          <p className="text-xs text-[#6B7280] mb-0.5">{isZh ? zh("租用物品") : "Item requested"}</p>
           <p className="text-sm" style={{ fontWeight: 500 }}>{listingTitle}</p>
           <p className="text-xs text-brand" style={{ fontWeight: 500 }}>HK${listing.price_per_day}/day</p>
         </div>
@@ -391,7 +391,7 @@ export function RequestDetail() {
 
       {/* ── Section 2: Renter ── */}
       <div className="bg-white rounded-xl border border-[#E5E7EB] p-4 mb-4">
-        <p className="text-xs text-[#6B7280] mb-3">{lang === "zh" ? "租客資料" : "Renter information"}</p>
+        <p className="text-xs text-[#6B7280] mb-3">{isZh ? zh("租客資料") : "Renter information"}</p>
         <div className="flex items-center gap-3">
           <div className="w-11 h-11 rounded-full bg-brand flex items-center justify-center text-white" style={{ fontWeight: 600, fontSize: 16 }}>
             {name[0]?.toUpperCase() ?? "U"}
@@ -416,7 +416,7 @@ export function RequestDetail() {
 
         {request.status === "accepted" && request.profiles?.phone && (
           <div className="mt-3 pt-3 border-t border-[#E5E7EB]">
-            <p className="text-xs text-[#6B7280] mb-1">{lang === "zh" ? "聯絡電話" : "Phone"}</p>
+            <p className="text-xs text-[#6B7280] mb-1">{isZh ? zh("聯絡電話") : "Phone"}</p>
             <a href={`tel:${request.profiles.phone}`} className="text-sm text-brand" style={{ fontWeight: 500 }}>
               {request.profiles.phone}
             </a>
@@ -437,11 +437,11 @@ export function RequestDetail() {
             <p className="text-sm text-[#1F2937]">{fmtFull(request.end_date)}</p>
           </div>
           <div>
-            <p className="text-[10px] text-[#9CA3AF]">{lang === "zh" ? "租用天數" : "Duration"}</p>
-            <p className="text-sm text-[#1F2937]">{days} {lang === "zh" ? "天" : "days"}</p>
+            <p className="text-[10px] text-[#9CA3AF]">{isZh ? zh("租用天數") : "Duration"}</p>
+            <p className="text-sm text-[#1F2937]">{days} {isZh ? zh("天") : "days"}</p>
           </div>
           <div>
-            <p className="text-[10px] text-[#9CA3AF]">{lang === "zh" ? "取件方式" : "Pickup"}</p>
+            <p className="text-[10px] text-[#9CA3AF]">{isZh ? zh("取件方式") : "Pickup"}</p>
             <p className="text-sm text-[#1F2937]">
               {request.pickup_preference === "deliver"
                 ? t("ownerDelivers")
@@ -453,7 +453,7 @@ export function RequestDetail() {
         <div className="pt-2 border-t border-[#E5E7EB]">
           <div className="flex justify-between items-center">
             <p className="text-xs text-[#6B7280]">
-              HK${listing.price_per_day} × {days} {lang === "zh" ? "天" : "days"}
+              HK${listing.price_per_day} × {days} {isZh ? zh("天") : "days"}
             </p>
             <p className="text-brand" style={{ fontWeight: 600, fontSize: 16 }}>HK${total}</p>
           </div>
@@ -504,7 +504,7 @@ export function RequestDetail() {
                   onClick={() => setShowCompleteConfirm(false)}
                   className="flex-1 py-2 border border-[#E5E7EB] text-[#6B7280] rounded-xl text-sm"
                 >
-                  {lang === "zh" ? "取消" : "Cancel"}
+                  {isZh ? zh("取消") : "Cancel"}
                 </button>
                 <button
                   onClick={handleComplete}
@@ -515,7 +515,7 @@ export function RequestDetail() {
                     <span className="flex items-center justify-center gap-2">
                       <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                     </span>
-                  ) : lang === "zh" ? "確認完成" : "Confirm"}
+                  ) : isZh ? zh("確認完成") : "Confirm"}
                 </button>
               </div>
             </div>
@@ -526,7 +526,7 @@ export function RequestDetail() {
       {request.status === "rejected" && (
         <div className="bg-[#F3F4F6] border border-[#E5E7EB] rounded-xl px-4 py-3 mb-4">
           <p className="text-sm text-[#6B7280]">
-            {lang === "zh" ? "你已拒絕此請求" : "You declined this request"}
+            {isZh ? zh("你已拒絕此請求") : "You declined this request"}
           </p>
         </div>
       )}
@@ -538,7 +538,7 @@ export function RequestDetail() {
             onClick={() => navigate(`/my-listings/${listingId}/requests`)}
             className="text-xs text-brand mt-2"
           >
-            ← {lang === "zh" ? "返回請求列表" : "Back to requests"}
+            ← {isZh ? zh("返回請求列表") : "Back to requests"}
           </button>
         </div>
       )}
@@ -563,7 +563,7 @@ export function RequestDetail() {
             {acting ? (
               <span className="flex items-center justify-center gap-2">
                 <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                {lang === "zh" ? "處理中..." : "Processing..."}
+                {isZh ? zh("處理中...") : "Processing..."}
               </span>
             ) : t("acceptRequest")}
           </button>
@@ -600,7 +600,7 @@ export function RequestDetail() {
               <textarea
                 value={reviewComment}
                 onChange={(e) => setReviewComment(e.target.value)}
-                placeholder={lang === "zh" ? "這位租客怎麼樣？" : "How was this renter?"}
+                placeholder={isZh ? zh("這位租客怎麼樣？") : "How was this renter?"}
                 rows={3}
                 className="w-full mt-3 px-4 py-2.5 rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] text-sm resize-none focus:outline-none focus:border-brand"
               />
@@ -612,9 +612,9 @@ export function RequestDetail() {
                 {submittingReview ? (
                   <span className="flex items-center justify-center gap-2">
                     <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    {lang === "zh" ? "提交中..." : "Submitting..."}
+                    {isZh ? zh("提交中...") : "Submitting..."}
                   </span>
-                ) : lang === "zh" ? "提交評價" : "Submit Review"}
+                ) : isZh ? zh("提交評價") : "Submit Review"}
               </button>
             </div>
           )}
@@ -627,7 +627,7 @@ export function RequestDetail() {
           <div className="bg-white rounded-2xl w-full max-w-md p-6 space-y-4">
             <div className="flex items-center justify-between">
               <p className="text-[#1F2937]" style={{ fontWeight: 600, fontSize: 16 }}>
-                {lang === "zh" ? "確認接受請求" : "Confirm Accept"}
+                {isZh ? zh("確認接受請求") : "Confirm Accept"}
               </p>
               <button onClick={() => setShowConfirm(false)} className="text-[#6B7280]">
                 <X size={18} />
@@ -639,7 +639,7 @@ export function RequestDetail() {
                 onClick={() => setShowConfirm(false)}
                 className="flex-1 py-2.5 border border-[#E5E7EB] text-[#6B7280] rounded-xl text-sm"
               >
-                {lang === "zh" ? "取消" : "Cancel"}
+                {isZh ? zh("取消") : "Cancel"}
               </button>
               <button
                 onClick={handleAccept}

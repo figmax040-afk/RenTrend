@@ -14,7 +14,7 @@ type Row = {
 
 export function AdminListings() {
   const navigate = useNavigate();
-  const { t, lang } = useI18n();
+  const { t, isZh, zh } = useI18n();
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -49,7 +49,7 @@ export function AdminListings() {
               <div className="flex-1 min-w-0">
                 <p className="text-sm truncate" style={{ fontWeight: 500 }}>{r.title}</p>
                 <p className="text-[10px] text-[#6B7280] mt-0.5">
-                  {r.owner_id.slice(0, 8)}… · {new Date(r.created_at).toLocaleDateString(lang === "zh" ? "zh-HK" : "en-US", { month: "short", day: "numeric", year: "numeric" })}
+                  {r.owner_id.slice(0, 8)}… · {new Date(r.created_at).toLocaleDateString(isZh ? zh("zh-HK") : "en-US", { month: "short", day: "numeric", year: "numeric" })}
                 </p>
               </div>
               <span

@@ -69,7 +69,7 @@ function StatusBadge({ status }: { status: string }) {
 export function ListingRequests() {
   const { listingId } = useParams<{ listingId: string }>();
   const navigate = useNavigate();
-  const { t, lang } = useI18n();
+  const { t, lang, isZh, zh } = useI18n();
 
   const [listing, setListing] = useState<Listing | null>(null);
   const [requests, setRequests] = useState<Request[]>([]);
@@ -127,7 +127,7 @@ export function ListingRequests() {
       setRequests(merged);
     } catch (err: any) {
       console.error("ListingRequests fetch error:", err);
-      setError(lang === "zh" ? "載入請求時出錯" : "Failed to load requests.");
+      setError(isZh ? zh("載入請求時出錯") : "Failed to load requests.");
     } finally {
       setLoading(false);
     }
@@ -164,13 +164,13 @@ export function ListingRequests() {
       <div className="max-w-lg mx-auto px-4 pt-8 text-center">
         <p className="text-red-600 text-sm bg-red-50 border border-red-200 px-4 py-3 rounded-xl mb-3">{error}</p>
         <button onClick={load} className="text-sm text-brand">
-          {lang === "zh" ? "重試" : "Try again"}
+          {isZh ? zh("重試") : "Try again"}
         </button>
       </div>
     );
   }
 
-  const listingTitle = lang === "zh" && listing.title_zh ? listing.title_zh : listing.title;
+  const listingTitle = isZh && listing.title_zh ? zh(listing.title_zh) : listing.title;
 
   return (
     <div className="max-w-lg mx-auto px-4 pt-4 pb-10">
@@ -209,8 +209,8 @@ export function ListingRequests() {
       {/* Accepted banner */}
       {hasAccepted && (
         <div className="bg-[#22C55E]/10 border border-[#22C55E]/30 text-[#15803D] text-xs px-4 py-3 rounded-xl mb-4">
-          {lang === "zh"
-            ? "你已接受此刊登的一個請求 — 其他請求已鎖定"
+          {isZh
+            ? zh("你已接受此刊登的一個請求 — 其他請求已鎖定")
             : "You have accepted a request for this listing — other requests are locked"}
         </div>
       )}
@@ -244,8 +244,8 @@ export function ListingRequests() {
       {tabRequests.length === 0 ? (
         <div className="text-center py-12">
           <p className="text-[#6B7280] text-sm">
-            {lang === "zh"
-              ? `暫無${activeTab === "pending" ? "待處理" : activeTab === "accepted" ? "已接受" : "已拒絕"}的請求`
+            {isZh
+              ? zh(`暫無${activeTab === "pending" ? "待處理" : activeTab === "accepted" ? "已接受" : "已拒絕"}的請求`)
               : `No ${activeTab} requests`}
           </p>
         </div>
@@ -276,10 +276,10 @@ export function ListingRequests() {
                   <div>
                     <p className="text-[10px] text-[#9CA3AF] mb-0.5">{t("rentalPeriod")}</p>
                     <p className="text-[#1F2937]">{fmtDate(req.start_date)} – {fmtDate(req.end_date)}</p>
-                    <p>{days} {lang === "zh" ? "天" : "days"}</p>
+                    <p>{days} {isZh ? zh("天") : "days"}</p>
                   </div>
                   <div>
-                    <p className="text-[10px] text-[#9CA3AF] mb-0.5">{lang === "zh" ? "總金額" : "Total"}</p>
+                    <p className="text-[10px] text-[#9CA3AF] mb-0.5">{isZh ? zh("總金額") : "Total"}</p>
                     <p className="text-brand" style={{ fontWeight: 600 }}>HK${total}</p>
                     {req.pickup_preference && (
                       <p className="text-[10px] mt-0.5">

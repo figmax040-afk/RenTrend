@@ -79,7 +79,7 @@ function StarSelector({ value, onChange }: { value: number; onChange: (v: number
 export function RequestView() {
   const { requestId } = useParams<{ requestId: string }>();
   const navigate = useNavigate();
-  const { t, lang } = useI18n();
+  const { t, lang, isZh, zh } = useI18n();
 
   const [request, setRequest] = useState<RequestData | null>(null);
   const [listing, setListing] = useState<ListingData | null>(null);
@@ -115,7 +115,7 @@ export function RequestView() {
         .single();
 
       if (reqErr || !req) {
-        setError(lang === "zh" ? "找不到該請求" : "Request not found.");
+        setError(isZh ? zh("找不到該請求") : "Request not found.");
         setLoading(false);
         return;
       }
@@ -159,7 +159,7 @@ export function RequestView() {
       }
     } catch (err: any) {
       console.error("RequestView fetch error:", err);
-      setError(lang === "zh" ? "載入請求時出錯" : "Failed to load request.");
+      setError(isZh ? zh("載入請求時出錯") : "Failed to load request.");
     } finally {
       setLoading(false);
     }
@@ -177,8 +177,8 @@ export function RequestView() {
 
     if (cancelErr) {
       setError(
-        lang === "zh"
-          ? "取消請求時出錯，請重試"
+        isZh
+          ? zh("取消請求時出錯，請重試")
           : "Failed to cancel request. Please try again."
       );
       setCancelling(false);
@@ -234,13 +234,13 @@ export function RequestView() {
     return (
       <div className="max-w-lg mx-auto px-4 pt-8 text-center">
         <p className="text-red-600 text-sm bg-red-50 border border-red-200 px-4 py-3 rounded-xl mb-3">
-          {error || (lang === "zh" ? "找不到請求" : "Request not found.")}
+          {error || (isZh ? zh("找不到請求") : "Request not found.")}
         </p>
         <button onClick={load} className="text-sm text-brand mb-2 block">
-          {lang === "zh" ? "重試" : "Try again"}
+          {isZh ? zh("重試") : "Try again"}
         </button>
         <button onClick={() => navigate("/activity?tab=requests")} className="text-sm text-[#6B7280]">
-          ← {lang === "zh" ? "返回" : "Back"}
+          ← {isZh ? zh("返回") : "Back"}
         </button>
       </div>
     );
@@ -301,8 +301,8 @@ export function RequestView() {
             {t("awaitingResponse")}
           </p>
           <p className="text-xs mt-0.5" style={{ color: "#92400E" }}>
-            {lang === "zh"
-              ? "你將在物主回覆後收到通知。"
+            {isZh
+              ? zh("你將在物主回覆後收到通知。")
               : "You'll be notified when they reply."}
           </p>
         </div>
@@ -314,7 +314,7 @@ export function RequestView() {
           style={{ backgroundColor: "#22C55E19", border: "1px solid #22C55E40" }}
         >
           <p className="text-sm" style={{ color: "#15803D", fontWeight: 500 }}>
-            {lang === "zh" ? "你的請求已被接受！" : "Your request was accepted!"}
+            {isZh ? zh("你的請求已被接受！") : "Your request was accepted!"}
           </p>
         </div>
       )}
@@ -337,7 +337,7 @@ export function RequestView() {
         >
           <p className="text-sm" style={{ color: "#B91C1C", fontWeight: 500 }}>
             {request.status === "cancelled"
-              ? lang === "zh" ? "你已取消此請求。" : "You cancelled this request."
+              ? isZh ? zh("你已取消此請求。") : "You cancelled this request."
               : t("requestDeclined")}
           </p>
         </div>
@@ -346,7 +346,7 @@ export function RequestView() {
       {/* ── Section 3: Rental details ── */}
       <div className="bg-white rounded-xl border border-[#E5E7EB] p-4 mb-4 space-y-3">
         <p className="text-xs text-[#6B7280]" style={{ fontWeight: 600 }}>
-          {lang === "zh" ? "你的租用詳情" : "Your rental details"}
+          {isZh ? zh("你的租用詳情") : "Your rental details"}
         </p>
 
         <div className="grid grid-cols-2 gap-3">
@@ -360,10 +360,10 @@ export function RequestView() {
           </div>
           <div>
             <p className="text-[10px] text-[#9CA3AF]">
-              {lang === "zh" ? "租用天數" : "Duration"}
+              {isZh ? zh("租用天數") : "Duration"}
             </p>
             <p className="text-sm text-[#1F2937]">
-              {days} {lang === "zh" ? "天" : "days"}
+              {days} {isZh ? zh("天") : "days"}
             </p>
           </div>
           <div>
@@ -379,7 +379,7 @@ export function RequestView() {
         {request.message && (
           <div className="pt-2 border-t border-[#E5E7EB]">
             <p className="text-xs text-[#6B7280] mb-2">
-              {lang === "zh" ? "你的留言" : "Your message"}
+              {isZh ? zh("你的留言") : "Your message"}
             </p>
             <div className="bg-[#F9FAFB] border-l-2 border-brand pl-3 py-2 rounded-r-lg">
               <p className="text-sm text-[#4B5563] italic">"{request.message}"</p>
@@ -391,7 +391,7 @@ export function RequestView() {
         <div className="pt-2 border-t border-[#E5E7EB] space-y-1.5">
           <div className="flex justify-between items-center">
             <p className="text-xs text-[#6B7280]">
-              HK${listing.price_per_day} × {days} {lang === "zh" ? "天" : "days"}
+              HK${listing.price_per_day} × {days} {isZh ? zh("天") : "days"}
             </p>
             <p className="text-sm text-[#1F2937]">HK${dailyTotal}</p>
           </div>
@@ -411,7 +411,7 @@ export function RequestView() {
       {/* ── Section 4: Owner information ── */}
       <div className="bg-white rounded-xl border border-[#E5E7EB] p-4 mb-4">
         <p className="text-xs text-[#6B7280] mb-3">
-          {lang === "zh" ? "物主資料" : "Owner information"}
+          {isZh ? zh("物主資料") : "Owner information"}
         </p>
         <div className="flex items-center gap-3">
           <div
@@ -481,7 +481,7 @@ export function RequestView() {
               <textarea
                 value={reviewComment}
                 onChange={(e) => setReviewComment(e.target.value)}
-                placeholder={lang === "zh" ? "你的租用體驗如何？" : "How was your experience?"}
+                placeholder={isZh ? zh("你的租用體驗如何？") : "How was your experience?"}
                 rows={3}
                 className="w-full mt-3 px-4 py-2.5 rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] text-sm resize-none focus:outline-none focus:border-brand"
               />
@@ -493,9 +493,9 @@ export function RequestView() {
                 {submittingReview ? (
                   <span className="flex items-center justify-center gap-2">
                     <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    {lang === "zh" ? "提交中..." : "Submitting..."}
+                    {isZh ? zh("提交中...") : "Submitting..."}
                   </span>
-                ) : lang === "zh" ? "提交評價" : "Submit Review"}
+                ) : isZh ? zh("提交評價") : "Submit Review"}
               </button>
             </div>
           )}
@@ -531,7 +531,7 @@ export function RequestView() {
                   onClick={() => setShowCancelConfirm(false)}
                   className="flex-1 py-2.5 border border-[#E5E7EB] text-[#6B7280] rounded-xl text-sm"
                 >
-                  {lang === "zh" ? "返回" : "Go back"}
+                  {isZh ? zh("返回") : "Go back"}
                 </button>
                 <button
                   onClick={handleCancel}
@@ -541,7 +541,7 @@ export function RequestView() {
                   {cancelling ? (
                     <span className="flex items-center justify-center gap-2">
                       <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      {lang === "zh" ? "處理中..." : "Cancelling..."}
+                      {isZh ? zh("處理中...") : "Cancelling..."}
                     </span>
                   ) : (
                     t("cancelRequest")

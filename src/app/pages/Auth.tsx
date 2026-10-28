@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useNavigate, useLocation, useSearchParams } from "react-router";
-import { Mail, Lock, ArrowLeft, Globe, AlertCircle, User, Phone, MailCheck, CheckCircle } from "lucide-react";
+import { Mail, Lock, ArrowLeft, AlertCircle, User, Phone, MailCheck, CheckCircle } from "lucide-react";
 import { useI18n } from "../components/i18n";
+import { LanguageSelect } from "../components/LanguageSelect";
 import { IMAGES } from "../components/data";
 import { ImageWithFallback } from "../components/figma/ImageWithFallback";
 import { supabase } from "../../lib/supabase";
@@ -34,7 +35,7 @@ export function SignUp() {
   const nextParam = searchParams.get("next");
   const next = safeNext(nextParam);
   const loginLink = nextParam ? `/login?next=${encodeURIComponent(next)}` : "/login";
-  const { t, lang, setLang } = useI18n();
+  const { t } = useI18n();
   const [name,      setName]      = useState("");
   const [phone,     setPhone]     = useState("");
   const [email,     setEmail]     = useState("");
@@ -100,12 +101,7 @@ export function SignUp() {
         <button onClick={() => navigate("/")} className="w-8 h-8 rounded-full bg-white/80 flex items-center justify-center text-brand">
           <ArrowLeft size={18} />
         </button>
-        <button
-          onClick={() => setLang(lang === "en" ? "zh" : "en")}
-          className="flex items-center gap-1 text-sm text-brand bg-white/80 border border-brand-border backdrop-blur-sm px-3 py-1 rounded-full"
-        >
-          <Globe size={14} />{lang === "en" ? "中文" : "EN"}
-        </button>
+        <LanguageSelect className="text-sm text-brand bg-white/80 border border-brand-border backdrop-blur-sm px-3 py-1 rounded-full" />
       </div>
 
       <AuthHero />
@@ -194,7 +190,7 @@ export function Login() {
   const nextParam = searchParams.get("next");
   const next = safeNext(nextParam);
   const signupLink = nextParam ? `/signup?next=${encodeURIComponent(next)}` : "/signup";
-  const { t, lang, setLang } = useI18n();
+  const { t } = useI18n();
   const [email,         setEmail]         = useState("");
   const [password,      setPassword]      = useState("");
   const [loading,       setLoading]       = useState(false);
@@ -251,12 +247,7 @@ export function Login() {
         <button onClick={() => navigate("/")} className="w-8 h-8 rounded-full bg-white/80 flex items-center justify-center text-brand">
           <ArrowLeft size={18} />
         </button>
-        <button
-          onClick={() => setLang(lang === "en" ? "zh" : "en")}
-          className="flex items-center gap-1 text-sm text-brand bg-white/80 border border-brand-border backdrop-blur-sm px-3 py-1 rounded-full"
-        >
-          <Globe size={14} />{lang === "en" ? "中文" : "EN"}
-        </button>
+        <LanguageSelect className="text-sm text-brand bg-white/80 border border-brand-border backdrop-blur-sm px-3 py-1 rounded-full" />
       </div>
 
       <AuthHero />
@@ -369,7 +360,7 @@ export function Login() {
 /* ── Verify Email ── */
 export function VerifyEmail() {
   const navigate = useNavigate();
-  const { t, lang, setLang } = useI18n();
+  const { t } = useI18n();
   const location = useLocation();
   const email = (location.state as { email?: string })?.email ?? "";
   const [resendLoading, setResendLoading] = useState(false);
@@ -396,12 +387,7 @@ export function VerifyEmail() {
         <button onClick={() => navigate("/login")} className="w-8 h-8 rounded-full bg-white/80 flex items-center justify-center text-brand">
           <ArrowLeft size={18} />
         </button>
-        <button
-          onClick={() => setLang(lang === "en" ? "zh" : "en")}
-          className="flex items-center gap-1 text-sm text-brand bg-white/80 border border-brand-border backdrop-blur-sm px-3 py-1 rounded-full"
-        >
-          <Globe size={14} />{lang === "en" ? "中文" : "EN"}
-        </button>
+        <LanguageSelect className="text-sm text-brand bg-white/80 border border-brand-border backdrop-blur-sm px-3 py-1 rounded-full" />
       </div>
 
       <AuthHero />
