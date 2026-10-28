@@ -2,62 +2,11 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router";
 import { ArrowLeft, Share2, Heart, MapPin, Shield, ChevronDown, ChevronUp, Star, MessageCircle } from "lucide-react";
 import { useI18n, translate } from "../components/i18n";
-import { listings as mockListings, IMAGES } from "../components/data";
+import { IMAGES } from "../components/data";
 import { ImageWithFallback } from "../components/figma/ImageWithFallback";
 import { supabase } from "../../lib/supabase";
 import { loginPath } from "../../lib/authRedirect";
 import { conditionKeyFromStored } from "../../lib/conditions";
-
-/* ── Mock review data ── */
-interface Review {
-  id: number;
-  author: string;
-  university: string;
-  universityZh: string;
-  rating: number;
-  date: string;
-  comment: string;
-  commentZh: string;
-}
-
-const mockReviews: Record<number, Review[]> = {
-  1: [
-    {
-      id: 1, author: "Mei L.", university: "CUHK", universityZh: "中文大學",
-      rating: 5, date: "Mar 2026",
-      comment: "Kettle worked perfectly, Alex was super responsive. Handoff was easy — would rent again!",
-      commentZh: "電水壺運作完美，Alex 回覆很快。交收方便，下次還會再租！",
-    },
-    {
-      id: 2, author: "Tom W.", university: "HKUST", universityZh: "科技大學",
-      rating: 4, date: "Feb 2026",
-      comment: "Great condition, clean and auto shut-off works. Slightly slow to respond at first but sorted it out.",
-      commentZh: "狀態良好，乾淨且自動斷電正常。一開始回覆稍慢，但最終解決了。",
-    },
-  ],
-  2: [
-    {
-      id: 3, author: "Sarah K.", university: "HKU", universityZh: "香港大學",
-      rating: 5, date: "Jan 2026",
-      comment: "Perfect for my room, quiet and powerful. Highly recommend!",
-      commentZh: "非常適合我的房間，安靜而有力。強烈推薦！",
-    },
-  ],
-  3: [
-    {
-      id: 4, author: "Jessica W.", university: "HKU", universityZh: "香港大學",
-      rating: 5, date: "Mar 2026",
-      comment: "Rice cooker is spotless. Tom is reliable and punctual.",
-      commentZh: "電飯煲非常乾淨。Tom 可靠守時。",
-    },
-    {
-      id: 5, author: "David H.", university: "HKBU", universityZh: "浸會大學",
-      rating: 4, date: "Feb 2026",
-      comment: "Works great for 1–2 people. Non-stick pot still in good shape.",
-      commentZh: "適合1至2人使用，不粘鍋仍然完好。",
-    },
-  ],
-};
 
 type NormalizedListing = {
   id: string | number;
@@ -101,7 +50,7 @@ function StarRow({ rating }: { rating: number }) {
 export function ListingDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { t, lang } = useI18n();
+  const { t, lang, isZh, zh } = useI18n();
   const [priceMode, setPriceMode] = useState<"day" | "week" | "month">("day");
   const [showDesc,  setShowDesc]  = useState(false);
   const [saved,     setSaved]     = useState(false);
@@ -133,30 +82,6 @@ export function ListingDetail() {
       }
     });
 
-    const numericId = Number(id);
-
-    if (!isNaN(numericId)) {
-      // Mock data lookup
-      const found = mockListings.find((l) => l.id === numericId);
-      if (found) {
-        setListing({
-          id: found.id, owner_id: null,
-          title: found.title, titleZh: found.titleZh,
-          image: found.image, price: found.price,
-          weeklyPrice: found.weeklyPrice, monthlyPrice: found.monthlyPrice,
-          deposit: found.deposit, distance: found.distance, distanceZh: found.distanceZh,
-          category: found.category, categoryZh: found.categoryZh,
-          condition: found.condition, conditionZh: found.conditionZh,
-          description: found.description, descriptionZh: found.descriptionZh,
-          owner: found.owner, university: found.university, universityZh: found.universityZh,
-          memberSince: found.memberSince, available: found.available,
-        });
-      }
-      setLoading(false);
-      return;
-    }
-
-    // UUID — fetch from Supabase
     supabase
       .from("listings")
       .select("*")
@@ -196,7 +121,7 @@ export function ListingDetail() {
 
   // Fetch all owner reviews and owner name for UUID listings
   useEffect(() => {
-    if (!listing || typeof listing.id === "number" || !listing.owner_id) return;
+    if (!listing || !listing.owner_id) return;
 
     async function fetchOwnerReviews() {
       // Fetch owner's display name
@@ -279,7 +204,7 @@ export function ListingDetail() {
 
   async function handleShare() {
     const url = window.location.href;
-    const title = lang === "zh" ? listing.titleZh : listing.title;
+    const title = isZh ? zh(listing.titleZh) : listing.title;
     if (navigator.share) {
       await navigator.share({ title, text: `Check out this listing on Lendy: ${title}`, url });
     } else {
@@ -289,10 +214,7 @@ export function ListingDetail() {
     }
   }
 
-  const numericMockId = typeof listing.id === "number" ? listing.id : null;
-  const mockRevs = numericMockId ? (mockReviews[numericMockId] ?? []) : [];
-  // For UUID listings use real reviews; for mock numeric IDs use mock data
-  const reviews = numericMockId ? mockRevs : realReviews;
+  const reviews = realReviews;
   const avgRating = reviews.length
     ? reviews.reduce((s, r) => s + r.rating, 0) / reviews.length
     : null;
@@ -329,10 +251,10 @@ export function ListingDetail() {
       <div className="px-4 py-4">
         {/* ── Title & category ── */}
         <span className="inline-block px-2 py-0.5 rounded-full bg-brand/10 text-brand text-xs mb-2">
-          {lang === "zh" ? listing.categoryZh : listing.category}
+          {isZh ? zh(listing.categoryZh) : listing.category}
         </span>
         <h1 style={{ fontSize: 22 }} className="text-brand-ink">
-          {lang === "zh" ? listing.titleZh : listing.title}
+          {isZh ? zh(listing.titleZh) : listing.title}
         </h1>
 
         {/* Average rating under title */}
@@ -340,7 +262,7 @@ export function ListingDetail() {
           <div className="flex items-center gap-1.5 mt-1">
             <StarRow rating={Math.round(avgRating)} />
             <span className="text-xs text-[#6B7280]">
-              {avgRating.toFixed(1)} ({reviews.length} {lang === "zh" ? "評價" : "reviews"})
+              {avgRating.toFixed(1)} ({reviews.length} {isZh ? zh("評價") : "reviews"})
             </span>
           </div>
         )}
@@ -374,8 +296,8 @@ export function ListingDetail() {
         <div className="flex items-center gap-1 mt-3 text-[#6B7280] text-sm">
           <MapPin size={14} />
           <span>
-            {lang === "zh" ? listing.distanceZh : listing.distance} ·{" "}
-            {lang === "zh" ? listing.universityZh : listing.university}
+            {isZh ? zh(listing.distanceZh) : listing.distance} ·{" "}
+            {isZh ? zh(listing.universityZh) : listing.university}
           </span>
         </div>
 
@@ -389,7 +311,7 @@ export function ListingDetail() {
             <div className="flex items-center gap-1">
               <Shield size={12} className="text-[#22C55E]" />
               <span className="text-xs text-[#22C55E]">
-                {t("verified")} · {lang === "zh" ? listing.universityZh : listing.university}
+                {t("verified")} · {isZh ? zh(listing.universityZh) : listing.university}
               </span>
             </div>
             <span className="text-[10px] text-[#6B7280]">{t("memberSince")} {listing.memberSince}</span>
@@ -407,7 +329,7 @@ export function ListingDetail() {
           </button>
           {showDesc && (
             <p className="text-sm text-[#6B7280] mt-2">
-              {lang === "zh" ? listing.descriptionZh : listing.description}
+              {isZh ? zh(listing.descriptionZh) : listing.description}
             </p>
           )}
         </div>
@@ -416,7 +338,7 @@ export function ListingDetail() {
         <div className="mt-4">
           <p className="text-sm mb-1" style={{ fontWeight: 500 }}>{t("condition")}</p>
           <span className="inline-block px-3 py-1 rounded-full bg-[#22C55E]/10 text-[#22C55E] text-xs">
-            {lang === "zh" ? listing.conditionZh : listing.condition}
+            {isZh ? zh(listing.conditionZh) : listing.condition}
           </span>
         </div>
 
@@ -425,31 +347,22 @@ export function ListingDetail() {
           <div className="flex items-center gap-2 mb-3">
             <MessageCircle size={16} className="text-brand" />
             <h3 className="text-brand-ink" style={{ fontSize: 15, fontWeight: 600 }}>
-              {numericMockId
-                ? (lang === "zh" ? "租客評價" : "Renter Reviews")
-                : `${t("reviewsFor")} ${ownerName}`}
+              {`${t("reviewsFor")} ${ownerName}`}
             </h3>
             {reviews.length > 0 && (
               <span className="ml-auto text-xs text-[#6B7280]">
-                {reviews.length} {lang === "zh" ? "則評價" : "reviews"}
+                {reviews.length} {isZh ? zh("則評價") : "reviews"}
               </span>
             )}
           </div>
 
           {reviews.length === 0 ? (
             <p className="text-sm text-[#6B7280] py-4 text-center">
-              {lang === "zh" ? "暫無評價 — 成為第一個租用的人！" : "No reviews yet — be the first to rent!"}
+              {isZh ? zh("暫無評價 — 成為第一個租用的人！") : "No reviews yet — be the first to rent!"}
             </p>
           ) : (
             <div className="space-y-3">
               {reviews.map((r) => {
-                const isMock = numericMockId !== null;
-                const subtitle = isMock
-                  ? `${lang === "zh" ? (r as any).universityZh : (r as any).university} · ${r.date}`
-                  : r.date;
-                const body = isMock
-                  ? (lang === "zh" ? (r as any).commentZh : r.comment)
-                  : r.comment;
                 return (
                   <div key={r.id} className="p-3 rounded-xl bg-[#F9FAFB] border border-[#E5E7EB]">
                     <div className="flex items-center gap-2 mb-2">
@@ -458,13 +371,13 @@ export function ListingDetail() {
                       </div>
                       <div className="flex-1">
                         <p className="text-xs" style={{ fontWeight: 500 }}>{r.author}</p>
-                        <p className="text-[10px] text-[#6B7280]">{subtitle}</p>
+                        <p className="text-[10px] text-[#6B7280]">{r.date}</p>
                       </div>
                       <StarRow rating={r.rating} />
                     </div>
-                    {body && <p className="text-sm text-[#4B5563]">{body}</p>}
-                    {!isMock && (r as any).listing_title && (
-                      <p className="text-[10px] text-[#9CA3AF] mt-1">{t("forListing")} {(r as any).listing_title}</p>
+                    {r.comment && <p className="text-sm text-[#4B5563]">{r.comment}</p>}
+                    {r.listing_title && (
+                      <p className="text-[10px] text-[#9CA3AF] mt-1">{t("forListing")} {r.listing_title}</p>
                     )}
                   </div>
                 );
@@ -483,12 +396,12 @@ export function ListingDetail() {
           >
             {t("manageListing")}
           </button>
-        ) : numericMockId !== null || !listing.available ? (
+        ) : !listing.available ? (
           <button
             disabled
             className="flex-1 py-3 bg-[#E5E7EB] text-[#6B7280] rounded-xl cursor-not-allowed"
           >
-            {t(numericMockId !== null ? "demoListing" : "currentlyUnavailable")}
+            {t("currentlyUnavailable")}
           </button>
         ) : (
           <button

@@ -57,7 +57,7 @@ function displayName(user: OtherUser | null): string {
 export function Chat() {
   const { requestId } = useParams<{ requestId: string }>();
   const navigate = useNavigate();
-  const { t, lang } = useI18n();
+  const { t, isZh, zh } = useI18n();
 
   const [loading, setLoading] = useState(true);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
@@ -246,7 +246,7 @@ export function Chat() {
         <div className="flex-1 min-w-0">
           <p className="text-[#1F2937] text-sm font-semibold truncate">{name}</p>
           <p className="text-[#9CA3AF] text-xs truncate">
-            {lang === "zh" ? "關於：" : "Re: "}{listingTitle}
+            {isZh ? zh("關於：") : "Re: "}{listingTitle}
           </p>
         </div>
       </div>
@@ -255,8 +255,8 @@ export function Chat() {
       {realtimeUnavailable && (
         <div className="bg-amber-50 border-b border-amber-200 px-4 py-2 text-center">
           <p className="text-amber-700 text-xs">
-            {lang === "zh"
-              ? "即時更新不可用，請重新整理頁面以獲取最新訊息"
+            {isZh
+              ? zh("即時更新不可用，請重新整理頁面以獲取最新訊息")
               : "Real-time updates unavailable. Refresh to see latest messages."}
           </p>
         </div>
@@ -278,8 +278,8 @@ export function Chat() {
               </div>
               <p className="text-[#1F2937] text-sm font-medium mb-1">{t("noMessages")}</p>
               <p className="text-[#9CA3AF] text-xs">
-                {lang === "zh"
-                  ? "詢問有關可用性、取貨地點或任何詳情。"
+                {isZh
+                  ? zh("詢問有關可用性、取貨地點或任何詳情。")
                   : "Ask about availability, pickup location, or any details."}
               </p>
             </div>

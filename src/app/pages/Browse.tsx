@@ -3,7 +3,6 @@ import { Search, SlidersHorizontal, X, MapPin, Heart, Recycle, ChevronRight } fr
 import { useNavigate, useSearchParams } from "react-router";
 import { useI18n } from "../components/i18n";
 import { ListingCard } from "../components/ListingCard";
-import { listings as mockListings } from "../components/data";
 import { supabase } from "../../lib/supabase";
 import listingPlaceholder from "../../assets/listing-placeholder.svg";
 import { useAuth } from "../../lib/useAuth";
@@ -41,7 +40,7 @@ function distanceKm(lat1: number, lng1: number, lat2: number, lng2: number) {
 }
 
 export function Browse() {
-  const { t, lang } = useI18n();
+  const { t, isZh, zh } = useI18n();
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -118,7 +117,7 @@ export function Browse() {
           console.error("Browse fetch error:", error);
         }
 
-        if (data && data.length > 0) {
+        if (data) {
           const mapped: UiListing[] = data.map((l) => ({
             id: l.id,
             image: l.image_url ?? listingPlaceholder,
@@ -137,14 +136,6 @@ export function Browse() {
 
           const uniqueBrands = [...new Set(mapped.map((l) => l.brand).filter(Boolean))].sort();
           setBrands(uniqueBrands);
-        } else {
-          const mapped: UiListing[] = mockListings.map((l) => ({
-            id: l.id, image: l.image, title: l.title, titleZh: l.titleZh,
-            price: l.price, distance: l.distance,
-            category: l.category, available: l.available,
-            brand: "", condition: "Works perfectly",
-          }));
-          setAllListings(mapped);
         }
         setDataLoading(false);
       });
@@ -366,14 +357,14 @@ export function Browse() {
       {/* Results */}
       {filtered.length === 0 ? (
         <div className="text-center py-16 text-[#6B7280]">
-          <p className="text-sm">{lang === "zh" ? "附近找不到物品 — 嘗試擴大搜尋範圍" : "No items found — try adjusting your filters"}</p>
+          <p className="text-sm">{isZh ? zh("附近找不到物品 — 嘗試擴大搜尋範圍") : "No items found — try adjusting your filters"}</p>
         </div>
       ) : (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
           {filtered.map((l) => (
             <ListingCard
               key={String(l.id)} id={l.id} image={l.image}
-              title={lang === "zh" ? l.titleZh : l.title}
+              title={isZh ? zh(l.titleZh) : l.title}
               price={l.price}
               distance={getDisplayDistance(l)}
               category={l.category}

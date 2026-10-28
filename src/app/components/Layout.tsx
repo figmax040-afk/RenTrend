@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { Outlet, useNavigate, useLocation } from "react-router";
-import { Home, Search, PlusCircle, Package, User, Globe } from "lucide-react";
+import { Home, Search, PlusCircle, Package, User } from "lucide-react";
 import { useI18n } from "./i18n";
+import { LanguageSelect } from "./LanguageSelect";
 import { supabase } from "../../lib/supabase";
 import logoImg from "../../assets/lendy-logo.png";
 
@@ -21,7 +22,7 @@ const mobileBrandBarPaths = ["/home", "/browse", "/create", "/activity", "/profi
 export function Layout() {
   const navigate  = useNavigate();
   const location  = useLocation();
-  const { t, lang, setLang } = useI18n();
+  const { t } = useI18n();
   const [pendingCount, setPendingCount] = useState(0);
   const [unreadCount, setUnreadCount] = useState(0);
 
@@ -122,13 +123,10 @@ export function Layout() {
           })}
 
           {/* Language toggle */}
-          <button
-            onClick={() => setLang(lang === "en" ? "zh" : "en")}
-            className="flex items-center gap-1 ml-2 px-3 py-1.5 rounded-lg text-[#6B7280] hover:text-brand border border-[#E5E7EB]"
-          >
-            <Globe size={16} />
-            <span className="text-sm">{lang === "en" ? "中文" : "EN"}</span>
-          </button>
+          <LanguageSelect
+            iconSize={16}
+            className="ml-2 px-3 py-1.5 rounded-lg text-sm text-[#6B7280] hover:text-brand border border-[#E5E7EB]"
+          />
         </nav>
       </header>
 
@@ -138,13 +136,7 @@ export function Layout() {
           <button onClick={() => navigate("/home")} className="focus:outline-none" aria-label="Lendy home">
             <img src={logoImg} alt="Lendy" className="h-8 w-auto object-contain" />
           </button>
-          <button
-            onClick={() => setLang(lang === "en" ? "zh" : "en")}
-            className="flex items-center gap-1 px-2.5 py-1 rounded-full text-[#6B7280] hover:text-brand border border-[#E5E7EB] bg-white"
-          >
-            <Globe size={14} />
-            <span className="text-xs">{lang === "en" ? "中文" : "EN"}</span>
-          </button>
+          <LanguageSelect className="px-2.5 py-1 rounded-full text-xs text-[#6B7280] hover:text-brand border border-[#E5E7EB] bg-white" />
         </header>
       )}
 

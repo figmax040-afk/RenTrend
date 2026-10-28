@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router";
 import { ArrowLeft, CheckCircle } from "lucide-react";
 import { useI18n } from "../components/i18n";
-import { listings as mockListings, IMAGES } from "../components/data";
+import { IMAGES } from "../components/data";
 import { ImageWithFallback } from "../components/figma/ImageWithFallback";
 import { supabase } from "../../lib/supabase";
 import { loginPath } from "../../lib/authRedirect";
@@ -28,7 +28,7 @@ type ListingSummary = {
 export function RentRequest() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { t, lang } = useI18n();
+  const { t, lang, isZh, zh } = useI18n();
   const [listing, setListing] = useState<ListingSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [startDate, setStartDate] = useState("");
@@ -39,35 +39,16 @@ export function RentRequest() {
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
   const [submitError, setSubmitError] = useState("");
-  const [blocked, setBlocked] = useState<"demo" | "unavailable" | null>(null);
+  const [blocked, setBlocked] = useState<"unavailable" | null>(null);
   const [existingRequestId, setExistingRequestId] = useState<string | null>(null);
   const submittingRef = useRef(false);
 
   useEffect(() => {
     if (!id) return;
-    const numericId = Number(id);
 
     async function load() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { navigate(loginPath()); return; }
-
-      if (!isNaN(numericId)) {
-        const found = mockListings.find((l) => l.id === numericId);
-        // Demo listings aren't in the database, so they can't be requested
-        setBlocked("demo");
-        if (found) {
-          setListing({
-            id: found.id, owner_id: null,
-            title: found.title, titleZh: found.titleZh,
-            image: found.image, price: found.price,
-            priceWeekly: found.weeklyPrice, priceMonthly: found.monthlyPrice,
-            deposit: found.deposit,
-            university: found.university, universityZh: found.universityZh,
-          });
-        }
-        setLoading(false);
-        return;
-      }
 
       const { data } = await supabase
         .from("listings")
@@ -169,7 +150,7 @@ export function RentRequest() {
           supabase.from("profiles").select("name").eq("id", user.id).single(),
         ]);
         if (listerProfile?.email) {
-          const title = lang === "zh" ? listing.titleZh : listing.title;
+          const title = isZh ? zh(listing.titleZh) : listing.title;
           await sendEmail(
             listerProfile.email,
             `New rental request for ${title}`,
@@ -210,10 +191,10 @@ export function RentRequest() {
     return (
       <div className="min-h-screen bg-[#F9FAFB] flex flex-col items-center justify-center px-6 text-center">
         <p className="text-[#1F2937] mb-2" style={{ fontWeight: 600 }}>
-          {lang === "zh" ? listing.titleZh : listing.title}
+          {isZh ? zh(listing.titleZh) : listing.title}
         </p>
         <p className="text-[#6B7280] text-sm mb-6">
-          {t(blocked === "demo" ? "demoListing" : "currentlyUnavailable")}
+          {t("currentlyUnavailable")}
         </p>
         <button onClick={() => navigate("/browse")} className="w-full max-w-xs py-3 bg-brand text-white rounded-xl">{t("backToBrowse")}</button>
       </div>
@@ -247,8 +228,8 @@ export function RentRequest() {
         <div className="flex gap-3 p-3 rounded-xl bg-white border border-[#E5E7EB] mb-5">
           <ImageWithFallback src={listing.image} alt="" className="w-16 h-16 rounded-lg object-cover" />
           <div className="text-sm">
-            <p style={{ fontWeight: 500 }}>{lang === "zh" ? listing.titleZh : listing.title}</p>
-            <p className="text-[#6B7280] text-xs">{lang === "zh" ? listing.universityZh : listing.university}</p>
+            <p style={{ fontWeight: 500 }}>{isZh ? zh(listing.titleZh) : listing.title}</p>
+            <p className="text-[#6B7280] text-xs">{isZh ? zh(listing.universityZh) : listing.university}</p>
             <p className="text-brand" style={{ fontWeight: 600 }}>HK${listing.price}<span className="text-[#6B7280]" style={{ fontWeight: 400 }}>/day</span></p>
           </div>
         </div>

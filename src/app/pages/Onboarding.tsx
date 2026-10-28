@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
-import { ChevronRight, Recycle, Clock, Package, Globe } from "lucide-react";
+import { ChevronRight, Recycle, Clock, Package } from "lucide-react";
 import { useI18n } from "../components/i18n";
+import { LanguageSelect } from "../components/LanguageSelect";
 import { IMAGES } from "../components/data";
 import { ImageWithFallback } from "../components/figma/ImageWithFallback";
 import logoImg from "../../assets/lendy-logo.png";
@@ -16,7 +17,7 @@ const slides = [
 export function Onboarding() {
   const [current, setCurrent] = useState(0);
   const navigate = useNavigate();
-  const { t, lang, setLang } = useI18n();
+  const { t } = useI18n();
   const { user, loading } = useAuth();
 
   // Returning users who are already signed in skip the intro
@@ -33,13 +34,10 @@ export function Onboarding() {
             {t("skip")}
           </button>
         ) : <span />}
-        <button
-          onClick={() => setLang(lang === "en" ? "zh" : "en")}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-brand-border bg-white text-[#6B7280] hover:text-brand"
-        >
-          <Globe size={16} />
-          <span className="text-sm">{lang === "en" ? "中文" : "EN"}</span>
-        </button>
+        <LanguageSelect
+          iconSize={16}
+          className="gap-1.5 px-3 py-1.5 rounded-full border border-brand-border bg-white text-sm text-[#6B7280] hover:text-brand"
+        />
       </div>
 
       <div className="flex-1 flex flex-col items-center justify-center px-6 max-w-md mx-auto w-full">

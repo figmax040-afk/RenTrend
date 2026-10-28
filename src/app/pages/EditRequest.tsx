@@ -37,7 +37,7 @@ function calculateOptimalPrice(
 export function EditRequest() {
   const { requestId } = useParams<{ requestId: string }>();
   const navigate = useNavigate();
-  const { t, lang } = useI18n();
+  const { t, isZh, zh } = useI18n();
 
   const [listing, setListing] = useState<ListingInfo | null>(null);
   const [loading, setLoading] = useState(true);
@@ -130,8 +130,8 @@ export function EditRequest() {
   if (error || !listing) {
     return (
       <div className="max-w-lg mx-auto px-4 pt-8 text-center">
-        <p className="text-[#6B7280] text-sm">{error || (lang === "zh" ? "找不到請求" : "Request not found.")}</p>
-        <button onClick={() => navigate("/activity?tab=requests")} className="mt-4 text-brand text-sm">← {lang === "zh" ? "返回" : "Back"}</button>
+        <p className="text-[#6B7280] text-sm">{error || (isZh ? zh("找不到請求") : "Request not found.")}</p>
+        <button onClick={() => navigate("/activity?tab=requests")} className="mt-4 text-brand text-sm">← {isZh ? zh("返回") : "Back"}</button>
       </div>
     );
   }

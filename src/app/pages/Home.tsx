@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
-import { Search, MapPin, ChefHat, Monitor, Sofa, Camera, Wind, MoreHorizontal } from "lucide-react";
+import { Search, MapPin, ChefHat, Monitor, Sofa, Camera, Wind, MoreHorizontal, Package } from "lucide-react";
 import { useI18n } from "../components/i18n";
 import { ListingCard } from "../components/ListingCard";
-import { listings as mockListings, IMAGES } from "../components/data";
+import { IMAGES } from "../components/data";
 import { ImageWithFallback } from "../components/figma/ImageWithFallback";
 import { supabase } from "../../lib/supabase";
 import listingPlaceholder from "../../assets/listing-placeholder.svg";
@@ -48,7 +48,7 @@ function dbToUi(l: Record<string, any>): UiListing {
 
 export function Home() {
   const navigate = useNavigate();
-  const { t, lang } = useI18n();
+  const { t, isZh, zh } = useI18n();
   const { user, loading: authLoading } = useAuth();
   const [listings, setListings] = useState<UiListing[]>([]);
   const [dataLoading, setDataLoading] = useState(true);
@@ -67,15 +67,7 @@ export function Home() {
           console.error("Home fetch error:", error);
         }
 
-        if (data && data.length > 0) {
-          setListings(data.map(dbToUi));
-        } else {
-          setListings(mockListings.map((l) => ({
-            id: l.id, image: l.image, title: l.title, titleZh: l.titleZh,
-            price: l.price, distance: l.distance, distanceZh: l.distanceZh,
-            category: l.category, categoryZh: l.categoryZh, available: l.available,
-          })));
-        }
+        setListings((data ?? []).map(dbToUi));
         setDataLoading(false);
       });
   }, [authLoading, user, navigate]);
@@ -133,55 +125,71 @@ export function Home() {
         </div>
       </div>
 
-      {/* Near you section */}
-      <Section title={t("nearYou")} onSeeAll={() => navigate("/browse")}>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          {listings.slice(0, 4).map((l) => (
-            <ListingCard
-              key={String(l.id)} id={l.id} image={l.image}
-              title={lang === "zh" ? l.titleZh : l.title}
-              price={l.price}
-              distance={lang === "zh" ? l.distanceZh : l.distance}
-              category={lang === "zh" ? l.categoryZh : l.category}
-              available={l.available}
-            />
-          ))}
+      {listings.length === 0 ? (
+        <div className="mx-4 mt-8 p-8 rounded-2xl bg-white border border-[#E5E7EB] text-center">
+          <Package size={28} className="mx-auto text-brand mb-3" />
+          <p className="text-sm text-[#1F2937]" style={{ fontWeight: 500 }}>{t("homeEmptyTitle")}</p>
+          <p className="text-xs text-[#6B7280] mt-1">{t("homeEmptySub")}</p>
+          <button
+            onClick={() => navigate("/create")}
+            className="mt-4 px-4 py-2 rounded-xl bg-brand text-white text-sm hover:bg-brand-hover transition-colors"
+          >
+            {t("listItem")}
+          </button>
         </div>
-      </Section>
-
-      {/* Recently Added */}
-      <Section title={t("recentlyAdded")} onSeeAll={() => navigate("/browse")}>
-        <div className="flex gap-3 overflow-x-auto pb-2">
-          {listings.slice(2, 6).map((l) => (
-            <div key={String(l.id)} className="min-w-[160px] max-w-[180px]">
+      ) : (
+        <>
+        {/* Near you section */}
+        <Section title={t("nearYou")} onSeeAll={() => navigate("/browse")}>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {listings.slice(0, 4).map((l) => (
               <ListingCard
-                id={l.id} image={l.image}
-                title={lang === "zh" ? l.titleZh : l.title}
+                key={String(l.id)} id={l.id} image={l.image}
+                title={isZh ? zh(l.titleZh) : l.title}
                 price={l.price}
-                distance={lang === "zh" ? l.distanceZh : l.distance}
-                category={lang === "zh" ? l.categoryZh : l.category}
+                distance={isZh ? zh(l.distanceZh) : l.distance}
+                category={isZh ? zh(l.categoryZh) : l.category}
                 available={l.available}
               />
-            </div>
-          ))}
-        </div>
-      </Section>
+            ))}
+          </div>
+        </Section>
 
-      {/* Last Minute */}
-      <Section title={t("lastMinute")} onSeeAll={() => navigate("/browse")}>
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-          {listings.filter((l) => l.available).slice(0, 3).map((l) => (
-            <ListingCard
-              key={String(l.id)} id={l.id} image={l.image}
-              title={lang === "zh" ? l.titleZh : l.title}
-              price={l.price}
-              distance={lang === "zh" ? l.distanceZh : l.distance}
-              category={lang === "zh" ? l.categoryZh : l.category}
-              available={l.available}
-            />
-          ))}
-        </div>
-      </Section>
+        {/* Recently Added */}
+        <Section title={t("recentlyAdded")} onSeeAll={() => navigate("/browse")}>
+          <div className="flex gap-3 overflow-x-auto pb-2">
+            {listings.slice(2, 6).map((l) => (
+              <div key={String(l.id)} className="min-w-[160px] max-w-[180px]">
+                <ListingCard
+                  id={l.id} image={l.image}
+                  title={isZh ? zh(l.titleZh) : l.title}
+                  price={l.price}
+                  distance={isZh ? zh(l.distanceZh) : l.distance}
+                  category={isZh ? zh(l.categoryZh) : l.category}
+                  available={l.available}
+                />
+              </div>
+            ))}
+          </div>
+        </Section>
+
+        {/* Last Minute */}
+        <Section title={t("lastMinute")} onSeeAll={() => navigate("/browse")}>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            {listings.filter((l) => l.available).slice(0, 3).map((l) => (
+              <ListingCard
+                key={String(l.id)} id={l.id} image={l.image}
+                title={isZh ? zh(l.titleZh) : l.title}
+                price={l.price}
+                distance={isZh ? zh(l.distanceZh) : l.distance}
+                category={isZh ? zh(l.categoryZh) : l.category}
+                available={l.available}
+              />
+            ))}
+          </div>
+        </Section>
+        </>
+      )}
     </div>
   );
 }

@@ -9,7 +9,7 @@ declare global { interface Window { google: any; } }
 
 export function Recycle() {
   const navigate = useNavigate();
-  const { t, lang } = useI18n();
+  const { t, isZh, zh } = useI18n();
   const [showForm, setShowForm] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [itemType, setItemType] = useState("");
@@ -73,7 +73,7 @@ export function Recycle() {
     setError("");
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error(lang === "zh" ? "請先登入" : "Please sign in first");
+      if (!user) throw new Error(isZh ? zh("請先登入") : "Please sign in first");
 
       const { error: insertErr } = await supabase.from("recycle_submissions").insert({
         user_id: user.id,
@@ -89,7 +89,7 @@ export function Recycle() {
       if (insertErr) throw insertErr;
       setSubmitted(true);
     } catch (err: any) {
-      setError(err.message || (lang === "zh" ? "提交失敗，請重試" : "Submission failed. Please try again."));
+      setError(err.message || (isZh ? zh("提交失敗，請重試") : "Submission failed. Please try again."));
     } finally {
       setLoading(false);
     }
@@ -134,7 +134,7 @@ export function Recycle() {
           <button onClick={() => setShowForm(true)} className="py-3 px-8 bg-brand text-white rounded-xl">{t("submitAppliance")}</button>
         ) : (
           <div className="space-y-3">
-            <p className="text-sm text-[#6B7280]">{lang === "zh" ? "請先登入才能提交" : "Sign in to submit an appliance"}</p>
+            <p className="text-sm text-[#6B7280]">{isZh ? zh("請先登入才能提交") : "Sign in to submit an appliance"}</p>
             <button onClick={() => navigate(loginPath())} className="py-3 px-8 bg-brand text-white rounded-xl">{t("logIn")}</button>
           </div>
         )}
@@ -172,7 +172,7 @@ export function Recycle() {
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder={lang === "zh" ? "物品狀態、年份或使用情況..." : "Any details about the item's condition, age, or usage..."}
+              placeholder={isZh ? zh("物品狀態、年份或使用情況...") : "Any details about the item's condition, age, or usage..."}
               rows={3}
               className="w-full mt-1 px-4 py-2.5 rounded-xl border border-[#E5E7EB] bg-white text-sm resize-none focus:outline-none focus:border-brand"
             />
@@ -188,7 +188,7 @@ export function Recycle() {
               value={location}
               onChange={(e) => setLocation(e.target.value)}
               className="w-full mt-1 px-4 py-2.5 rounded-xl border border-[#E5E7EB] bg-white text-sm"
-              placeholder={lang === "zh" ? "大廈 / 宿舍" : "Building / Area"}
+              placeholder={isZh ? zh("大廈 / 宿舍") : "Building / Area"}
             />
           </div>
           <div>
@@ -212,7 +212,7 @@ export function Recycle() {
             {loading ? (
               <span className="flex items-center justify-center gap-2">
                 <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                {lang === "zh" ? "提交中..." : "Submitting..."}
+                {isZh ? zh("提交中...") : "Submitting..."}
               </span>
             ) : t("submitCollection")}
           </button>
