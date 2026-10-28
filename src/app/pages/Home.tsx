@@ -60,6 +60,7 @@ export function Home() {
       .from("listings")
       .select("id, title, title_zh, image_url, price_per_day, district, category, is_active")
       .eq("is_active", true)
+      .eq("approval_status", "approved")
       .order("created_at", { ascending: false })
       .then(({ data, error }) => {
         if (error) {

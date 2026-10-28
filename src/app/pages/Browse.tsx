@@ -7,16 +7,13 @@ import { listings as mockListings } from "../components/data";
 import { supabase } from "../../lib/supabase";
 import listingPlaceholder from "../../assets/listing-placeholder.svg";
 import { useAuth } from "../../lib/useAuth";
+import { CONDITION_KEYS, CONDITION_VALUES, conditionKeyFromStored } from "../../lib/conditions";
 
 declare global { interface Window { google: any; } }
 
 const categoryKeys = ["kitchen", "electronics", "furniture", "camera", "cooling", "other"];
-const conditionKeys = ["worksPerf", "minorIssues", "forParts"];
-const conditionValues: Record<string, string> = {
-  worksPerf: "Works perfectly",
-  minorIssues: "Minor issues",
-  forParts: "For parts",
-};
+const conditionKeys = CONDITION_KEYS;
+const conditionValues = CONDITION_VALUES;
 
 type LocationFilter = { lat: number; lng: number; address: string };
 
@@ -114,6 +111,7 @@ export function Browse() {
       .from("listings")
       .select("id, title, title_zh, image_url, price_per_day, district, category, is_active, created_at, brand, condition, location_lat, location_lng")
       .eq("is_active", true)
+      .eq("approval_status", "approved")
       .order("created_at", { ascending: false })
       .then(({ data, error }) => {
         if (error) {
@@ -131,7 +129,7 @@ export function Browse() {
             category: l.category,
             available: l.is_active,
             brand: l.brand ?? "",
-            condition: l.condition ?? "",
+            condition: (() => { const k = conditionKeyFromStored(l.condition); return k ? CONDITION_VALUES[k] : (l.condition ?? ""); })(),
             lat: l.location_lat ?? null,
             lng: l.location_lng ?? null,
           }));

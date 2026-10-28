@@ -4,6 +4,7 @@ import { ArrowLeft, Camera, X, ChefHat, Monitor, Sofa, Camera as CameraIcon, Win
 import { useI18n } from "../components/i18n";
 import { supabase } from "../../lib/supabase";
 import { loginPath } from "../../lib/authRedirect";
+import { CONDITION_KEYS, CONDITION_VALUES, type ConditionKey } from "../../lib/conditions";
 
 declare global { interface Window { google: any; } }
 
@@ -17,7 +18,7 @@ const catIcons = [
 ];
 
 const stepKeys = ["details", "pricing", "availability", "review"];
-const conditions = ["worksPerf", "minorIssues", "forParts"];
+const conditions = CONDITION_KEYS;
 
 const BRANDS = [
   "Philips", "Panasonic", "Sony", "Samsung", "LG", "Xiaomi", "Dyson",
@@ -43,7 +44,7 @@ export function CreateListing() {
   const [brand, setBrand]             = useState("");
   const [customBrand, setCustomBrand] = useState("");
   const [cat, setCat]                 = useState("");
-  const [cond, setCond]               = useState("worksPerf");
+  const [cond, setCond]               = useState<ConditionKey>("worksPerf");
   const [damagedParts, setDamagedParts] = useState("");
   const [desc, setDesc]               = useState("");
 
@@ -52,6 +53,9 @@ export function CreateListing() {
   const [weekly, setWeekly]   = useState("");
   const [monthly, setMonthly] = useState("");
   const [deposit, setDeposit] = useState("");
+  // Weekly/monthly follow the daily price until the user edits them
+  const [weeklyTouched, setWeeklyTouched]   = useState(false);
+  const [monthlyTouched, setMonthlyTouched] = useState(false);
 
   // Step 3 — Availability & Location
   const [avail, setAvail]           = useState(true);
@@ -147,10 +151,11 @@ export function CreateListing() {
   }
 
   async function handlePublish() {
+    if (uploading.some(Boolean)) return;
     setPublishError("");
     setPublishing(true);
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { navigate(loginPath()); return; }
+    if (!user) { setPublishing(false); navigate(loginPath()); return; }
 
     const finalBrand = brand === "Other / Unlisted brand" ? customBrand : brand;
     const urls = imageUrls.filter((u): u is string => u !== null);
@@ -160,7 +165,7 @@ export function CreateListing() {
       title,
       brand: finalBrand || null,
       category: cat,
-      condition: t(cond),
+      condition: CONDITION_VALUES[cond],
       damaged_parts: cond === "forParts" ? damagedParts : null,
       description: desc,
       price_per_day: Number(daily),
@@ -190,7 +195,8 @@ export function CreateListing() {
           <CheckCircle size={36} className="text-[#22C55E]" />
         </div>
         <h1 className="text-[#1F2937] mb-2" style={{ fontSize: 22 }}>{t("publishListing")}</h1>
-        <p className="text-[#6B7280] text-sm mb-6">{title}</p>
+        <p className="text-[#6B7280] text-sm mb-2">{title}</p>
+        <p className="text-[#6B7280] text-xs mb-6 max-w-xs">{t("submittedForReview")}</p>
         <button onClick={() => navigate("/activity?tab=listings")} className="py-3 px-8 bg-brand text-white rounded-xl">{t("myListings")}</button>
       </div>
     );
@@ -365,20 +371,21 @@ export function CreateListing() {
                 type="number"
                 value={daily}
                 onChange={(e) => {
-                  setDaily(e.target.value);
-                  if (!weekly) setWeekly(String(Number(e.target.value) * 6));
-                  if (!monthly) setMonthly(String(Number(e.target.value) * 25));
+                  const v = e.target.value;
+                  setDaily(v);
+                  if (!weeklyTouched) setWeekly(v ? String(Number(v) * 6) : "");
+                  if (!monthlyTouched) setMonthly(v ? String(Number(v) * 25) : "");
                 }}
                 className="w-full mt-1 px-4 py-2.5 rounded-xl border border-[#E5E7EB] bg-white text-sm"
               />
             </div>
             <div>
               <label className="text-sm text-[#6B7280]">{t("weeklyPrice")}</label>
-              <input type="number" value={weekly} onChange={(e) => setWeekly(e.target.value)} className="w-full mt-1 px-4 py-2.5 rounded-xl border border-[#E5E7EB] bg-white text-sm" />
+              <input type="number" value={weekly} onChange={(e) => { setWeekly(e.target.value); setWeeklyTouched(true); }} className="w-full mt-1 px-4 py-2.5 rounded-xl border border-[#E5E7EB] bg-white text-sm" />
             </div>
             <div>
               <label className="text-sm text-[#6B7280]">{t("monthlyPrice")}</label>
-              <input type="number" value={monthly} onChange={(e) => setMonthly(e.target.value)} className="w-full mt-1 px-4 py-2.5 rounded-xl border border-[#E5E7EB] bg-white text-sm" />
+              <input type="number" value={monthly} onChange={(e) => { setMonthly(e.target.value); setMonthlyTouched(true); }} className="w-full mt-1 px-4 py-2.5 rounded-xl border border-[#E5E7EB] bg-white text-sm" />
             </div>
             <div>
               <label className="text-sm text-[#6B7280]">{t("depositAmount")}</label>
@@ -447,10 +454,10 @@ export function CreateListing() {
             )}
             <button
               onClick={handlePublish}
-              disabled={publishing}
+              disabled={publishing || uploading.some(Boolean)}
               className="w-full py-3 bg-brand text-white rounded-xl disabled:opacity-60"
             >
-              {publishing ? "Publishing..." : t("publishListing")}
+              {uploading.some(Boolean) ? t("waitingForUploads") : publishing ? "Publishing..." : t("publishListing")}
             </button>
             <button onClick={() => navigate("/home")} className="w-full py-3 border border-[#E5E7EB] rounded-xl text-sm text-[#6B7280]">{t("saveAsDraft")}</button>
           </div>

@@ -20,7 +20,7 @@ export function Admin() {
   useEffect(() => {
     async function fetchStats() {
       const [pendingRes, requestsRes, recycleRes] = await Promise.all([
-        supabase.from("listings").select("id", { count: "exact", head: true }).eq("is_active", false),
+        supabase.from("listings").select("id", { count: "exact", head: true }).eq("approval_status", "pending"),
         supabase.from("requests").select("id", { count: "exact", head: true }).eq("status", "pending"),
         supabase.from("recycle_submissions").select("id", { count: "exact", head: true }).eq("status", "pending"),
       ]);
