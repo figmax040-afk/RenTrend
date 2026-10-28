@@ -14,6 +14,7 @@ type Listing = {
   image_url: string | null;
   price_per_day: number;
   is_active: boolean;
+  approval_status: string | null;
 };
 
 type RenterProfile = {
@@ -35,7 +36,7 @@ type Request = {
   profiles: RenterProfile | null;
 };
 
-type Tab = "pending" | "accepted" | "declined";
+type Tab = "pending" | "accepted" | "declined" | "past";
 
 function fmtDate(d: string) {
   return new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric" });
@@ -57,6 +58,8 @@ function StatusBadge({ status }: { status: string }) {
     pending:  { label: "Pending",  color: "#F4A261", bg: "#F4A26115" },
     accepted: { label: "Accepted", color: "#22C55E", bg: "#22C55E15" },
     rejected: { label: "Declined", color: "#6B7280", bg: "#6B728015" },
+    completed: { label: "Completed", color: "#1A7A86", bg: "#1A7A8615" },
+    cancelled: { label: "Cancelled", color: "#EF4444", bg: "#EF444415" },
   };
   const s = map[status] ?? map.pending;
   return (
@@ -87,7 +90,7 @@ export function ListingRequests() {
 
       const { data: listingData, error: listingErr } = await supabase
         .from("listings")
-        .select("id, title, title_zh, image_url, price_per_day, is_active")
+        .select("id, title, title_zh, image_url, price_per_day, is_active, approval_status")
         .eq("id", listingId)
         .eq("owner_id", user.id)
         .single();
@@ -140,6 +143,7 @@ export function ListingRequests() {
   const tabRequests = requests.filter((r) => {
     if (activeTab === "pending")  return r.status === "pending";
     if (activeTab === "accepted") return r.status === "accepted";
+    if (activeTab === "past")     return r.status === "completed" || r.status === "cancelled";
     return r.status === "rejected";
   });
 
@@ -147,6 +151,7 @@ export function ListingRequests() {
     { key: "pending",  label: t("pending") },
     { key: "accepted", label: t("accepted") },
     { key: "declined", label: t("decline") },
+    { key: "past",     label: t("past") },
   ];
 
   if (loading) {
@@ -203,6 +208,17 @@ export function ListingRequests() {
           >
             {t(listing.is_active ? "active" : "unavailable")}
           </span>
+          {listing.approval_status && listing.approval_status !== "approved" && (
+            <span
+              className="text-[10px] px-2 py-0.5 rounded-full mt-1 ml-1 inline-block"
+              style={{
+                backgroundColor: listing.approval_status === "rejected" ? "#EF444415" : "#F4A26115",
+                color: listing.approval_status === "rejected" ? "#EF4444" : "#F4A261",
+              }}
+            >
+              {t(listing.approval_status === "rejected" ? "rejectedListing" : "pendingReview")}
+            </span>
+          )}
         </div>
       </div>
 
@@ -221,6 +237,7 @@ export function ListingRequests() {
           const count = requests.filter((r) =>
             key === "pending"  ? r.status === "pending"  :
             key === "accepted" ? r.status === "accepted" :
+            key === "past"     ? r.status === "completed" || r.status === "cancelled" :
             r.status === "rejected"
           ).length;
           return (
@@ -245,7 +262,7 @@ export function ListingRequests() {
         <div className="text-center py-12">
           <p className="text-[#6B7280] text-sm">
             {isZh
-              ? zh(`暫無${activeTab === "pending" ? "待處理" : activeTab === "accepted" ? "已接受" : "已拒絕"}的請求`)
+              ? zh(`暫無${activeTab === "pending" ? "待處理" : activeTab === "accepted" ? "已接受" : activeTab === "past" ? "過去" : "已拒絕"}的請求`)
               : `No ${activeTab} requests`}
           </p>
         </div>

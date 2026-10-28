@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router";
 import { ArrowLeft, Share2, Heart, MapPin, Shield, ChevronDown, ChevronUp, Star, MessageCircle } from "lucide-react";
-import { useI18n } from "../components/i18n";
+import { useI18n, translate } from "../components/i18n";
 import { IMAGES } from "../components/data";
 import { ImageWithFallback } from "../components/figma/ImageWithFallback";
 import { supabase } from "../../lib/supabase";
 import { loginPath } from "../../lib/authRedirect";
+import { conditionKeyFromStored } from "../../lib/conditions";
 
 type NormalizedListing = {
   id: string | number;
@@ -49,7 +50,7 @@ function StarRow({ rating }: { rating: number }) {
 export function ListingDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { t, isZh, zh } = useI18n();
+  const { t, lang, isZh, zh } = useI18n();
   const [priceMode, setPriceMode] = useState<"day" | "week" | "month">("day");
   const [showDesc,  setShowDesc]  = useState(false);
   const [saved,     setSaved]     = useState(false);
@@ -64,6 +65,7 @@ export function ListingDetail() {
 
   useEffect(() => {
     if (!id) return;
+    setLoading(true);
 
     // Get current user for owner detection and saved status
     supabase.auth.getUser().then(async ({ data }) => {
@@ -87,6 +89,7 @@ export function ListingDetail() {
       .single()
       .then(({ data }) => {
         if (data) {
+          const condKey = conditionKeyFromStored(data.condition);
           setListing({
             id: data.id,
             owner_id: data.owner_id ?? null,
@@ -101,22 +104,22 @@ export function ListingDetail() {
             distanceZh: data.district ?? "香港",
             category: data.category,
             categoryZh: data.category,
-            condition: data.condition ?? "Works perfectly",
-            conditionZh: data.condition_zh ?? data.condition ?? "運作完好",
+            condition: condKey ? translate(condKey, "en") : (data.condition ?? "Works perfectly"),
+            conditionZh: condKey ? translate(condKey, "zh") : (data.condition_zh ?? data.condition ?? "運作完好"),
             description: data.description ?? "",
             descriptionZh: data.description_zh ?? data.description ?? "",
             owner: "—",
             university: data.university ?? "—",
             universityZh: data.university ?? "—",
             memberSince: new Date(data.created_at).toLocaleDateString("en-US", { month: "short", year: "numeric" }),
-            available: data.is_active,
+            available: data.is_active && (data.approval_status ?? "approved") === "approved",
           });
         }
         setLoading(false);
       });
   }, [id]);
 
-  // Fetch all owner reviews and owner name
+  // Fetch all owner reviews and owner name for UUID listings
   useEffect(() => {
     if (!listing || !listing.owner_id) return;
 
@@ -392,6 +395,13 @@ export function ListingDetail() {
             onClick={() => navigate(`/my-listings/${listing.id}/requests`)}
           >
             {t("manageListing")}
+          </button>
+        ) : !listing.available ? (
+          <button
+            disabled
+            className="flex-1 py-3 bg-[#E5E7EB] text-[#6B7280] rounded-xl cursor-not-allowed"
+          >
+            {t("currentlyUnavailable")}
           </button>
         ) : (
           <button

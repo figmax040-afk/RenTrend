@@ -29,7 +29,7 @@ type RequestWithListing = {
     title: string;
     image_url: string | null;
     owner_id: string;
-  };
+  } | null;
 };
 
 function formatTime(dateStr: string): string {
@@ -67,6 +67,8 @@ export function Chat() {
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const [realtimeUnavailable, setRealtimeUnavailable] = useState(false);
+  const [listingRemoved, setListingRemoved] = useState(false);
+  const [sendError, setSendError] = useState("");
 
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -84,10 +86,16 @@ export function Chat() {
       .filter((m) => m.sender_id !== currentUserId && !m.read_at)
       .map((m) => m.id);
     if (unread.length === 0) return;
+    const readAt = new Date().toISOString();
+    // Query builders are lazy: the update only runs once awaited/then'd
     supabase
       .from("messages")
-      .update({ read_at: new Date().toISOString() })
-      .in("id", unread);
+      .update({ read_at: readAt })
+      .in("id", unread)
+      .then(({ error }) => {
+        if (error) { console.error("Mark as read failed:", error); return; }
+        setMessages((prev) => prev.map((m) => unread.includes(m.id) ? { ...m, read_at: readAt } : m));
+      });
   }, [messages, currentUserId]);
 
   const load = useCallback(async () => {
@@ -98,7 +106,7 @@ export function Chat() {
 
     const { data: request } = await supabase
       .from("requests")
-      .select("*, listings!inner(id, title, image_url, owner_id)")
+      .select("*, listings(id, title, image_url, owner_id)")
       .eq("id", requestId)
       .single();
 
@@ -106,28 +114,35 @@ export function Chat() {
 
     const req = request as unknown as RequestWithListing;
     const isRenter = req.renter_id === user.id;
-    const isLister = req.listings.owner_id === user.id;
+    const isLister = req.listings?.owner_id === user.id;
     if (!isRenter && !isLister) { navigate("/activity"); return; }
 
-    setListingTitle(req.listings.title);
-
-    const otherUserId = isRenter ? req.listings.owner_id : req.renter_id;
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("id, name, email, avatar_url")
-      .eq("id", otherUserId)
-      .single();
-    setOtherUser(profile ?? null);
+    setListingRemoved(!req.listings);
+    setListingTitle(req.listings?.title ?? t("listingRemovedShort"));
 
     const { data: history } = await supabase
       .from("messages")
       .select("*")
       .eq("request_id", requestId)
       .order("created_at", { ascending: true });
-    setMessages((history as Message[]) || []);
+    const msgs = (history as Message[]) || [];
+    setMessages(msgs);
+
+    // If the listing is gone, the owner can still be found from the message history
+    const otherUserId = req.listings
+      ? (isRenter ? req.listings.owner_id : req.renter_id)
+      : msgs.find((m) => m.sender_id !== user.id)?.sender_id ?? null;
+    if (otherUserId) {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("id, name, email, avatar_url")
+        .eq("id", otherUserId)
+        .single();
+      setOtherUser(profile ?? null);
+    }
 
     setLoading(false);
-  }, [requestId, navigate]);
+  }, [requestId, navigate]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => { load(); }, [load]);
 
@@ -164,15 +179,27 @@ export function Chat() {
   }, [requestId]);
 
   async function sendMessage() {
-    if (!input.trim() || sending || !currentUserId) return;
+    if (!input.trim() || sending || !currentUserId || listingRemoved) return;
     setSending(true);
+    setSendError("");
     const content = input.trim();
     setInput("");
-    await supabase.from("messages").insert({
-      request_id: requestId,
-      sender_id: currentUserId,
-      content,
-    });
+    const { data: inserted, error } = await supabase
+      .from("messages")
+      .insert({
+        request_id: requestId,
+        sender_id: currentUserId,
+        content,
+      })
+      .select()
+      .single();
+    if (error || !inserted) {
+      setInput(content);
+      setSendError(t("messageSendFailed"));
+    } else {
+      // Show it immediately; the realtime echo is de-duplicated by id
+      setMessages((prev) => prev.some((m) => m.id === inserted.id) ? prev : [...prev, inserted as Message]);
+    }
     setSending(false);
     inputRef.current?.focus();
   }
@@ -235,6 +262,12 @@ export function Chat() {
         </div>
       )}
 
+      {listingRemoved && (
+        <div className="bg-[#F3F4F6] border-b border-[#E5E7EB] px-4 py-2 text-center">
+          <p className="text-[#6B7280] text-xs">{t("chatListingRemoved")}</p>
+        </div>
+      )}
+
       {/* Messages area */}
       <div className="flex-1 overflow-y-auto px-4 py-4 pb-4 space-y-3">
         {messages.length === 0 ? (
@@ -278,6 +311,7 @@ export function Chat() {
 
       {/* Sticky input footer — sits above mobile nav via pb-20 on wrapper */}
       <div className="sticky bottom-0 bg-white border-t border-[#E5E7EB] px-4 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] mb-16 md:mb-0">
+        {sendError && <p className="text-xs text-red-600 mb-2">{sendError}</p>}
         <div className="flex items-end gap-2">
           <textarea
             ref={inputRef}
@@ -285,13 +319,14 @@ export function Chat() {
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder={t("chatPlaceholder")}
+            disabled={listingRemoved}
             rows={1}
             className="flex-1 px-4 py-2.5 rounded-xl border border-[#E5E7EB] bg-white text-sm resize-none focus:outline-none focus:border-brand leading-snug"
             style={{ maxHeight: 120, overflowY: "auto" }}
           />
           <button
             onClick={sendMessage}
-            disabled={!input.trim() || sending}
+            disabled={!input.trim() || sending || listingRemoved}
             className="w-10 h-10 rounded-full bg-brand text-white flex items-center justify-center shrink-0 disabled:opacity-40 hover:bg-brand-hover transition-colors"
           >
             {sending ? (

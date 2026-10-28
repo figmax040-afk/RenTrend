@@ -306,6 +306,21 @@ const translations: Record<string, { en: string; zh: string }> = {
   errPasswordLength: { en: "Password must be at least 6 characters.", zh: "密碼最少需要 6 個字元。" },
   errEmailPassword: { en: "Please enter your email and password.", zh: "請輸入你的電郵和密碼。" },
   errEnterEmail: { en: "Please enter your email.", zh: "請輸入你的電郵。" },
+  // Listing lifecycle
+  pendingReview: { en: "Pending review", zh: "審核中" },
+  rejectedListing: { en: "Rejected", zh: "未獲批准" },
+  submittedForReview: { en: "Submitted for review. Your listing goes live once an admin approves it.", zh: "已提交審核，管理員批准後刊登即會上架。" },
+  deleteBlockedRented: { en: "This item is currently rented out. Mark the rental completed before deleting it.", zh: "此物品正在出租中，請先將租用標記為已完成再刪除。" },
+  deleteWillCancel: { en: "Open requests on this listing will be cancelled and the renters notified.", zh: "此刊登的待處理請求將被取消，並會通知租客。" },
+  deleteFailed: { en: "Couldn't delete this listing. Please try again.", zh: "刪除刊登失敗，請重試。" },
+  listingRemoved: { en: "This listing was removed by the owner.", zh: "物主已移除此刊登。" },
+  listingRemovedShort: { en: "Listing removed", zh: "刊登已移除" },
+  currentlyUnavailable: { en: "Currently unavailable", zh: "暫時不可租用" },
+  alreadyRequested: { en: "You already have an open request for this item.", zh: "你已就此物品提交了請求。" },
+  waitingForUploads: { en: "Waiting for photos to upload…", zh: "正在上傳相片…" },
+  rentalTotal: { en: "Rental total", zh: "租金總額" },
+  messageSendFailed: { en: "Message not sent. Please try again.", zh: "訊息未能發送，請重試。" },
+  chatListingRemoved: { en: "This listing was removed. You can still read past messages.", zh: "此刊登已被移除，你仍可查看過往訊息。" },
 };
 
 interface I18nContextType {
@@ -353,3 +368,11 @@ export function I18nProvider({ children }: { children: ReactNode }) {
 }
 
 export const useI18n = () => useContext(I18nContext);
+
+/** Non-hook lookup. Returns the stored text for "en"/"zh"; "zh-CN" is converted to Simplified. */
+export const translate = (key: string, lang: Lang) => {
+  const entry = translations[key];
+  if (!entry) return key;
+  if (lang === "en") return entry.en;
+  return lang === "zh-CN" ? toSimplified(entry.zh) : entry.zh;
+};
