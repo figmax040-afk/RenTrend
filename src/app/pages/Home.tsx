@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
-import { Search, MapPin, ChefHat, Monitor, Sofa, Camera, Wind, MoreHorizontal, Package } from "lucide-react";
+import { Search, MapPin, ChefHat, Monitor, Sofa, Wind, MoreHorizontal, Package } from "lucide-react";
 import { useI18n } from "../components/i18n";
 import { ListingCard } from "../components/ListingCard";
-import { IMAGES } from "../components/data";
+import { BANNERS } from "../components/data";
 import { ImageWithFallback } from "../components/figma/ImageWithFallback";
 import { supabase } from "../../lib/supabase";
 import listingPlaceholder from "../../assets/listing-placeholder.svg";
@@ -13,7 +13,6 @@ const categories = [
   { key: "kitchen", icon: ChefHat },
   { key: "electronics", icon: Monitor },
   { key: "furniture", icon: Sofa },
-  { key: "camera", icon: Camera },
   { key: "cooling", icon: Wind },
   { key: "other", icon: MoreHorizontal },
 ];
@@ -100,8 +99,11 @@ export function Home() {
 
       {/* Hero banner */}
       <div className="mx-4 mt-4 rounded-2xl overflow-hidden relative h-40 md:h-56">
-        <ImageWithFallback src={IMAGES.campus} alt="Home electronics" className="w-full h-full object-cover" />
-        <div className="absolute inset-0 bg-gradient-to-r from-brand/80 to-transparent flex items-center pl-6">
+        <picture>
+          {BANNERS.homeBannerMobile && <source media="(max-width: 767px)" srcSet={BANNERS.homeBannerMobile} />}
+          <ImageWithFallback src={BANNERS.homeBanner} alt="" className="w-full h-full object-cover object-[70%_center]" />
+        </picture>
+        <div className="absolute inset-0 bg-gradient-to-r from-brand/85 via-brand/45 to-transparent flex items-center pl-6">
           <div>
             <h2 className="text-white mb-1" style={{ fontSize: 20 }}>{t("heroTitle")}</h2>
             <p className="text-white/80 text-sm">HKD · Hong Kong</p>

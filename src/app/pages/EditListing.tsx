@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router";
-import { ArrowLeft, Camera, X, ChefHat, Monitor, Sofa, Camera as CameraIcon, Wind, MoreHorizontal, CheckCircle } from "lucide-react";
+import { ArrowLeft, Camera, X, ChefHat, Monitor, Sofa, Wind, MoreHorizontal, CheckCircle } from "lucide-react";
 import { useI18n } from "../components/i18n";
 import { supabase } from "../../lib/supabase";
 import { loginPath } from "../../lib/authRedirect";
@@ -12,7 +12,6 @@ const catIcons = [
   { key: "kitchen", icon: ChefHat },
   { key: "electronics", icon: Monitor },
   { key: "furniture", icon: Sofa },
-  { key: "camera", icon: CameraIcon },
   { key: "cooling", icon: Wind },
   { key: "other", icon: MoreHorizontal },
 ];

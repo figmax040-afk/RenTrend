@@ -3,7 +3,7 @@ import { useNavigate } from "react-router";
 import { ChevronRight, Recycle, Clock, Package } from "lucide-react";
 import { useI18n } from "../components/i18n";
 import { LanguageSelect } from "../components/LanguageSelect";
-import { IMAGES } from "../components/data";
+import { BANNERS } from "../components/data";
 import { ImageWithFallback } from "../components/figma/ImageWithFallback";
 import logoImg from "../../assets/lendy-logo.png";
 import { useAuth } from "../../lib/useAuth";
@@ -44,11 +44,12 @@ export function Onboarding() {
         {/* Lendy logo */}
         <img src={logoImg} alt="Lendy" className="h-20 w-auto max-w-full object-contain mb-6" />
 
-        {/* Hero image — home electronics, not students */}
+        {/* One banner per slide */}
         <div className="w-full h-44 rounded-2xl overflow-hidden mb-8 shadow-sm">
           <ImageWithFallback
-            src={IMAGES.campus}
-            alt="Home electronics"
+            key={current}
+            src={BANNERS.onboarding[current]}
+            alt=""
             className="w-full h-full object-cover"
           />
         </div>

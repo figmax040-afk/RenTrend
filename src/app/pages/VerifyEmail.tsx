@@ -2,10 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams, useLocation } from "react-router";
 import { CheckCircle, AlertCircle, Loader2, MailCheck } from "lucide-react";
 import { supabase } from "../../lib/supabase";
-import { IMAGES } from "../components/data";
-import { ImageWithFallback } from "../components/figma/ImageWithFallback";
-
-import logoImg from "../../assets/lendy-logo.png";
+import { AuthHero } from "../components/AuthHero";
 
 export function VerifyEmail() {
   const navigate = useNavigate();
@@ -36,14 +33,7 @@ export function VerifyEmail() {
 
   return (
     <div className="min-h-screen bg-[#F9FAFB] flex flex-col">
-      <div className="relative h-52 w-full overflow-hidden">
-        <ImageWithFallback src={IMAGES.authHero} alt="" className="w-full h-full object-cover" />
-        <div className="absolute inset-0 bg-gradient-to-b from-white/85 via-white/70 to-[#F9FAFB]" />
-        <div className="absolute inset-0 bg-gradient-to-br from-brand-blue/15 to-brand-green/15" />
-        <div className="absolute inset-0 flex items-center justify-center">
-          <img src={logoImg} alt="Lendy" className="h-16 w-auto max-w-[75vw] object-contain" />
-        </div>
-      </div>
+      <AuthHero />
 
       <div className="flex-1 flex flex-col items-center justify-center px-6 max-w-md mx-auto w-full gap-6">
         {status === "verifying" && (
