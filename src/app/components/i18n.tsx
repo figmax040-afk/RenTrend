@@ -104,7 +104,7 @@ const translations: Record<string, { en: string; zh: string }> = {
   kitchen: { en: "Kitchen", zh: "廚房用具" },
   electronics: { en: "Electronics", zh: "電子用品" },
   furniture: { en: "Furniture", zh: "傢俱" },
-  camera: { en: "Camera", zh: "相機設備" },
+  camera: { en: "Camera", zh: "相機設備" }, // retired category; kept so older listings still get a label
   cooling: { en: "Cooling", zh: "冷暖設備" },
   other: { en: "Other", zh: "其他物品" },
   // Listing detail

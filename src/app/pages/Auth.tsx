@@ -3,30 +3,9 @@ import { useNavigate, useLocation, useSearchParams } from "react-router";
 import { Mail, Lock, ArrowLeft, AlertCircle, User, Phone, MailCheck, CheckCircle } from "lucide-react";
 import { useI18n } from "../components/i18n";
 import { LanguageSelect } from "../components/LanguageSelect";
-import { IMAGES } from "../components/data";
-import { ImageWithFallback } from "../components/figma/ImageWithFallback";
+import { AuthHero } from "../components/AuthHero";
 import { supabase } from "../../lib/supabase";
 import { safeNext } from "../../lib/authRedirect";
-
-import logoImg from "../../assets/lendy-logo.png";
-
-/* ── Shared hero banner ── */
-function AuthHero() {
-  return (
-    <div className="relative h-52 w-full overflow-hidden">
-      <ImageWithFallback
-        src={IMAGES.authHero}
-        alt="Home electronics"
-        className="w-full h-full object-cover"
-      />
-      <div className="absolute inset-0 bg-gradient-to-b from-white/85 via-white/70 to-[#F9FAFB]" />
-      <div className="absolute inset-0 bg-gradient-to-br from-brand-blue/15 to-brand-green/15" />
-      <div className="absolute inset-0 flex items-center justify-center">
-        <img src={logoImg} alt="Lendy" className="h-16 w-auto max-w-[75vw] object-contain" />
-      </div>
-    </div>
-  );
-}
 
 /* ── Sign Up ── */
 export function SignUp() {

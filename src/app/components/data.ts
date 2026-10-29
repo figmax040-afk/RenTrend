@@ -6,8 +6,34 @@ export const IMAGES = {
   fridge: "https://images.unsplash.com/photo-1759772238095-d1ed3f036ad5?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtaW5pJTIwZnJpZGdlJTIwY29tcGFjdCUyMHJlZnJpZ2VyYXRvcnxlbnwxfHx8fDE3NzQ5NzM3MTd8MA&ixlib=rb-4.1.0&q=80&w=1080",
   microwave: "https://images.unsplash.com/photo-1608384156808-418b5c079968?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtaWNyb3dhdmUlMjBvdmVuJTIwa2l0Y2hlbnxlbnwxfHx8fDE3NzQ5NDIwOTl8MA&ixlib=rb-4.1.0&q=80&w=1080",
   vacuum: "https://images.unsplash.com/photo-1765970101654-337b573142fb?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx2YWN1dW0lMjBjbGVhbmVyJTIwaG9tZSUyMGFwcGxpYW5jZXxlbnwxfHx8fDE3NzQ5MDAzMjh8MA&ixlib=rb-4.1.0&q=80&w=1080",
-  // Home electronics hero — replaces old campus/graduation photo
+  // Stock fallback for the home and onboarding banners
   campus: "https://images.unsplash.com/photo-1740803292814-13d2e35924c3?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxob21lJTIwYXBwbGlhbmNlcyUyMGVsZWN0cm9uaWNzJTIwa2l0Y2hlbiUyMG1vZGVybnxlbnwxfHx8fDE3NzUxMTgwMzB8MA&ixlib=rb-4.1.0&q=80&w=1080",
-  // Auth / sign-in hero — home appliances lifestyle
+  // Stock fallback for the auth banner
   authHero: "https://images.unsplash.com/photo-1768051579338-3dc694863efc?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx3YXNoaW5nJTIwbWFjaGluZSUyMHJlZnJpZ2VyYXRvciUyMGhvbWUlMjBhcHBsaWFuY2VzfGVufDF8fHx8MTc3NTExODAzMXww&ixlib=rb-4.1.0&q=80&w=1080",
+};
+
+// Banner art lives in src/assets/banners/ (prompts and sizes in IMAGE-PROMPTS.md).
+// Each slot uses its file when present and falls back to the stock photo above.
+const bannerFiles = import.meta.glob<string>("../../assets/banners/*.{webp,jpg,jpeg,png}", {
+  eager: true,
+  import: "default",
+});
+
+function banner(name: string): string | undefined;
+function banner(name: string, fallback: string): string;
+function banner(name: string, fallback?: string) {
+  const hit = Object.keys(bannerFiles).find((p) => p.split("/").pop()!.replace(/\.\w+$/, "") === name);
+  return hit ? bannerFiles[hit] : fallback;
+}
+
+export const BANNERS = {
+  authHero: banner("auth-hero", IMAGES.authHero),
+  homeBanner: banner("home-banner", IMAGES.campus),
+  // Optional taller crop for phones; the wide banner is used when it's missing
+  homeBannerMobile: banner("home-banner-mobile"),
+  onboarding: [
+    banner("onboarding-1", IMAGES.campus),
+    banner("onboarding-2", IMAGES.campus),
+    banner("onboarding-3", IMAGES.campus),
+  ],
 };

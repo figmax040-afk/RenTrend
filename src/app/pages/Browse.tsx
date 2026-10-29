@@ -10,7 +10,7 @@ import { CONDITION_KEYS, CONDITION_VALUES, conditionKeyFromStored } from "../../
 
 declare global { interface Window { google: any; } }
 
-const categoryKeys = ["kitchen", "electronics", "furniture", "camera", "cooling", "other"];
+const categoryKeys = ["kitchen", "electronics", "furniture", "cooling", "other"];
 const conditionKeys = CONDITION_KEYS;
 const conditionValues = CONDITION_VALUES;
 
