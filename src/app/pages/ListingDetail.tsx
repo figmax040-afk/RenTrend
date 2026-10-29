@@ -409,8 +409,8 @@ export function ListingDetail() {
         </div>
       </div>
 
-      {/* ── Sticky CTA ── */}
-      <div className="fixed bottom-0 left-0 right-0 md:sticky bg-white border-t border-[#E5E7EB] px-4 py-3 flex gap-3 max-w-2xl mx-auto">
+      {/* ── Sticky CTA (sits above the mobile bottom nav) ── */}
+      <div className="fixed bottom-16 md:bottom-0 left-0 right-0 md:sticky z-40 bg-white border-t border-[#E5E7EB] px-4 py-3 flex gap-3 max-w-2xl mx-auto">
         {isOwner ? (
           <button
             className="flex-1 py-3 bg-brand text-white rounded-xl hover:bg-brand-hover transition-colors"

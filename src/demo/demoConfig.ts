@@ -175,7 +175,6 @@ function adSet(a: Record<string, Ad>): AdSet {
       electronics: a.homeFix,
       cooling: a.homeFix,
       furniture: a.moveEasy,
-      camera: a.lensCo,
       other: a.boxSpace,
       default: a.sparkleClean,
     },

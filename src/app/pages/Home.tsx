@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
-import { Search, ChefHat, Monitor, Sofa, Wind, Camera, MoreHorizontal, Package } from "lucide-react";
+import { Search, ChefHat, Monitor, Sofa, Wind, MoreHorizontal, Package } from "lucide-react";
 import { useI18n } from "../components/i18n";
 import { ListingCard } from "../components/ListingCard";
 import { BANNERS } from "../components/data";
@@ -17,7 +17,6 @@ const categories = [
   { key: "electronics", icon: Monitor },
   { key: "furniture", icon: Sofa },
   { key: "cooling", icon: Wind },
-  { key: "camera", icon: Camera },
   { key: "other", icon: MoreHorizontal },
 ];
 
