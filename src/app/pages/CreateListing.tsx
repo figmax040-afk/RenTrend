@@ -177,6 +177,7 @@ export function CreateListing() {
       location_lat: locationLat,
       location_lng: locationLng,
       is_active: avail,
+      approval_status: "approved",
       currency: "HKD",
       image_url: urls[0] ?? null,
       images: urls.length > 0 ? urls : null,
@@ -196,7 +197,7 @@ export function CreateListing() {
         </div>
         <h1 className="text-[#1F2937] mb-2" style={{ fontSize: 22 }}>{t("publishListing")}</h1>
         <p className="text-[#6B7280] text-sm mb-2">{title}</p>
-        <p className="text-[#6B7280] text-xs mb-6 max-w-xs">{t("submittedForReview")}</p>
+        <p className="text-[#6B7280] text-xs mb-6 max-w-xs">{t("listingLive")}</p>
         <button onClick={() => navigate("/activity?tab=listings")} className="py-3 px-8 bg-brand text-white rounded-xl">{t("myListings")}</button>
       </div>
     );

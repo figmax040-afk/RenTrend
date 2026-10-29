@@ -1,12 +1,11 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 import { useI18n } from "../components/i18n";
-import { Clock, MessageSquare, Recycle, ArrowLeft } from "lucide-react";
+import { Package, MessageSquare, Recycle, ArrowLeft } from "lucide-react";
 import { supabase } from "../../lib/supabase";
 
 type Stats = {
   totalListings: number;
-  pendingApprovals: number;
   openRequests: number;
   recyclingSubmissions: number;
 };
@@ -14,19 +13,18 @@ type Stats = {
 export function Admin() {
   const { t } = useI18n();
   const navigate = useNavigate();
-  const [stats, setStats] = useState<Stats>({ totalListings: 0, pendingApprovals: 0, openRequests: 0, recyclingSubmissions: 0 });
+  const [stats, setStats] = useState<Stats>({ totalListings: 0, openRequests: 0, recyclingSubmissions: 0 });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function fetchStats() {
-      const [pendingRes, requestsRes, recycleRes] = await Promise.all([
-        supabase.from("listings").select("id", { count: "exact", head: true }).eq("approval_status", "pending"),
+      const [listingsRes, requestsRes, recycleRes] = await Promise.all([
+        supabase.from("listings").select("id", { count: "exact", head: true }),
         supabase.from("requests").select("id", { count: "exact", head: true }).eq("status", "pending"),
         supabase.from("recycle_submissions").select("id", { count: "exact", head: true }).eq("status", "pending"),
       ]);
       setStats({
-        totalListings: 0,
-        pendingApprovals: pendingRes.count ?? 0,
+        totalListings: listingsRes.count ?? 0,
         openRequests: requestsRes.count ?? 0,
         recyclingSubmissions: recycleRes.count ?? 0,
       });
@@ -36,7 +34,7 @@ export function Admin() {
   }, []);
 
   const statCards = [
-    { key: "pendingApprovals",     icon: Clock,         color: "#F4A261", route: "/admin/approvals" },
+    { key: "totalListings",        icon: Package,       color: "#F4A261", route: "/admin/listings"  },
     { key: "openRequests",         icon: MessageSquare, color: "#22C55E", route: "/admin/requests"  },
     { key: "recyclingSubmissions", icon: Recycle,       color: "#6B7280", route: "/admin/recycling" },
   ] as const;
@@ -71,14 +69,6 @@ export function Admin() {
           );
         })}
       </div>
-
-      <h3 className="text-[#1F2937] mb-3">{t("pendingApprovals")}</h3>
-      <button
-        onClick={() => navigate("/admin/approvals")}
-        className="w-full py-3 bg-white border border-[#E5E7EB] rounded-xl text-sm text-brand hover:border-brand transition-colors"
-      >
-        {t("viewPendingApprovals").replace("{n}", String(stats.pendingApprovals))} →
-      </button>
     </div>
   );
 }

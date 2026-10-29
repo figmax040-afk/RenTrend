@@ -23,7 +23,6 @@ import { EmailPreferences } from "./pages/EmailPreferences";
 import { Earnings } from "./pages/Earnings";
 import { Admin } from "./pages/Admin";
 import { AdminListings } from "./pages/AdminListings";
-import { AdminApprovals } from "./pages/AdminApprovals";
 import { AdminRequests } from "./pages/AdminRequests";
 import { AdminRecycling } from "./pages/AdminRecycling";
 import { ResetPassword } from "./pages/ResetPassword";
@@ -60,7 +59,6 @@ export const router = createBrowserRouter([
       { path: "/earnings", Component: Earnings },
       { path: "/admin", Component: Admin },
       { path: "/admin/listings", Component: AdminListings },
-      { path: "/admin/approvals", Component: AdminApprovals },
       { path: "/admin/requests", Component: AdminRequests },
       { path: "/admin/recycling", Component: AdminRecycling },
       { path: "/chat/:requestId", Component: Chat },
