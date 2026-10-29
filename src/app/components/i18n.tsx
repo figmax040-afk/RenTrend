@@ -246,7 +246,6 @@ const translations: Record<string, { en: string; zh: string }> = {
   emailPrefsNearbyDesc: { en: "Get notified about new items in your area", zh: "獲取你所在地區的新物品通知" },
   emailPrefsDigest: { en: "Weekly digest", zh: "每週摘要" },
   emailPrefsDigestDesc: { en: "A weekly summary of activity on Lendy", zh: "Lendy 每週活動摘要" },
-  noPendingApprovals: { en: "No pending approvals", zh: "暫無待批准的刊登" },
   // Admin pages
   allListings: { en: "All Listings", zh: "所有刊登" },
   noListingsYet: { en: "No listings yet", zh: "暫無刊登" },
@@ -278,11 +277,8 @@ const translations: Record<string, { en: string; zh: string }> = {
   // Admin
   admin: { en: "Admin Dashboard", zh: "管理員面板" },
   totalListings: { en: "Total Listings", zh: "總刊登數" },
-  pendingApprovals: { en: "Pending Approvals", zh: "待批准的請求" },
   openRequests: { en: "Open Requests", zh: "公開請求" },
   recyclingSubmissions: { en: "Recycling Submissions", zh: "回收提交" },
-  approve: { en: "Approve", zh: "批准" },
-  reject: { en: "Reject", zh: "拒絕" },
   savedListings: { en: "Saved Items", zh: "已收藏" },
   noSavedItems: { en: "No saved items yet", zh: "暫無收藏" },
   browseToSave: { en: "Browse listings and tap the heart to save items", zh: "瀏覽刊登並點擊愛心以收藏" },
@@ -309,8 +305,12 @@ const translations: Record<string, { en: string; zh: string }> = {
   errEnterEmail: { en: "Please enter your email.", zh: "請輸入你的電郵。" },
   // Listing lifecycle
   pendingReview: { en: "Pending review", zh: "審核中" },
-  rejectedListing: { en: "Rejected", zh: "未獲批准" },
-  submittedForReview: { en: "Submitted for review. Your listing goes live once an admin approves it.", zh: "已提交審核，管理員批准後刊登即會上架。" },
+  rejectedListing: { en: "Removed by admin", zh: "已被管理員下架" },
+  listingLive: { en: "Your listing is live — renters can see it now.", zh: "你的物品已上架，租客現在可以看到。" },
+  takeDown: { en: "Take down", zh: "下架" },
+  takenDown: { en: "Taken down", zh: "已下架" },
+  restore: { en: "Restore", zh: "恢復" },
+  updateBlocked: { en: "Couldn't update this listing — your account doesn't have permission.", zh: "無法更新此物品，你的帳戶沒有權限。" },
   deleteBlockedRented: { en: "This item is currently rented out. Mark the rental completed before deleting it.", zh: "此物品正在出租中，請先將租用標記為已完成再刪除。" },
   deleteWillCancel: { en: "Open requests on this listing will be cancelled and the renters notified.", zh: "此刊登的待處理請求將被取消，並會通知租客。" },
   deleteFailed: { en: "Couldn't delete this listing. Please try again.", zh: "刪除刊登失敗，請重試。" },
@@ -353,8 +353,6 @@ const translations: Record<string, { en: string; zh: string }> = {
   itemLamp: { en: "Lamp", zh: "燈" },
   itemFridge: { en: "Fridge", zh: "雪櫃" },
   itemOther: { en: "Other", zh: "其他" },
-  // Admin
-  viewPendingApprovals: { en: "View {n} pending approvals", zh: "查看 {n} 個待批准的刊登" },
   // Auth / verification
   confirmLinkSentPre: { en: "We sent a confirmation link to ", zh: "我們已向 " },
   confirmLinkSentPost: { en: ". Click it to activate your account.", zh: " 發送確認連結，請點擊連結以啟用你的帳號。" },

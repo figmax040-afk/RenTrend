@@ -66,7 +66,6 @@ export function EditListing() {
   const [saving, setSaving]         = useState(false);
   const [saveError, setSaveError]   = useState("");
   const [saved, setSaved]           = useState(false);
-  const [wasRejected, setWasRejected] = useState(false);
 
   // Load listing data
   useEffect(() => {
@@ -115,7 +114,6 @@ export function EditListing() {
 
       // Step 3
       setAvail(data.is_active ?? true);
-      setWasRejected(data.approval_status === "rejected");
       setLocation(data.location_address ?? data.district ?? "");
       setLocationLat(data.location_lat ?? null);
       setLocationLng(data.location_lng ?? null);
@@ -220,8 +218,6 @@ export function EditListing() {
         is_active: avail,
         image_url: urls[0] ?? null,
         images: urls.length > 0 ? urls : null,
-        // Editing a rejected listing sends it back for review
-        ...(wasRejected ? { approval_status: "pending" } : {}),
       })
       .eq("id", listingId);
 
