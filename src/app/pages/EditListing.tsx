@@ -2,11 +2,10 @@ import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router";
 import { ArrowLeft, Camera, X, ChefHat, Monitor, Sofa, Wind, MoreHorizontal, CheckCircle } from "lucide-react";
 import { useI18n } from "../components/i18n";
+import { LocationInput } from "../components/LocationInput";
 import { supabase } from "../../lib/supabase";
 import { loginPath } from "../../lib/authRedirect";
 import { CONDITION_KEYS, CONDITION_VALUES, conditionKeyFromStored, type ConditionKey } from "../../lib/conditions";
-
-declare global { interface Window { google: any; } }
 
 const catIcons = [
   { key: "kitchen", icon: ChefHat },
@@ -60,7 +59,6 @@ export function EditListing() {
   const [location, setLocation]     = useState("");
   const [locationLat, setLocationLat] = useState<number | null>(null);
   const [locationLng, setLocationLng] = useState<number | null>(null);
-  const locationInputRef = useRef<HTMLInputElement>(null);
 
   // Save state
   const [saving, setSaving]         = useState(false);
@@ -122,42 +120,6 @@ export function EditListing() {
     }
     load();
   }, [listingId, navigate]);
-
-  // Load Google Maps script
-  useEffect(() => {
-    if (window.google) return;
-    const existing = document.querySelector('script[src*="maps.googleapis.com"]');
-    if (existing) return;
-    const script = document.createElement("script");
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${import.meta.env.VITE_GOOGLE_MAPS_API_KEY}&libraries=places`;
-    script.async = true;
-    document.head.appendChild(script);
-  }, []);
-
-  // Init autocomplete on step 2
-  useEffect(() => {
-    if (step !== 2) return;
-    function init() {
-      if (!window.google || !locationInputRef.current) return;
-      const ac = new window.google.maps.places.Autocomplete(locationInputRef.current, {
-        componentRestrictions: { country: "hk" },
-        fields: ["formatted_address", "geometry", "name"],
-        types: ["establishment", "geocode"],
-      });
-      ac.addListener("place_changed", () => {
-        const place = ac.getPlace();
-        const address = place.formatted_address || place.name || "";
-        setLocation(address);
-        setLocationLat(place.geometry?.location?.lat() ?? null);
-        setLocationLng(place.geometry?.location?.lng() ?? null);
-      });
-    }
-    if (window.google) { init(); }
-    else {
-      const interval = setInterval(() => { if (window.google) { clearInterval(interval); init(); } }, 200);
-      return () => clearInterval(interval);
-    }
-  }, [step]);
 
   async function handleFileSelect(index: number, file: File) {
     setUploadErrors((e) => { const n = [...e]; n[index] = null; return n; });
@@ -392,10 +354,14 @@ export function EditListing() {
             </div>
             <div>
               <label className="text-sm text-[#6B7280]">{t("location")}</label>
-              <input ref={locationInputRef} type="text" value={location}
-                onChange={(e) => { setLocation(e.target.value); setLocationLat(null); setLocationLng(null); }}
+              <LocationInput value={location}
+                onChange={(text) => { setLocation(text); setLocationLat(null); setLocationLng(null); }}
+                onPick={(p) => { setLocation(p.address); setLocationLat(p.lat); setLocationLng(p.lng); }}
                 placeholder={t("searchLocationHK")}
                 className="w-full mt-1 px-4 py-2.5 rounded-xl border border-[#E5E7EB] bg-white text-sm focus:outline-none focus:border-brand" />
+              {location && locationLat === null && (
+                <p className="text-[11px] text-[#6B7280] mt-1">{t("pickFromList")}</p>
+              )}
             </div>
             <button onClick={() => setStep(3)} className="w-full py-3 bg-brand text-white rounded-xl">{t("next")}</button>
           </div>

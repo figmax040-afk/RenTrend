@@ -1,7 +1,9 @@
-import { useState, useEffect, useRef, useCallback, Fragment } from "react";
+import { useState, useEffect, Fragment } from "react";
 import { Search, SlidersHorizontal, X, MapPin, Heart, Recycle, ChevronRight } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router";
 import { useI18n } from "../components/i18n";
+import { LocationInput } from "../components/LocationInput";
+import { distanceKm } from "../../lib/googleMaps";
 import { ListingCard } from "../components/ListingCard";
 import { supabase } from "../../lib/supabase";
 import listingPlaceholder from "../../assets/listing-placeholder.svg";
@@ -10,8 +12,6 @@ import { CONDITION_KEYS, CONDITION_VALUES, conditionKeyFromStored } from "../../
 import { fetchListingExtras, listingIsFeatured, type ListingExtras } from "../../lib/listingExtras";
 import { featuredFirst } from "../../demo/demo";
 import { SponsoredListingCard, useAdSet } from "../components/Ads";
-
-declare global { interface Window { google: any; } }
 
 const categoryKeys = ["kitchen", "electronics", "furniture", "cooling", "other"];
 // A sponsored card follows every this many listings
@@ -38,13 +38,6 @@ type UiListing = {
   featured: boolean;
 };
 
-function distanceKm(lat1: number, lng1: number, lat2: number, lng2: number) {
-  const R = 6371;
-  const dLat = (lat2 - lat1) * Math.PI / 180;
-  const dLng = (lng2 - lng1) * Math.PI / 180;
-  const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLng / 2) ** 2;
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-}
 
 export function Browse() {
   const { t, isZh, zh } = useI18n();
@@ -61,47 +54,12 @@ export function Browse() {
   const [availableOnly, setAvailableOnly] = useState(false);
   const [locationFilter, setLocationFilter] = useState<LocationFilter | null>(null);
   const [locationInputValue, setLocationInputValue] = useState("");
-  const locationInputRef = useRef<HTMLInputElement>(null);
   const [allListings, setAllListings] = useState<UiListing[]>([]);
   const [brands, setBrands] = useState<string[]>([]);
   const [dataLoading, setDataLoading] = useState(true);
   const [savedCount, setSavedCount] = useState(0);
   const [extras, setExtras] = useState<ListingExtras>({ ratings: {}, powerOwners: new Set() });
   const adSet = useAdSet();
-
-  // Load Google Maps script
-  useEffect(() => {
-    if (window.google) { initAutocomplete(); return; }
-    const existing = document.querySelector('script[src*="maps.googleapis.com"]');
-    if (existing) {
-      existing.addEventListener("load", initAutocomplete);
-      return;
-    }
-    const script = document.createElement("script");
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${import.meta.env.VITE_GOOGLE_MAPS_API_KEY}&libraries=places`;
-    script.async = true;
-    script.onload = initAutocomplete;
-    document.head.appendChild(script);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const initAutocomplete = useCallback(() => {
-    if (!window.google || !locationInputRef.current) return;
-    const ac = new window.google.maps.places.Autocomplete(locationInputRef.current, {
-      componentRestrictions: { country: "hk" },
-      fields: ["formatted_address", "geometry", "name"],
-      types: ["establishment", "geocode"],
-    });
-    ac.addListener("place_changed", () => {
-      const place = ac.getPlace();
-      const address = place.formatted_address || place.name || "";
-      const lat = place.geometry?.location?.lat() ?? null;
-      const lng = place.geometry?.location?.lng() ?? null;
-      setLocationInputValue(address);
-      if (lat !== null && lng !== null) {
-        setLocationFilter({ lat, lng, address });
-      }
-    });
-  }, []);
 
   useEffect(() => {
     if (authLoading || !user) return;
@@ -276,14 +234,16 @@ export function Browse() {
           <div>
             <label className="text-xs text-[#6B7280] block mb-2">{t("nearLocation")}</label>
             <div className="relative">
-              <MapPin size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#6B7280]" />
-              <input
-                ref={locationInputRef}
-                type="text"
+              <MapPin size={14} className="absolute left-3 top-1/2 -translate-y-1/2 z-10 pointer-events-none text-[#6B7280]" />
+              <LocationInput
                 value={locationInputValue}
-                onChange={(e) => {
-                  setLocationInputValue(e.target.value);
-                  if (!e.target.value) setLocationFilter(null);
+                onChange={(text) => {
+                  setLocationInputValue(text);
+                  if (!text) setLocationFilter(null);
+                }}
+                onPick={(p) => {
+                  setLocationInputValue(p.address);
+                  setLocationFilter(p);
                 }}
                 placeholder={t("searchLocationHK")}
                 className="w-full pl-8 pr-8 py-2 rounded-xl border border-[#E5E7EB] bg-white text-sm focus:outline-none focus:border-brand"
@@ -291,7 +251,7 @@ export function Browse() {
               {locationFilter && (
                 <button
                   onClick={() => { setLocationFilter(null); setLocationInputValue(""); }}
-                  className="absolute right-2 top-1/2 -translate-y-1/2"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 z-10"
                 >
                   <X size={14} className="text-[#6B7280]" />
                 </button>
@@ -379,7 +339,6 @@ export function Browse() {
                 id={l.id} image={l.image}
                 title={isZh ? zh(l.titleZh) : l.title}
                 price={l.price}
-                distance={getDisplayDistance(l)}
                 category={l.category}
                 available={l.available}
                 rating={extras.ratings[String(l.id)] ?? null}

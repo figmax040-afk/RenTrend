@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
-import { Search, ChefHat, Monitor, Sofa, Wind, MoreHorizontal, Package } from "lucide-react";
+import { Search, ChefHat, Monitor, Sofa, Wind, MoreHorizontal, Package, LocateFixed } from "lucide-react";
 import { useI18n } from "../components/i18n";
 import { ListingCard } from "../components/ListingCard";
 import { BANNERS } from "../components/data";
@@ -11,6 +11,7 @@ import { useAuth } from "../../lib/useAuth";
 import { fetchListingExtras, listingIsFeatured, type ListingExtras } from "../../lib/listingExtras";
 import { featuredFirst } from "../../demo/demo";
 import { HomeAdBanner } from "../components/Ads";
+import { distanceKm } from "../../lib/googleMaps";
 
 const categories = [
   { key: "kitchen", icon: ChefHat },
@@ -19,6 +20,9 @@ const categories = [
   { key: "cooling", icon: Wind },
   { key: "other", icon: MoreHorizontal },
 ];
+
+// Roughly a 10-minute walk, as the crow flies
+const WALK_KM = 0.8;
 
 type UiListing = {
   id: string | number;
@@ -33,6 +37,8 @@ type UiListing = {
   available: boolean;
   owner_id: string | null;
   featured: boolean;
+  lat: number | null;
+  lng: number | null;
 };
 
 function dbToUi(l: Record<string, any>): UiListing {
@@ -49,6 +55,8 @@ function dbToUi(l: Record<string, any>): UiListing {
     available: l.is_active,
     owner_id: l.owner_id ?? null,
     featured: listingIsFeatured(l),
+    lat: l.location_lat ?? null,
+    lng: l.location_lng ?? null,
   };
 }
 
@@ -59,6 +67,25 @@ export function Home() {
   const [listings, setListings] = useState<UiListing[]>([]);
   const [dataLoading, setDataLoading] = useState(true);
   const [extras, setExtras] = useState<ListingExtras>({ ratings: {}, powerOwners: new Set() });
+  const [here, setHere] = useState<{ lat: number; lng: number } | null>(null);
+  const [geo, setGeo] = useState<"idle" | "locating" | "denied">("idle");
+
+  function locate() {
+    if (!navigator.geolocation) { setGeo("denied"); return; }
+    setGeo("locating");
+    navigator.geolocation.getCurrentPosition(
+      (pos) => { setHere({ lat: pos.coords.latitude, lng: pos.coords.longitude }); setGeo("idle"); },
+      () => setGeo("denied"),
+      { enableHighAccuracy: false, timeout: 10000, maximumAge: 5 * 60 * 1000 },
+    );
+  }
+
+  // If the user already allowed location, use it without asking again
+  useEffect(() => {
+    navigator.permissions?.query({ name: "geolocation" as PermissionName })
+      .then((status) => { if (status.state === "granted") locate(); })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (authLoading) return;
@@ -80,6 +107,16 @@ export function Home() {
         fetchListingExtras(ui).then(setExtras).catch((err) => console.error("Listing extras failed:", err));
       });
   }, [authLoading, user, navigate]);
+
+  const nearby = here
+    ? listings
+        .filter((l) => l.available && l.lat != null && l.lng != null)
+        .map((l) => ({ l, km: distanceKm(here.lat, here.lng, l.lat!, l.lng!) }))
+        .filter((x) => x.km <= WALK_KM)
+        .sort((a, b) => a.km - b.km)
+        .slice(0, 4)
+        .map((x) => x.l)
+    : [];
 
   const cardExtras = (l: UiListing) => ({
     rating: extras.ratings[String(l.id)] ?? null,
@@ -158,36 +195,52 @@ export function Home() {
         <>
         {/* Near you section */}
         <Section title={t("nearYou")} onSeeAll={() => navigate("/browse")}>
+          {!here ? (
+            <div className="flex flex-col md:flex-row md:items-center gap-3 p-4 rounded-xl bg-white border border-[#E5E7EB]">
+              <p className="flex-1 text-sm text-[#6B7280]">
+                {geo === "denied" ? t("nearMeDenied") : t("nearMePrompt")}
+              </p>
+              {geo !== "denied" && (
+                <button
+                  onClick={locate}
+                  disabled={geo === "locating"}
+                  className="flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl bg-brand text-white text-sm hover:bg-brand-hover transition-colors disabled:opacity-60"
+                >
+                  <LocateFixed size={14} />
+                  {geo === "locating" ? t("nearMeLocating") : t("nearMeButton")}
+                </button>
+              )}
+            </div>
+          ) : nearby.length === 0 ? (
+            <p className="p-4 rounded-xl bg-white border border-[#E5E7EB] text-sm text-[#6B7280]">{t("nearMeNone")}</p>
+          ) : (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              {nearby.map((l) => (
+                <ListingCard
+                  key={String(l.id)} id={l.id} image={l.image}
+                  title={isZh ? zh(l.titleZh) : l.title}
+                  price={l.price}
+                  category={isZh ? zh(l.categoryZh) : l.category}
+                  available={l.available}
+                  {...cardExtras(l)}
+                />
+              ))}
+            </div>
+          )}
+        </Section>
+
+        {/* Recently Added */}
+        <Section title={t("recentlyAdded")} onSeeAll={() => navigate("/browse")}>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {listings.slice(0, 4).map((l) => (
               <ListingCard
                 key={String(l.id)} id={l.id} image={l.image}
                 title={isZh ? zh(l.titleZh) : l.title}
                 price={l.price}
-                distance={isZh ? zh(l.distanceZh) : l.distance}
                 category={isZh ? zh(l.categoryZh) : l.category}
                 available={l.available}
                 {...cardExtras(l)}
               />
-            ))}
-          </div>
-        </Section>
-
-        {/* Recently Added */}
-        <Section title={t("recentlyAdded")} onSeeAll={() => navigate("/browse")}>
-          <div className="flex gap-3 overflow-x-auto pb-2">
-            {listings.slice(2, 6).map((l) => (
-              <div key={String(l.id)} className="w-[200px] shrink-0">
-                <ListingCard
-                  id={l.id} image={l.image}
-                  title={isZh ? zh(l.titleZh) : l.title}
-                  price={l.price}
-                  distance={isZh ? zh(l.distanceZh) : l.distance}
-                  category={isZh ? zh(l.categoryZh) : l.category}
-                  available={l.available}
-                  {...cardExtras(l)}
-                />
-              </div>
             ))}
           </div>
         </Section>
@@ -200,7 +253,6 @@ export function Home() {
                 key={String(l.id)} id={l.id} image={l.image}
                 title={isZh ? zh(l.titleZh) : l.title}
                 price={l.price}
-                distance={isZh ? zh(l.distanceZh) : l.distance}
                 category={isZh ? zh(l.categoryZh) : l.category}
                 available={l.available}
                 {...cardExtras(l)}
