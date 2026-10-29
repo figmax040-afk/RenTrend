@@ -7,6 +7,10 @@ import { ImageWithFallback } from "../components/figma/ImageWithFallback";
 import { supabase } from "../../lib/supabase";
 import { loginPath } from "../../lib/authRedirect";
 import { conditionKeyFromStored } from "../../lib/conditions";
+import { ListingDetailAd } from "../components/Ads";
+import { RentalTermsCard } from "../components/RentalTermsCard";
+import { FeaturedTag, PowerLenderBadge } from "../components/Badges";
+import { isBoosted, isPowerLender } from "../../demo/demo";
 
 type NormalizedListing = {
   id: string | number;
@@ -31,6 +35,7 @@ type NormalizedListing = {
   universityZh: string;
   memberSince: string;
   available: boolean;
+  featured: boolean;
 };
 
 function StarRow({ rating }: { rating: number }) {
@@ -59,6 +64,7 @@ export function ListingDetail() {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [copied,    setCopied]    = useState(false);
   const [ownerName, setOwnerName] = useState<string>("—");
+  const [ownerIsPower, setOwnerIsPower] = useState(false);
   const [realReviews, setRealReviews] = useState<Array<{
     id: string; author: string; rating: number; date: string; comment: string; listing_title?: string;
   }>>([]);
@@ -113,7 +119,10 @@ export function ListingDetail() {
             universityZh: data.university ?? "",
             memberSince: new Date(data.created_at).toLocaleDateString("en-US", { month: "short", year: "numeric" }),
             available: data.is_active && (data.approval_status ?? "approved") === "approved",
+            featured: isBoosted(data.boosted_until),
           });
+          // Count the view for the owner's stats (the function ignores the owner's own views)
+          supabase.rpc("bump_listing_view", { p_listing_id: data.id }).then(() => {}, () => {});
         }
         setLoading(false);
       });
@@ -127,11 +136,12 @@ export function ListingDetail() {
       // Fetch owner's display name
       const { data: ownerProfile } = await supabase
         .from("profiles")
-        .select("name, email")
+        .select("*")
         .eq("id", listing!.owner_id!)
         .maybeSingle();
       const oName = ownerProfile?.name || (ownerProfile?.email ? ownerProfile.email.split("@")[0] : "—");
       setOwnerName(oName);
+      setOwnerIsPower(isPowerLender(ownerProfile?.completed_rentals_as_lender, ownerProfile?.rating_as_lister));
 
       // Fetch all reviews for this owner as a lister (renter reviews)
       const { data: revData } = await supabase
@@ -250,9 +260,12 @@ export function ListingDetail() {
 
       <div className="px-4 py-4">
         {/* ── Title & category ── */}
-        <span className="inline-block px-2 py-0.5 rounded-full bg-brand/10 text-brand text-xs mb-2">
-          {isZh ? zh(listing.categoryZh) : listing.category}
-        </span>
+        <div className="flex items-center gap-2 mb-2">
+          <span className="inline-block px-2 py-0.5 rounded-full bg-brand/10 text-brand text-xs">
+            {t(listing.category?.toLowerCase() ?? "other")}
+          </span>
+          {listing.featured && <FeaturedTag />}
+        </div>
         <h1 style={{ fontSize: 22 }} className="text-brand-ink">
           {isZh ? zh(listing.titleZh) : listing.title}
         </h1>
@@ -304,10 +317,13 @@ export function ListingDetail() {
         {/* ── Owner card ── */}
         <div className="flex items-center gap-3 mt-4 p-3 rounded-xl bg-brand-soft border border-brand-border">
           <div className="w-10 h-10 rounded-full bg-brand flex items-center justify-center text-white text-sm">
-            {listing.owner[0]}
+            {ownerName[0]?.toUpperCase()}
           </div>
           <div className="flex-1">
-            <p className="text-sm text-[#1F2937]" style={{ fontWeight: 500 }}>{listing.owner}</p>
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <p className="text-sm text-[#1F2937]" style={{ fontWeight: 500 }}>{ownerName}</p>
+              {ownerIsPower && <PowerLenderBadge small />}
+            </div>
             <div className="flex items-center gap-1">
               <Shield size={12} className="text-[#22C55E]" />
               <span className="text-xs text-[#22C55E]">
@@ -334,6 +350,9 @@ export function ListingDetail() {
           )}
         </div>
 
+        {/* ── Sponsored (by category, hidden for Plus members) ── */}
+        <ListingDetailAd category={listing.category} />
+
         {/* ── Condition ── */}
         <div className="mt-4">
           <p className="text-sm mb-1" style={{ fontWeight: 500 }}>{t("condition")}</p>
@@ -341,6 +360,9 @@ export function ListingDetail() {
             {isZh ? zh(listing.conditionZh) : listing.condition}
           </span>
         </div>
+
+        {/* ── Rental terms ── */}
+        <RentalTermsCard />
 
         {/* ── Reviews / Comments section ── */}
         <div className="mt-6">

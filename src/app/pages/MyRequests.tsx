@@ -16,6 +16,7 @@ type EnrichedRequest = {
   end_date: string;
   total_price: number;
   status: string;
+  escrow_status?: string | null;
   listing: {
     id: string;
     title: string;
@@ -219,6 +220,14 @@ export function MyRequestsContent() {
                         }}>
                         {t(statusKeyMap[r.status] ?? r.status)}
                       </span>
+                      {r.status === "accepted" && (r.escrow_status ?? "unpaid") === "unpaid" && (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); navigate(`/checkout/${r.id}`); }}
+                          className="text-xs px-2 py-0.5 rounded-full bg-brand text-white"
+                        >
+                          {t("payNow")}
+                        </button>
+                      )}
                       {r.total_price > 0 && (
                         <span className="text-xs text-brand" style={{ fontWeight: 500 }}>
                           HK${r.total_price}

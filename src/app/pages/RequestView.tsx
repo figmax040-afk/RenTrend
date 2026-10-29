@@ -1,12 +1,16 @@
 import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router";
-import { ArrowLeft, Shield, Star, MessageCircle } from "lucide-react";
+import { ArrowLeft, Shield, Star, MessageCircle, CreditCard } from "lucide-react";
 import { useI18n } from "../components/i18n";
 import { ImageWithFallback } from "../components/figma/ImageWithFallback";
 import { supabase } from "../../lib/supabase";
 import listingPlaceholder from "../../assets/listing-placeholder.svg";
 import { loginPath } from "../../lib/authRedirect";
 import { breakdownFromRequest } from "../../lib/pricing";
+import { EscrowTracker, escrowOf } from "../components/EscrowTracker";
+import { HandoverPanel, type HandoverRequest } from "../components/HandoverPanel";
+import { LockerCodeCard } from "../components/Lockers";
+import { PICKUP_LABEL_KEY, pickupMethodOf } from "../../demo/demo";
 
 const FALLBACK_IMAGE = listingPlaceholder;
 
@@ -40,7 +44,13 @@ type RequestData = {
   pickup_preference: string | null;
   total_price: number | null;
   breakdown_json: Record<string, number | null> | null;
-};
+  pickup_method?: string | null;
+  locker_id?: string | null;
+  locker_code?: string | null;
+  amount_paid?: number | null;
+  delivery_fee?: number | null;
+  discount?: number | null;
+} & HandoverRequest;
 
 function fmtFull(d: string) {
   return new Date(d).toLocaleDateString("en-GB", {
@@ -91,6 +101,7 @@ export function RequestView() {
   const [error, setError] = useState("");
   const [cancelling, setCancelling] = useState(false);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+  const [showRefundConfirm, setShowRefundConfirm] = useState(false);
 
   // Review state
   const [existingReview, setExistingReview] = useState<{ rating: number; comment: string | null } | null>(null);
@@ -193,6 +204,25 @@ export function RequestView() {
     navigate("/activity?tab=requests");
   }
 
+  // Paid bookings can be cancelled for a full refund until 24 hours before pickup
+  async function handleCancelPaid() {
+    if (!request) return;
+    setCancelling(true);
+    const { data, error: cancelErr } = await supabase
+      .from("requests")
+      .update({ status: "cancelled", escrow_status: "refunded" })
+      .eq("id", request.id)
+      .select("*")
+      .single();
+    setCancelling(false);
+    setShowRefundConfirm(false);
+    if (cancelErr || !data) {
+      setError(isZh ? zh("取消請求時出錯，請重試") : "Failed to cancel request. Please try again.");
+      return;
+    }
+    setRequest(data as RequestData);
+  }
+
   async function handleSubmitReview() {
     if (!listing || !reviewRating || !currentUserId) return;
     setSubmittingReview(true);
@@ -255,8 +285,13 @@ export function RequestView() {
   const lines = breakdownFromRequest(request, listing);
   const rentTotal = lines?.total ?? request.total_price ?? 0;
   const deposit = listing?.deposit ?? 0;
-  // total_price is rent only; the renter was quoted rent + deposit when requesting
-  const total = rentTotal + deposit;
+  // total_price is rent only; the renter was quoted rent + deposit (+ pickup fee) when requesting
+  const escrow = escrowOf(request);
+  const total = request.amount_paid ?? rentTotal + deposit;
+  const method = pickupMethodOf(request);
+  const showEscrow = request.status === "accepted" || request.status === "completed" || escrow === "refunded";
+  const pickedUp = !!request.pickup_renter_ok_at && !!request.pickup_lender_ok_at;
+  const canFreeCancel = new Date(`${request.start_date}T00:00:00+08:00`).getTime() - Date.now() > 24 * 3600 * 1000;
 
   return (
     <div className="max-w-lg mx-auto px-4 pt-4 pb-10">
@@ -333,6 +368,29 @@ export function RequestView() {
         </div>
       )}
 
+      {/* ── Payment due (accepted, not yet paid) ── */}
+      {request.status === "accepted" && escrow === "unpaid" && (
+        <div className="bg-white rounded-xl border-2 border-brand p-4 mb-4">
+          <p className="text-sm text-brand-ink" style={{ fontWeight: 600 }}>{t("paymentDue")}</p>
+          <p className="text-xs text-[#6B7280] mt-0.5 mb-3">{t("paymentDueMsg")}</p>
+          <button
+            onClick={() => navigate(`/checkout/${request.id}`)}
+            className="w-full py-3 bg-brand text-white rounded-xl text-sm flex items-center justify-center gap-2 hover:bg-brand-hover transition-colors"
+          >
+            <CreditCard size={16} />{t("payNow")}
+          </button>
+        </div>
+      )}
+
+      {/* ── Escrow, locker and handovers ── */}
+      {showEscrow && <EscrowTracker request={request} />}
+      {showEscrow && method === "locker" && escrow !== "refunded" && (
+        <LockerCodeCard lockerId={request.locker_id ?? null} code={request.locker_code ?? null} paid={escrow !== "unpaid"} />
+      )}
+      {request.status === "accepted" && (
+        <HandoverPanel request={request} role="renter" onUpdated={(row) => (row.status === "completed" ? load() : setRequest(row))} />
+      )}
+
       {request.status === "completed" && (
         <div
           className="rounded-xl px-4 py-3 mb-4"
@@ -383,9 +441,7 @@ export function RequestView() {
           <div>
             <p className="text-[10px] text-[#9CA3AF]">{t("pickupPref")}</p>
             <p className="text-sm text-[#1F2937]">
-              {request.pickup_preference === "deliver"
-                ? t("ownerDelivers")
-                : t("iCanCollect")}
+              {t(PICKUP_LABEL_KEY[method])}
             </p>
           </div>
         </div>
@@ -422,9 +478,21 @@ export function RequestView() {
             </div>
           )}
           <div className="flex justify-between items-center">
-            <p className="text-xs text-[#6B7280]">{t("deposit")}</p>
+            <p className="text-xs text-[#6B7280]">{t("refundableDeposit")}</p>
             <p className="text-sm text-[#1F2937]">HK${deposit}</p>
           </div>
+          {!!request.delivery_fee && (
+            <div className="flex justify-between items-center">
+              <p className="text-xs text-[#6B7280]">{t(method === "locker" ? "lockerFee" : "deliveryFee")}</p>
+              <p className="text-sm text-[#1F2937]">HK${request.delivery_fee}</p>
+            </div>
+          )}
+          {!!request.discount && (
+            <div className="flex justify-between items-center">
+              <p className="text-xs text-[#15803D]">{t("discount")}</p>
+              <p className="text-sm text-[#15803D]">− HK${request.discount}</p>
+            </div>
+          )}
           <div className="flex justify-between items-center pt-1 border-t border-[#E5E7EB]">
             <p className="text-sm text-[#1F2937]" style={{ fontWeight: 600 }}>{t("total")}</p>
             <p className="text-brand" style={{ fontWeight: 700, fontSize: 16 }}>
@@ -523,6 +591,34 @@ export function RequestView() {
                   </span>
                 ) : isZh ? zh("提交評價") : "Submit Review"}
               </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── Cancel a paid booking (full refund until 24h before pickup) ── */}
+      {request.status === "accepted" && escrow === "held" && !pickedUp && (
+        <div className="mb-3">
+          {!canFreeCancel ? (
+            <p className="text-xs text-[#9CA3AF] text-center">{t("cancelWindowPassed")}</p>
+          ) : !showRefundConfirm ? (
+            <button
+              onClick={() => setShowRefundConfirm(true)}
+              className="w-full py-3 border border-[#EF4444] text-[#EF4444] rounded-xl text-sm hover:bg-red-50 transition-colors"
+            >
+              {t("cancelBooking")}
+            </button>
+          ) : (
+            <div className="border border-[#EF4444] rounded-xl p-4 space-y-3">
+              <p className="text-sm text-[#1F2937]">{t("cancelBookingConfirm")}</p>
+              <div className="flex gap-3">
+                <button onClick={() => setShowRefundConfirm(false)} className="flex-1 py-2.5 border border-[#E5E7EB] text-[#6B7280] rounded-xl text-sm">
+                  {isZh ? zh("返回") : "Go back"}
+                </button>
+                <button onClick={handleCancelPaid} disabled={cancelling} className="flex-1 py-2.5 bg-[#EF4444] text-white rounded-xl text-sm disabled:opacity-60">
+                  {cancelling ? "…" : t("cancelBooking")}
+                </button>
+              </div>
             </div>
           )}
         </div>

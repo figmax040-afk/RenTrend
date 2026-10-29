@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 import { useI18n } from "../components/i18n";
 import { ImageWithFallback } from "../components/figma/ImageWithFallback";
-import { PlusCircle, MoreVertical, Edit, Trash2 } from "lucide-react";
+import { PlusCircle, MoreVertical, Edit, Trash2, Rocket } from "lucide-react";
 import { supabase } from "../../lib/supabase";
 import { loginPath } from "../../lib/authRedirect";
 import { useAuth } from "../../lib/useAuth";
@@ -10,6 +10,11 @@ import { IMAGES } from "../components/data";
 import { sendEmail } from "../../lib/sendEmail";
 import { APP_URL } from "../../lib/appUrl";
 import { todayHK } from "../../lib/dates";
+import { FeaturedTag } from "../components/Badges";
+import { boostUntilFromNow, isBoosted } from "../../demo/demo";
+import { BOOST_PRICE_FREE } from "../../demo/demoConfig";
+import { fill } from "../../demo/strings";
+import { useDemoProfile } from "../../demo/useDemoProfile";
 
 type DbListing = {
   id: string;
@@ -19,6 +24,7 @@ type DbListing = {
   price_per_day: number;
   is_active: boolean;
   approval_status: string | null;
+  boosted_until?: string | null;
 };
 
 export function MyListingsContent() {
@@ -32,6 +38,9 @@ export function MyListingsContent() {
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<{ id: string; message: string; rented: boolean } | null>(null);
+  const { profile } = useDemoProfile();
+  const [boosting, setBoosting] = useState<string | null>(null);
+  const [boostNote, setBoostNote] = useState<{ id: string; message: string } | null>(null);
 
   useEffect(() => {
     if (authLoading) return;
@@ -45,7 +54,7 @@ export function MyListingsContent() {
 
     const { data: listingsData } = await supabase
       .from("listings")
-      .select("id, title, title_zh, image_url, price_per_day, is_active, approval_status")
+      .select("*")
       .eq("owner_id", user.id)
       .order("created_at", { ascending: false });
 
@@ -128,6 +137,17 @@ export function MyListingsContent() {
     setMenuOpen(null);
     setDeleting(false);
     await loadData();
+  }
+
+  // Mock: Featured + pinned to the top of Home and Browse for 7 days. No charge is taken.
+  async function handleBoost(listingId: string) {
+    setBoosting(listingId);
+    const until = boostUntilFromNow();
+    const { error } = await supabase.from("listings").update({ boosted_until: until }).eq("id", listingId);
+    setBoosting(null);
+    if (error) { setBoostNote({ id: listingId, message: error.message }); return; }
+    setBoostNote({ id: listingId, message: t("boostDone") });
+    setMyListings((prev) => prev.map((l) => l.id === listingId ? { ...l, boosted_until: until } : l));
   }
 
   async function handleMarkUnavailable(listingId: string) {
@@ -267,6 +287,30 @@ export function MyListingsContent() {
                         </span>
                       )}
                     </div>
+                    {listing.is_active && (listing.approval_status ?? "approved") === "approved" && (
+                      isBoosted(listing.boosted_until) ? (
+                        <div className="flex items-center gap-2 mt-2">
+                          <FeaturedTag />
+                          <span className="text-[10px] text-[#B45309]">
+                            {fill(t("boostedDaysLeft"), { n: Math.max(1, Math.ceil((new Date(listing.boosted_until!).getTime() - Date.now()) / 86400000)) })}
+                          </span>
+                        </div>
+                      ) : (
+                        <div className="mt-2">
+                          <button
+                            onClick={(e) => { e.stopPropagation(); handleBoost(listing.id); }}
+                            disabled={boosting === listing.id}
+                            className="flex items-center gap-1 px-2.5 py-1 rounded-lg border border-[#F59E0B] text-[#B45309] text-xs disabled:opacity-50"
+                          >
+                            <Rocket size={12} />{t("boostListing")}
+                          </button>
+                          <p className="text-[10px] text-[#9CA3AF] mt-0.5">
+                            {profile.isPlus ? t("boostPricePlus") : fill(t("boostPriceFree"), { n: BOOST_PRICE_FREE })}
+                          </p>
+                        </div>
+                      )
+                    )}
+                    {boostNote?.id === listing.id && <p className="text-[10px] text-[#15803D] mt-1">{boostNote.message}</p>}
                   </div>
                 </div>
 

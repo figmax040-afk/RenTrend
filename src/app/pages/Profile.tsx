@@ -1,10 +1,14 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
-import { Shield, Edit, Bell, Mail, LogOut, Globe, ChevronRight, BarChart3, Star } from "lucide-react";
+import { Shield, Edit, Bell, Mail, LogOut, Globe, ChevronRight, BarChart3, Star, Crown, TrendingUp, Gift, Percent } from "lucide-react";
 import { useI18n, LANGS } from "../components/i18n";
 import { supabase } from "../../lib/supabase";
 import { loginPath } from "../../lib/authRedirect";
 import { useIsAdmin } from "../../lib/useIsAdmin";
+import { PlusBadge, PowerLenderBadge } from "../components/Badges";
+import { useDemoProfile } from "../../demo/useDemoProfile";
+import { copy, feeTierFor, isPowerLender, nextFeeTier } from "../../demo/demo";
+import { fill } from "../../demo/strings";
 
 type ProfileRow = {
   name: string | null;
@@ -19,6 +23,7 @@ export function Profile() {
   const navigate = useNavigate();
   const { t, lang, setLang, isZh, zh } = useI18n();
   const isAdmin = useIsAdmin();
+  const { profile: demo } = useDemoProfile();
   const [email, setEmail] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [initials, setInitials] = useState("?");
@@ -108,7 +113,11 @@ export function Profile() {
             {initials}
           </div>
         )}
-        <h2 className="text-[#1F2937]">{displayName}</h2>
+        <div className="flex items-center gap-2">
+          <h2 className="text-[#1F2937]">{displayName}</h2>
+          {demo.isPlus && <PlusBadge />}
+        </div>
+        {isPowerLender(demo.lenderCompleted, ratingAsLister) && <div className="mt-1"><PowerLenderBadge /></div>}
         <p className="text-xs text-[#6B7280] mt-0.5">{email}</p>
         <div className="flex items-center gap-1 mt-1">
           <Shield size={12} className="text-[#22C55E]" />
@@ -139,6 +148,21 @@ export function Profile() {
           <p className="text-xs text-[#6B7280]">{t("rentalsCompleted")}</p>
           <ChevronRight size={12} className="absolute top-2 right-2 text-[#D1D5DB]" />
         </button>
+      </div>
+
+      {/* Lender fee tier */}
+      <FeeTierCard completed={demo.lenderCompleted} />
+
+      {/* Lendy Plus, stats and referrals */}
+      <div className="bg-white rounded-xl border border-[#E5E7EB] divide-y divide-[#E5E7EB] mb-4">
+        <MenuItem
+          icon={Crown}
+          label={t("lendyPlus")}
+          onClick={() => navigate("/plus")}
+          trailing={demo.isPlus ? <PlusBadge small /> : <span className="text-xs text-brand">{t("upgradeToPlus")}</span>}
+        />
+        <MenuItem icon={TrendingUp} label={t("myStats")} onClick={() => navigate("/stats")} />
+        <MenuItem icon={Gift} label={t("inviteFriends")} onClick={() => navigate("/referral")} />
       </div>
 
       {/* Menu */}
@@ -179,8 +203,31 @@ export function Profile() {
   );
 }
 
-function MenuItem({ icon: Icon, label, onClick, toggle }: {
-  icon: any; label: string; onClick: () => void; toggle?: boolean
+function FeeTierCard({ completed }: { completed: number }) {
+  const { t, isZh, zh } = useI18n();
+  const tier = feeTierFor(completed);
+  const next = nextFeeTier(completed);
+  return (
+    <div className="bg-white rounded-xl border border-[#E5E7EB] p-4 mb-4 flex items-start gap-3">
+      <div className="w-9 h-9 rounded-full bg-brand/10 flex items-center justify-center shrink-0">
+        <Percent size={16} className="text-brand" />
+      </div>
+      <div>
+        <p className="text-sm text-[#1F2937]" style={{ fontWeight: 600 }}>
+          {fill(t("yourFee"), { pct: tier.pct, tier: copy(tier.name, isZh, zh) })}
+        </p>
+        <p className="text-xs text-[#6B7280] mt-0.5">
+          {next
+            ? fill(t("feeNextTier"), { n: next.minRentals - completed, tier: copy(next.name, isZh, zh), pct: next.pct })
+            : t("feeTopTier")}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function MenuItem({ icon: Icon, label, onClick, toggle, trailing }: {
+  icon: any; label: string; onClick: () => void; toggle?: boolean; trailing?: React.ReactNode
 }) {
   const [on, setOn] = useState(true);
   return (
@@ -197,7 +244,7 @@ function MenuItem({ icon: Icon, label, onClick, toggle }: {
           <div className={`w-4 h-4 rounded-full bg-white absolute top-0.5 transition-all ${on ? "left-5" : "left-0.5"}`} />
         </div>
       ) : (
-        <ChevronRight size={16} className="text-[#6B7280]" />
+        <span className="flex items-center gap-2">{trailing}<ChevronRight size={16} className="text-[#6B7280]" /></span>
       )}
     </button>
   );
