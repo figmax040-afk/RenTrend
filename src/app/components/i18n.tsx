@@ -295,6 +295,13 @@ const translations: Record<string, { en: string; zh: string }> = {
   chatPlaceholder: { en: "Type a message...", zh: "輸入訊息..." },
   noMessages: { en: "Start the conversation!", zh: "開始對話吧！" },
   chat: { en: "Chat", zh: "聊天" },
+  messages: { en: "Messages", zh: "訊息" },
+  messageLender: { en: "Message", zh: "傳送訊息" },
+  noConversations: { en: "No messages yet", zh: "暫無訊息" },
+  noConversationsHint: { en: "Tap Message on any listing to ask the lender a question.", zh: "在任何刊登上點擊「傳送訊息」即可向物主查詢。" },
+  chatRenting: { en: "Renting", zh: "租用" },
+  chatLending: { en: "Lending", zh: "出租" },
+  chatOpenFailed: { en: "Couldn't open the chat. Please try again.", zh: "無法開啟對話，請再試一次。" },
   // Onboarding & auth
   next: { en: "Next", zh: "下一步" },
   skip: { en: "Skip", zh: "略過" },

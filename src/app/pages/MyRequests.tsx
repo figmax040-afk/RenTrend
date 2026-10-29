@@ -4,6 +4,7 @@ import { useI18n } from "../components/i18n";
 import { ImageWithFallback } from "../components/figma/ImageWithFallback";
 import { MoreVertical } from "lucide-react";
 import { supabase } from "../../lib/supabase";
+import { fetchContactProfiles } from "../../lib/publicProfiles";
 import listingPlaceholder from "../../assets/listing-placeholder.svg";
 import { loginPath } from "../../lib/authRedirect";
 
@@ -99,17 +100,11 @@ export function MyRequestsContent() {
               .in("id", listingIds)
           : { data: [] };
 
-        const ownerIds = [...new Set((listings || []).map((l) => l.owner_id))];
-        const { data: profiles } = ownerIds.length > 0
-          ? await supabase
-              .from("profiles")
-              .select("id, name, email")
-              .in("id", ownerIds)
-          : { data: [] };
+        const profiles = await fetchContactProfiles((listings || []).map((l) => l.owner_id));
 
         const enriched: EnrichedRequest[] = reqs.map((r) => {
           const listing = listings?.find((l) => l.id === r.listing_id) ?? null;
-          const owner = profiles?.find((p) => p.id === listing?.owner_id) ?? null;
+          const owner = (listing && profiles[listing.owner_id]) || null;
           return { ...r, listing, owner };
         });
 

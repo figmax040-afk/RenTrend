@@ -3,6 +3,7 @@ import { useNavigate } from "react-router";
 import { ArrowLeft, Download, TrendingUp } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { supabase } from "../../lib/supabase";
+import { fetchPublicProfiles } from "../../lib/publicProfiles";
 import { loginPath } from "../../lib/authRedirect";
 import { useI18n } from "../components/i18n";
 
@@ -78,15 +79,8 @@ export function Earnings() {
       const requests = reqData ?? [];
 
       // 3. Fetch renter profiles
-      const renterIds = [...new Set(requests.map((r) => r.renter_id))];
-      let profileMap: Record<string, string> = {};
-      if (renterIds.length > 0) {
-        const { data: profileData } = await supabase
-          .from("profiles")
-          .select("id, name")
-          .in("id", renterIds);
-        profileMap = Object.fromEntries((profileData ?? []).map((p) => [p.id, p.name ?? "User"]));
-      }
+      const renters = await fetchPublicProfiles(requests.map((r) => r.renter_id));
+      const profileMap = Object.fromEntries(Object.values(renters).map((p) => [p.id, p.name || "User"]));
 
       const earningRows: EarningRow[] = requests.map((r) => ({
         id: r.id,

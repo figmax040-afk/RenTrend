@@ -5,6 +5,7 @@ import { useI18n } from "../components/i18n";
 import { PICKUP_LABEL_KEY, pickupMethodOf } from "../../demo/demo";
 import { ImageWithFallback } from "../components/figma/ImageWithFallback";
 import { supabase } from "../../lib/supabase";
+import { fetchContactProfiles } from "../../lib/publicProfiles";
 import { loginPath } from "../../lib/authRedirect";
 import { IMAGES } from "../components/data";
 
@@ -115,18 +116,12 @@ export function ListingRequests() {
       const rawRequests = reqData ?? [];
 
       // Step 2: fetch renter profiles separately
-      const renterIds = [...new Set(rawRequests.map((r) => r.renter_id))];
-      const { data: profiles } = renterIds.length > 0
-        ? await supabase
-            .from("profiles")
-            .select("id, name, email")
-            .in("id", renterIds)
-        : { data: [] };
+      const profiles = await fetchContactProfiles(rawRequests.map((r) => r.renter_id));
 
       // Step 3: merge
       const merged: Request[] = rawRequests.map((r) => ({
         ...r,
-        profiles: (profiles ?? []).find((p) => p.id === r.renter_id) ?? null,
+        profiles: profiles[r.renter_id] ?? null,
       }));
 
       setRequests(merged);

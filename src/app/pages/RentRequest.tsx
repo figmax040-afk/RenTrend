@@ -5,6 +5,7 @@ import { useI18n } from "../components/i18n";
 import { IMAGES } from "../components/data";
 import { ImageWithFallback } from "../components/figma/ImageWithFallback";
 import { supabase } from "../../lib/supabase";
+import { fetchContactProfiles } from "../../lib/publicProfiles";
 import { loginPath } from "../../lib/authRedirect";
 import { APP_URL } from "../../lib/appUrl";
 import { sendEmail } from "../../lib/sendEmail";
@@ -173,10 +174,9 @@ export function RentRequest() {
     // Email lister — a failure here must not hide the fact that the request was sent
     try {
       if (listing.owner_id) {
-        const [{ data: listerProfile }, { data: renterProfile }] = await Promise.all([
-          supabase.from("profiles").select("name, email").eq("id", listing.owner_id).single(),
-          supabase.from("profiles").select("name").eq("id", user.id).single(),
-        ]);
+        const contacts = await fetchContactProfiles([listing.owner_id, user.id]);
+        const listerProfile = contacts[listing.owner_id];
+        const renterProfile = contacts[user.id];
         if (listerProfile?.email) {
           const title = isZh ? zh(listing.titleZh) : listing.title;
           await sendEmail(

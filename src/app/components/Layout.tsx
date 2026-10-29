@@ -49,28 +49,17 @@ export function Layout() {
         setPendingCount(0);
       }
 
-      // Unread messages: get all request IDs where user is renter or lister
-      const { data: renterReqs } = await supabase
-        .from("requests")
-        .select("id")
-        .eq("renter_id", user.id);
+      // Unread messages across the user's chat threads (RLS returns only their own threads)
+      const { data: threads } = await supabase.from("chat_threads").select("id");
+      const threadIds = (threads || []).map((th) => th.id);
 
-      const { data: listerReqs } = listingIds.length > 0
-        ? await supabase.from("requests").select("id").in("listing_id", listingIds)
-        : { data: [] };
-
-      const allRequestIds = [
-        ...((renterReqs || []).map((r) => r.id)),
-        ...((listerReqs || []).map((r) => r.id)),
-      ];
-
-      if (allRequestIds.length > 0) {
+      if (threadIds.length > 0) {
         const { count: msgCount } = await supabase
           .from("messages")
           .select("id", { count: "exact", head: true })
           .is("read_at", null)
           .neq("sender_id", user.id)
-          .in("request_id", allRequestIds);
+          .in("thread_id", threadIds);
         setUnreadCount(msgCount || 0);
       } else {
         setUnreadCount(0);

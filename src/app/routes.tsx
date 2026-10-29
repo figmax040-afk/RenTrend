@@ -1,4 +1,4 @@
-import { createBrowserRouter } from "react-router";
+import { createBrowserRouter, Navigate } from "react-router";
 import { Layout } from "./components/Layout";
 import { AdminGuard } from "./components/AdminGuard";
 import { Onboarding } from "./pages/Onboarding";
@@ -76,6 +76,8 @@ export const router = createBrowserRouter([
         ],
       },
       { path: "/chat/:requestId", Component: Chat },
+      { path: "/messages", element: <Navigate to="/activity?tab=messages" replace /> },
+      { path: "/messages/:threadId", Component: Chat },
     ],
   },
 ]);

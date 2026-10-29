@@ -5,6 +5,7 @@ import { useI18n } from "../components/i18n";
 import { ImageWithFallback } from "../components/figma/ImageWithFallback";
 import { RentalTermsCard } from "../components/RentalTermsCard";
 import { supabase } from "../../lib/supabase";
+import { fetchContactProfiles } from "../../lib/publicProfiles";
 import { loginPath } from "../../lib/authRedirect";
 import { APP_URL } from "../../lib/appUrl";
 import { sendEmail } from "../../lib/sendEmail";
@@ -125,7 +126,7 @@ export function Checkout() {
     setPaid(true);
 
     if (listing?.owner_id) {
-      const { data: owner } = await supabase.from("profiles").select("name, email").eq("id", listing.owner_id).maybeSingle();
+      const owner = (await fetchContactProfiles([listing.owner_id]))[listing.owner_id];
       if (owner?.email) {
         sendEmail(
           owner.email,

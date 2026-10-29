@@ -4,6 +4,7 @@ import { ArrowLeft, Shield, Star, MessageCircle, CreditCard } from "lucide-react
 import { useI18n } from "../components/i18n";
 import { ImageWithFallback } from "../components/figma/ImageWithFallback";
 import { supabase } from "../../lib/supabase";
+import { fetchContactProfiles } from "../../lib/publicProfiles";
 import listingPlaceholder from "../../assets/listing-placeholder.svg";
 import { loginPath } from "../../lib/authRedirect";
 import { breakdownFromRequest } from "../../lib/pricing";
@@ -153,12 +154,8 @@ export function RequestView() {
 
       // Step 3: fetch owner profile
       if (listingData?.owner_id) {
-        const { data: profileData } = await supabase
-          .from("profiles")
-          .select("id, name, email, phone")
-          .eq("id", listingData.owner_id)
-          .single();
-        setOwnerProfile(profileData ?? null);
+        const contacts = await fetchContactProfiles([listingData.owner_id]);
+        setOwnerProfile(contacts[listingData.owner_id] ?? null);
       }
 
       // Step 4: check existing review if completed

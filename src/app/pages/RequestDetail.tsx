@@ -4,6 +4,7 @@ import { ArrowLeft, Shield, CheckCircle, X, Star, MessageCircle } from "lucide-r
 import { useI18n } from "../components/i18n";
 import { ImageWithFallback } from "../components/figma/ImageWithFallback";
 import { supabase } from "../../lib/supabase";
+import { fetchContactProfiles } from "../../lib/publicProfiles";
 import { loginPath } from "../../lib/authRedirect";
 import { APP_URL } from "../../lib/appUrl";
 import { sendEmail } from "../../lib/sendEmail";
@@ -143,13 +144,9 @@ export function RequestDetail() {
         return;
       }
 
-      const { data: profileData } = await supabase
-        .from("profiles")
-        .select("id, name, email, phone")
-        .eq("id", reqData.renter_id)
-        .single();
+      const contacts = await fetchContactProfiles([reqData.renter_id]);
 
-      setRequest({ ...reqData, profiles: profileData ?? null } as Request);
+      setRequest({ ...reqData, profiles: contacts[reqData.renter_id] ?? null } as Request);
 
       const { data: allReqData } = await supabase
         .from("requests")

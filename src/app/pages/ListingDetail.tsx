@@ -11,7 +11,7 @@ import { ListingDetailAd } from "../components/Ads";
 import { RentalTermsCard } from "../components/RentalTermsCard";
 import { FeaturedTag, PowerLenderBadge } from "../components/Badges";
 import { isBoosted, isPowerLender } from "../../demo/demo";
-import { fetchPublicProfiles } from "../../lib/publicProfiles";
+import { fetchPublicProfiles, openChatThread } from "../../lib/publicProfiles";
 
 type NormalizedListing = {
   id: string | number;
@@ -63,6 +63,8 @@ export function ListingDetail() {
   const [loading,   setLoading]   = useState(true);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [copied,    setCopied]    = useState(false);
+  const [openingChat, setOpeningChat] = useState(false);
+  const [chatError, setChatError] = useState(false);
   const [ownerName, setOwnerName] = useState<string>("—");
   const [ownerIsPower, setOwnerIsPower] = useState(false);
   const [ownerAvatar, setOwnerAvatar] = useState<string | null>(null);
@@ -204,6 +206,16 @@ export function ListingDetail() {
       await supabase.from("saved_listings").insert({ user_id: currentUserId, listing_id: String(listing.id) });
       setSaved(true);
     }
+  }
+
+  async function handleMessage() {
+    if (!currentUserId) { navigate(loginPath()); return; }
+    setOpeningChat(true);
+    const threadId = await openChatThread(String(listing!.id));
+    setOpeningChat(false);
+    if (threadId) { navigate(`/messages/${threadId}`); return; }
+    setChatError(true);
+    setTimeout(() => setChatError(false), 2500);
   }
 
   async function handleShare() {
@@ -433,6 +445,17 @@ export function ListingDetail() {
             {t("requestToRent")}
           </button>
         )}
+        {!isOwner && listing.owner_id && (
+          <button
+            onClick={handleMessage}
+            disabled={openingChat}
+            aria-label={t("messageLender")}
+            className="px-4 py-3 border border-brand text-brand rounded-xl flex items-center gap-1.5 hover:bg-brand/5 transition-colors disabled:opacity-60"
+          >
+            <MessageCircle size={18} />
+            <span className="text-sm hidden sm:inline">{t("messageLender")}</span>
+          </button>
+        )}
         <button
           onClick={handleSave}
           className={`px-4 py-3 border rounded-xl transition-colors ${
@@ -444,6 +467,12 @@ export function ListingDetail() {
           <Heart size={18} className={saved ? "fill-red-500" : ""} />
         </button>
       </div>
+
+      {chatError && (
+        <div className="fixed bottom-20 left-1/2 -translate-x-1/2 bg-[#EF4444] text-white text-sm px-4 py-2 rounded-xl shadow-lg z-50 whitespace-nowrap">
+          {t("chatOpenFailed")}
+        </div>
+      )}
 
       {/* ── Link copied toast ── */}
       {copied && (

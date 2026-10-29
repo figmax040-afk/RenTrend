@@ -4,10 +4,12 @@ import { ArrowLeft, ArrowUp } from "lucide-react";
 import { useI18n } from "../components/i18n";
 import { supabase } from "../../lib/supabase";
 import { loginPath } from "../../lib/authRedirect";
+import { fetchContactProfiles, fetchPublicProfiles, openChatThread } from "../../lib/publicProfiles";
 
 type Message = {
   id: string;
-  request_id: string;
+  request_id: string | null;
+  thread_id: string | null;
   sender_id: string;
   content: string;
   created_at: string;
@@ -17,8 +19,16 @@ type Message = {
 type OtherUser = {
   id: string;
   name: string | null;
-  email: string | null;
   avatar_url: string | null;
+};
+
+type Thread = {
+  id: string;
+  listing_id: string | null;
+  renter_id: string;
+  owner_id: string;
+  listing_title: string | null;
+  listings: { id: string; title: string } | null;
 };
 
 type RequestWithListing = {
@@ -49,13 +59,20 @@ function formatTime(dateStr: string): string {
 }
 
 function displayName(user: OtherUser | null): string {
-  if (user?.name) return user.name;
-  if (user?.email) return user.email.split("@")[0];
-  return "User";
+  return user?.name || "User";
 }
 
+async function loadOtherUser(id: string): Promise<OtherUser | null> {
+  // Contacts covers people you have a request with; the public card covers pre-request chats
+  const contact = (await fetchContactProfiles([id]))[id];
+  if (contact) return contact;
+  return (await fetchPublicProfiles([id]))[id] ?? null;
+}
+
+// /messages/:threadId is the chat. /chat/:requestId (older links and request pages) opens the
+// thread for that request, or shows the old request chat read-only if the listing is gone.
 export function Chat() {
-  const { requestId } = useParams<{ requestId: string }>();
+  const { threadId, requestId } = useParams<{ threadId?: string; requestId?: string }>();
   const navigate = useNavigate();
   const { t, isZh, zh } = useI18n();
 
@@ -69,6 +86,8 @@ export function Chat() {
   const [realtimeUnavailable, setRealtimeUnavailable] = useState(false);
   const [listingRemoved, setListingRemoved] = useState(false);
   const [sendError, setSendError] = useState("");
+  const [activeThreadId, setActiveThreadId] = useState<string | null>(null);
+  const [listingId, setListingId] = useState<string | null>(null);
 
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -104,61 +123,81 @@ export function Chat() {
     if (!user) { navigate(loginPath()); return; }
     setCurrentUserId(user.id);
 
-    const { data: request } = await supabase
-      .from("requests")
-      .select("*, listings(id, title, image_url, owner_id)")
-      .eq("id", requestId)
-      .single();
+    if (requestId) {
+      const { data: request } = await supabase
+        .from("requests")
+        .select("*, listings(id, title, image_url, owner_id)")
+        .eq("id", requestId)
+        .single();
+      if (!request) { navigate("/messages"); return; }
 
-    if (!request) { navigate("/activity"); return; }
+      const req = request as unknown as RequestWithListing;
+      const isRenter = req.renter_id === user.id;
+      const isLister = req.listings?.owner_id === user.id;
 
-    const req = request as unknown as RequestWithListing;
-    const isRenter = req.renter_id === user.id;
-    const isLister = req.listings?.owner_id === user.id;
-    if (!isRenter && !isLister) { navigate("/activity"); return; }
+      if (req.listings && (isRenter || isLister)) {
+        const id = await openChatThread(req.listings.id, isLister ? req.renter_id : undefined);
+        if (id) { navigate(`/messages/${id}`, { replace: true }); return; }
+      }
 
-    setListingRemoved(!req.listings);
-    setListingTitle(req.listings?.title ?? t("listingRemovedShort"));
+      // Listing removed: show the old request chat, read-only
+      const { data: history } = await supabase
+        .from("messages")
+        .select("*")
+        .eq("request_id", requestId)
+        .order("created_at", { ascending: true });
+      const msgs = (history as Message[]) || [];
+      if (!isRenter && !isLister && msgs.every((m) => m.sender_id !== user.id)) { navigate("/messages"); return; }
+      setMessages(msgs);
+      setListingRemoved(true);
+      setListingTitle(req.listings?.title ?? t("listingRemovedShort"));
+      const otherUserId = isRenter
+        ? req.listings?.owner_id ?? msgs.find((m) => m.sender_id !== user.id)?.sender_id
+        : req.renter_id;
+      if (otherUserId) setOtherUser(await loadOtherUser(otherUserId));
+      setLoading(false);
+      return;
+    }
+
+    const { data: thread } = await supabase
+      .from("chat_threads")
+      .select("*, listings(id, title)")
+      .eq("id", threadId)
+      .maybeSingle();
+    if (!thread) { navigate("/messages"); return; }
+
+    const th = thread as unknown as Thread;
+    setActiveThreadId(th.id);
+    setListingId(th.listings?.id ?? null);
+    setListingRemoved(!th.listings);
+    setListingTitle(th.listings?.title ?? th.listing_title ?? t("listingRemovedShort"));
 
     const { data: history } = await supabase
       .from("messages")
       .select("*")
-      .eq("request_id", requestId)
+      .eq("thread_id", th.id)
       .order("created_at", { ascending: true });
-    const msgs = (history as Message[]) || [];
-    setMessages(msgs);
+    setMessages((history as Message[]) || []);
 
-    // If the listing is gone, the owner can still be found from the message history
-    const otherUserId = req.listings
-      ? (isRenter ? req.listings.owner_id : req.renter_id)
-      : msgs.find((m) => m.sender_id !== user.id)?.sender_id ?? null;
-    if (otherUserId) {
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("id, name, email, avatar_url")
-        .eq("id", otherUserId)
-        .single();
-      setOtherUser(profile ?? null);
-    }
-
+    setOtherUser(await loadOtherUser(th.renter_id === user.id ? th.owner_id : th.renter_id));
     setLoading(false);
-  }, [requestId, navigate]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [threadId, requestId, navigate]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => { load(); }, [load]);
 
   // Realtime subscription
   useEffect(() => {
-    if (!requestId) return;
+    if (!activeThreadId) return;
 
     const channel = supabase
-      .channel(`chat:${requestId}`)
+      .channel(`chat:${activeThreadId}`)
       .on(
         "postgres_changes",
         {
           event: "INSERT",
           schema: "public",
           table: "messages",
-          filter: `request_id=eq.${requestId}`,
+          filter: `thread_id=eq.${activeThreadId}`,
         },
         (payload) => {
           setMessages((prev) => {
@@ -176,10 +215,10 @@ export function Chat() {
       });
 
     return () => { supabase.removeChannel(channel); };
-  }, [requestId]);
+  }, [activeThreadId]);
 
   async function sendMessage() {
-    if (!input.trim() || sending || !currentUserId || listingRemoved) return;
+    if (!input.trim() || sending || !currentUserId || listingRemoved || !activeThreadId) return;
     setSending(true);
     setSendError("");
     const content = input.trim();
@@ -187,7 +226,7 @@ export function Chat() {
     const { data: inserted, error } = await supabase
       .from("messages")
       .insert({
-        request_id: requestId,
+        thread_id: activeThreadId,
         sender_id: currentUserId,
         content,
       })
@@ -245,9 +284,15 @@ export function Chat() {
 
         <div className="flex-1 min-w-0">
           <p className="text-[#1F2937] text-sm font-semibold truncate">{name}</p>
-          <p className="text-[#9CA3AF] text-xs truncate">
-            {isZh ? zh("關於：") : "Re: "}{listingTitle}
-          </p>
+          {listingId ? (
+            <button onClick={() => navigate(`/listing/${listingId}`)} className="block max-w-full text-left text-[#9CA3AF] text-xs truncate hover:text-brand">
+              {isZh ? zh("關於：") : "Re: "}{listingTitle}
+            </button>
+          ) : (
+            <p className="text-[#9CA3AF] text-xs truncate">
+              {isZh ? zh("關於：") : "Re: "}{listingTitle}
+            </p>
+          )}
         </div>
       </div>
 

@@ -4,6 +4,7 @@ import { useI18n } from "../components/i18n";
 import { ImageWithFallback } from "../components/figma/ImageWithFallback";
 import { PlusCircle, MoreVertical, Edit, Trash2, Rocket } from "lucide-react";
 import { supabase } from "../../lib/supabase";
+import { fetchContactProfiles } from "../../lib/publicProfiles";
 import { loginPath } from "../../lib/authRedirect";
 import { useAuth } from "../../lib/useAuth";
 import { IMAGES } from "../components/data";
@@ -112,6 +113,9 @@ export function MyListingsContent() {
       if (error) return fail(t("deleteFailed"));
     }
 
+    // Look up renter emails while the requests still link them to this listing
+    const renters = Object.values(await fetchContactProfiles(reqs.map((r) => r.renter_id)));
+
     const { error: delErr } = await supabase.from("listings").delete().eq("id", listing.id);
     if (delErr) {
       // Put the requests back the way they were so renters aren't left with a silent rejection
@@ -121,10 +125,8 @@ export function MyListingsContent() {
     }
 
     // Notify affected renters (non-blocking for the owner)
-    const renterIds = [...new Set(reqs.map((r) => r.renter_id))];
-    if (renterIds.length > 0) {
-      const { data: renters } = await supabase.from("profiles").select("name, email").in("id", renterIds);
-      await Promise.all((renters ?? []).filter((p) => p.email).map((p) =>
+    if (renters.length > 0) {
+      await Promise.all(renters.filter((p) => p.email).map((p) =>
         sendEmail(
           p.email!,
           `${listing.title} is no longer available`,
