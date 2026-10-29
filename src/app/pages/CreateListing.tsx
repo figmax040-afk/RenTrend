@@ -1,10 +1,13 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router";
-import { ArrowLeft, Camera, X, ChefHat, Monitor, Sofa, Wind, MoreHorizontal, CheckCircle } from "lucide-react";
+import { ArrowLeft, Camera, X, ChefHat, Monitor, Sofa, Wind, Aperture, MoreHorizontal, CheckCircle, Crown } from "lucide-react";
 import { useI18n } from "../components/i18n";
 import { supabase } from "../../lib/supabase";
 import { loginPath } from "../../lib/authRedirect";
 import { CONDITION_KEYS, CONDITION_VALUES, type ConditionKey } from "../../lib/conditions";
+import { FREE_LISTING_CAP } from "../../demo/demoConfig";
+import { fill } from "../../demo/strings";
+import { useDemoProfile } from "../../demo/useDemoProfile";
 
 declare global { interface Window { google: any; } }
 
@@ -13,6 +16,7 @@ const catIcons = [
   { key: "electronics", icon: Monitor },
   { key: "furniture", icon: Sofa },
   { key: "cooling", icon: Wind },
+  { key: "camera", icon: Aperture },
   { key: "other", icon: MoreHorizontal },
 ];
 
@@ -69,11 +73,26 @@ export function CreateListing() {
   const [publishing, setPublishing]     = useState(false);
   const [publishError, setPublishError] = useState("");
 
+  // Free plan: capped number of active listings
+  const { profile } = useDemoProfile();
+  const [activeCount, setActiveCount] = useState<number | null>(null);
+
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (!user) navigate(loginPath());
+    supabase.auth.getUser().then(async ({ data: { user } }) => {
+      if (!user) { navigate(loginPath()); return; }
+      const { count } = await supabase
+        .from("listings")
+        .select("id", { count: "exact", head: true })
+        .eq("owner_id", user.id)
+        .eq("is_active", true)
+        .neq("approval_status", "rejected");
+      setActiveCount(count ?? 0);
     });
   }, [navigate]);
+
+  const atCap = !profile.isPlus && activeCount !== null && activeCount >= FREE_LISTING_CAP;
+  // An unavailable listing doesn't count towards the cap
+  const capBlocksPublish = atCap && avail;
 
   // Load Google Maps script once
   useEffect(() => {
@@ -151,7 +170,7 @@ export function CreateListing() {
   }
 
   async function handlePublish() {
-    if (uploading.some(Boolean)) return;
+    if (uploading.some(Boolean) || capBlocksPublish) return;
     setPublishError("");
     setPublishing(true);
     const { data: { user } } = await supabase.auth.getUser();
@@ -210,6 +229,26 @@ export function CreateListing() {
           <button onClick={() => step > 0 ? setStep(step - 1) : navigate(-1)} className="text-[#6B7280]"><ArrowLeft size={20} /></button>
           <h2 className="text-[#1F2937]">{t("createListing")}</h2>
         </div>
+
+        {/* Listing allowance */}
+        {activeCount !== null && (
+          profile.isPlus ? (
+            <p className="text-xs text-brand bg-brand-soft border border-brand-border px-3 py-2 rounded-xl mb-4 flex items-center gap-1.5">
+              <Crown size={13} />{t("listingsUnlimited")}
+            </p>
+          ) : (
+            <div className="mb-4">
+              <div className="flex items-center justify-between text-xs text-[#6B7280] mb-1">
+                <span>{fill(t("listingsUsed"), { used: Math.min(activeCount, FREE_LISTING_CAP), cap: FREE_LISTING_CAP })}</span>
+                {!atCap && <button onClick={() => navigate("/plus")} className="text-brand">{t("listingsUnlimited")} →</button>}
+              </div>
+              <div className="h-1.5 rounded-full bg-[#E5E7EB] overflow-hidden">
+                <div className={`h-full ${atCap ? "bg-[#F4A261]" : "bg-brand"}`} style={{ width: `${Math.min(100, (activeCount / FREE_LISTING_CAP) * 100)}%` }} />
+              </div>
+            </div>
+          )
+        )}
+        {atCap && <CapPrompt onUpgrade={() => navigate("/plus")} />}
 
         {/* Stepper */}
         <div className="flex gap-1 mb-6">
@@ -455,15 +494,28 @@ export function CreateListing() {
             )}
             <button
               onClick={handlePublish}
-              disabled={publishing || uploading.some(Boolean)}
+              disabled={publishing || uploading.some(Boolean) || capBlocksPublish}
               className="w-full py-3 bg-brand text-white rounded-xl disabled:opacity-60"
             >
-              {uploading.some(Boolean) ? t("waitingForUploads") : publishing ? "Publishing..." : t("publishListing")}
+              {uploading.some(Boolean) ? t("waitingForUploads") : publishing ? "…" : t("publishListing")}
             </button>
             <button onClick={() => navigate("/home")} className="w-full py-3 border border-[#E5E7EB] rounded-xl text-sm text-[#6B7280]">{t("saveAsDraft")}</button>
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+function CapPrompt({ onUpgrade }: { onUpgrade: () => void }) {
+  const { t } = useI18n();
+  return (
+    <div className="rounded-xl border border-[#F4A261]/40 bg-[#F4A261]/10 p-4 mb-4">
+      <p className="text-sm text-[#92400E]" style={{ fontWeight: 600 }}>{t("listingCapReached")}</p>
+      <p className="text-xs text-[#92400E] mt-1">{fill(t("listingCapMsg"), { cap: FREE_LISTING_CAP })}</p>
+      <button onClick={onUpgrade} className="mt-3 px-4 py-2 rounded-xl bg-brand text-white text-sm flex items-center gap-1.5">
+        <Crown size={14} />{t("upgradeToPlus")}
+      </button>
     </div>
   );
 }

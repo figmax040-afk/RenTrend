@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, Fragment } from "react";
 import { Search, SlidersHorizontal, X, MapPin, Heart, Recycle, ChevronRight } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router";
 import { useI18n } from "../components/i18n";
@@ -7,10 +7,15 @@ import { supabase } from "../../lib/supabase";
 import listingPlaceholder from "../../assets/listing-placeholder.svg";
 import { useAuth } from "../../lib/useAuth";
 import { CONDITION_KEYS, CONDITION_VALUES, conditionKeyFromStored } from "../../lib/conditions";
+import { fetchListingExtras, listingIsFeatured, type ListingExtras } from "../../lib/listingExtras";
+import { featuredFirst } from "../../demo/demo";
+import { SponsoredListingCard, useAdSet } from "../components/Ads";
 
 declare global { interface Window { google: any; } }
 
-const categoryKeys = ["kitchen", "electronics", "furniture", "cooling", "other"];
+const categoryKeys = ["kitchen", "electronics", "furniture", "cooling", "camera", "other"];
+// A sponsored card follows every this many listings
+const AD_EVERY = 6;
 const conditionKeys = CONDITION_KEYS;
 const conditionValues = CONDITION_VALUES;
 
@@ -29,6 +34,8 @@ type UiListing = {
   condition: string;
   lat?: number | null;
   lng?: number | null;
+  owner_id: string | null;
+  featured: boolean;
 };
 
 function distanceKm(lat1: number, lng1: number, lat2: number, lng2: number) {
@@ -59,6 +66,8 @@ export function Browse() {
   const [brands, setBrands] = useState<string[]>([]);
   const [dataLoading, setDataLoading] = useState(true);
   const [savedCount, setSavedCount] = useState(0);
+  const [extras, setExtras] = useState<ListingExtras>({ ratings: {}, powerOwners: new Set() });
+  const adSet = useAdSet();
 
   // Load Google Maps script
   useEffect(() => {
@@ -108,7 +117,7 @@ export function Browse() {
 
     supabase
       .from("listings")
-      .select("id, title, title_zh, image_url, price_per_day, district, category, is_active, created_at, brand, condition, location_lat, location_lng")
+      .select("*")
       .eq("is_active", true)
       .eq("approval_status", "approved")
       .order("created_at", { ascending: false })
@@ -131,8 +140,11 @@ export function Browse() {
             condition: (() => { const k = conditionKeyFromStored(l.condition); return k ? CONDITION_VALUES[k] : (l.condition ?? ""); })(),
             lat: l.location_lat ?? null,
             lng: l.location_lng ?? null,
+            owner_id: l.owner_id ?? null,
+            featured: listingIsFeatured(l),
           }));
-          setAllListings(mapped);
+          setAllListings(featuredFirst(mapped));
+          fetchListingExtras(mapped).then(setExtras).catch((err) => console.error("Listing extras failed:", err));
 
           const uniqueBrands = [...new Set(mapped.map((l) => l.brand).filter(Boolean))].sort();
           setBrands(uniqueBrands);
@@ -361,15 +373,23 @@ export function Browse() {
         </div>
       ) : (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-          {filtered.map((l) => (
-            <ListingCard
-              key={String(l.id)} id={l.id} image={l.image}
-              title={isZh ? zh(l.titleZh) : l.title}
-              price={l.price}
-              distance={getDisplayDistance(l)}
-              category={l.category}
-              available={l.available}
-            />
+          {filtered.map((l, i) => (
+            <Fragment key={String(l.id)}>
+              <ListingCard
+                id={l.id} image={l.image}
+                title={isZh ? zh(l.titleZh) : l.title}
+                price={l.price}
+                distance={getDisplayDistance(l)}
+                category={l.category}
+                available={l.available}
+                rating={extras.ratings[String(l.id)] ?? null}
+                featured={l.featured}
+                powerLender={!!l.owner_id && extras.powerOwners.has(l.owner_id)}
+              />
+              {adSet && (i + 1) % AD_EVERY === 0 && (
+                <SponsoredListingCard ad={adSet.browse[((i + 1) / AD_EVERY - 1) % adSet.browse.length]} />
+              )}
+            </Fragment>
           ))}
         </div>
       )}

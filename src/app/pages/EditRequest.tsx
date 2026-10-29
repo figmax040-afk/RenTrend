@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router";
 import { ArrowLeft } from "lucide-react";
 import { useI18n } from "../components/i18n";
+import { LockerPicker } from "../components/Lockers";
+import { PICKUP_LABEL_KEY, pickupMethodOf, type PickupMethod } from "../../demo/demo";
 import { supabase } from "../../lib/supabase";
 import listingPlaceholder from "../../assets/listing-placeholder.svg";
 import { loginPath } from "../../lib/authRedirect";
@@ -48,7 +50,8 @@ export function EditRequest() {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [msg, setMsg] = useState("");
-  const [pickup, setPickup] = useState<"collect" | "deliver">("collect");
+  const [pickup, setPickup] = useState<PickupMethod>("meetup");
+  const [lockerId, setLockerId] = useState<string | null>(null);
 
   useEffect(() => {
     async function load() {
@@ -69,7 +72,8 @@ export function EditRequest() {
       setStartDate(req.start_date ?? "");
       setEndDate(req.end_date ?? "");
       setMsg(req.message ?? "");
-      setPickup(req.pickup_preference === "deliver" ? "deliver" : "collect");
+      setPickup(pickupMethodOf(req));
+      setLockerId(req.locker_id ?? null);
 
       // Load listing for pricing display
       const { data: listingData } = await supabase
@@ -86,6 +90,7 @@ export function EditRequest() {
 
   async function handleSave() {
     if (!listing || !startDate || !endDate) return;
+    if (pickup === "locker" && !lockerId) return;
     setSaveError("");
     setSaving(true);
 
@@ -94,14 +99,12 @@ export function EditRequest() {
     ));
     const breakdown = calculateOptimalPrice(totalDays, listing.price_per_day, listing.price_weekly, listing.price_monthly);
 
-    const { error } = await supabase
-      .from("requests")
-      .update({
+    const base = {
         start_date: startDate,
         end_date: endDate,
         total_price: breakdown.total,
         message: msg || null,
-        pickup_preference: pickup,
+        pickup_preference: pickup === "delivery" ? "deliver" : "collect",
         breakdown_json: {
           months: breakdown.months,
           weeks: breakdown.weeks,
@@ -111,8 +114,13 @@ export function EditRequest() {
           priceWeek: listing.price_weekly,
           priceDay: listing.price_per_day,
         },
-      })
+    };
+    let { error } = await supabase
+      .from("requests")
+      .update({ ...base, pickup_method: pickup, locker_id: pickup === "locker" ? lockerId : null })
       .eq("id", requestId);
+    // Demo migration not run yet: save without the new columns
+    if (error?.code === "PGRST204") ({ error } = await supabase.from("requests").update(base).eq("id", requestId));
 
     setSaving(false);
     if (error) { setSaveError(error.message); }
@@ -249,13 +257,15 @@ export function EditRequest() {
           <div>
             <label className="text-sm text-[#6B7280]">{t("pickupPref")}</label>
             <div className="flex gap-2 mt-2">
-              {(["collect", "deliver"] as const).map((p) => (
+              {(["meetup", "locker", "delivery"] as const).map((p) => (
                 <button key={p} onClick={() => setPickup(p)}
                   className={`flex-1 py-2.5 rounded-xl text-sm border transition-colors ${pickup === p ? "bg-brand text-white border-brand" : "bg-white text-[#6B7280] border-[#E5E7EB]"}`}>
-                  {p === "collect" ? t("iCanCollect") : t("canYouDeliver")}
+                  {t(PICKUP_LABEL_KEY[p])}
                 </button>
               ))}
             </div>
+            {pickup === "locker" && <LockerPicker value={lockerId} onChange={setLockerId} />}
+            {pickup === "locker" && !lockerId && <p className="text-xs text-[#B45309] mt-1">{t("lockerRequired")}</p>}
           </div>
 
           {saveError && (
@@ -264,7 +274,7 @@ export function EditRequest() {
 
           <button
             onClick={handleSave}
-            disabled={!startDate || !endDate || saving}
+            disabled={!startDate || !endDate || saving || (pickup === "locker" && !lockerId)}
             className="w-full py-3 bg-brand text-white rounded-xl disabled:opacity-40"
           >
             {saving ? t("saving") : t("saveChanges")}

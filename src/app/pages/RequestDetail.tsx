@@ -9,6 +9,12 @@ import { APP_URL } from "../../lib/appUrl";
 import { sendEmail } from "../../lib/sendEmail";
 import { IMAGES } from "../components/data";
 import { breakdownFromRequest } from "../../lib/pricing";
+import { EscrowTracker, escrowOf } from "../components/EscrowTracker";
+import { HandoverPanel, type HandoverRequest } from "../components/HandoverPanel";
+import { LockerCodeCard } from "../components/Lockers";
+import { PayoutBreakdown } from "../components/PayoutBreakdown";
+import { PICKUP_LABEL_KEY, pickupMethodOf } from "../../demo/demo";
+import { useDemoProfile } from "../../demo/useDemoProfile";
 
 type Listing = {
   id: string;
@@ -39,8 +45,11 @@ type Request = {
   pickup_preference: string | null;
   total_price: number | null;
   breakdown_json: Record<string, number | null> | null;
+  pickup_method?: string | null;
+  locker_id?: string | null;
+  locker_code?: string | null;
   profiles: RenterProfile | null;
-};
+} & HandoverRequest;
 
 function fmtFull(d: string) {
   return new Date(d).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
@@ -76,6 +85,7 @@ export function RequestDetail() {
   const { listingId, requestId } = useParams<{ listingId: string; requestId: string }>();
   const navigate = useNavigate();
   const { t, lang, isZh, zh } = useI18n();
+  const { profile } = useDemoProfile();
 
   const [listing, setListing] = useState<Listing | null>(null);
   const [request, setRequest] = useState<Request | null>(null);
@@ -208,7 +218,7 @@ export function RequestDetail() {
       await sendEmail(
         renterEmail,
         "Your rental request was accepted!",
-        `Great news! Your request to rent <strong>${listingTitle}</strong> has been accepted. Contact the owner to arrange pickup. View your request: <a href="${APP_URL}/activity?tab=requests">${APP_URL}/activity?tab=requests</a>`
+        `Great news! Your request to rent <strong>${listingTitle}</strong> has been accepted. Pay securely on Lendy to confirm your booking — we hold the payment until the item is returned. View your request: <a href="${APP_URL}/activity?tab=requests">${APP_URL}/activity?tab=requests</a>`
       );
     }
   }
@@ -364,6 +374,10 @@ export function RequestDetail() {
   const deposit = listing.deposit ?? 0;
   const listingTitle = isZh && listing.title_zh ? zh(listing.title_zh) : listing.title;
 
+  const escrow = escrowOf(request);
+  const method = pickupMethodOf(request);
+  const showEscrow = request.status === "accepted" || request.status === "completed" || escrow === "refunded";
+
   const hasAcceptedOther = allRequests.some(
     (r) => r.id !== request.id && r.status === "accepted"
   );
@@ -458,9 +472,7 @@ export function RequestDetail() {
           <div>
             <p className="text-[10px] text-[#9CA3AF]">{isZh ? zh("取件方式") : "Pickup"}</p>
             <p className="text-sm text-[#1F2937]">
-              {request.pickup_preference === "deliver"
-                ? t("ownerDelivers")
-                : t("renterCollects")}
+              {t(PICKUP_LABEL_KEY[method])}
             </p>
           </div>
         </div>
@@ -506,6 +518,22 @@ export function RequestDetail() {
         )}
       </div>
 
+      {/* ── Payout, escrow, locker and handovers ── */}
+      {(request.status === "accepted" || request.status === "completed") && (
+        <PayoutBreakdown rentalPrice={total} completedRentals={profile.lenderCompleted} />
+      )}
+      {showEscrow && <EscrowTracker request={request} />}
+      {showEscrow && method === "locker" && escrow !== "refunded" && (
+        <LockerCodeCard lockerId={request.locker_id ?? null} code={request.locker_code ?? null} paid={escrow !== "unpaid"} />
+      )}
+      {request.status === "accepted" && (
+        <HandoverPanel
+          request={request}
+          role="lender"
+          onUpdated={(row) => (row.status === "completed" ? load() : setRequest((prev) => prev ? { ...row, profiles: prev.profiles } : prev))}
+        />
+      )}
+
       {/* ── Section 4: Actions ── */}
       {request.status === "completed" && (
         <div className="bg-brand/10 border border-brand/30 rounded-xl px-4 py-3 mb-4 flex items-center gap-3">
@@ -525,7 +553,10 @@ export function RequestDetail() {
             </p>
           </div>
 
-          {!showCompleteConfirm ? (
+          {/* Paid rentals complete through the return handover; this is for rentals settled outside Lendy */}
+          {escrow !== "unpaid" ? null : !showCompleteConfirm ? (
+            <>
+            <p className="text-[11px] text-[#9CA3AF] mb-2">{t("mockMarkComplete")}</p>
             <button
               onClick={() => setShowCompleteConfirm(true)}
               disabled={completing}
@@ -533,6 +564,7 @@ export function RequestDetail() {
             >
               {t("markCompleted")}
             </button>
+            </>
           ) : (
             <div className="bg-brand/5 border border-brand/20 rounded-xl px-4 py-3 mb-3 space-y-3">
               <p className="text-sm text-[#1F2937]">{t("markCompletedConfirm")}</p>

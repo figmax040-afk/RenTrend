@@ -29,6 +29,10 @@ import { AdminRecycling } from "./pages/AdminRecycling";
 import { ResetPassword } from "./pages/ResetPassword";
 import { SavedListings } from "./pages/SavedListings";
 import { Chat } from "./pages/Chat";
+import { Checkout } from "./pages/Checkout";
+import { LendyPlus } from "./pages/LendyPlus";
+import { LenderStats } from "./pages/LenderStats";
+import { Referral } from "./pages/Referral";
 
 export const router = createBrowserRouter([
   { path: "/", Component: Onboarding },
@@ -58,6 +62,10 @@ export const router = createBrowserRouter([
       { path: "/edit-profile", Component: EditProfile },
       { path: "/email-preferences", Component: EmailPreferences },
       { path: "/earnings", Component: Earnings },
+      { path: "/checkout/:requestId", Component: Checkout },
+      { path: "/plus", Component: LendyPlus },
+      { path: "/stats", Component: LenderStats },
+      { path: "/referral", Component: Referral },
       {
         Component: AdminGuard,
         children: [
