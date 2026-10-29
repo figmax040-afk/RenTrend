@@ -62,9 +62,9 @@ export function ListingCard({ id, image, title, price, distance, category, avail
           </span>
           {powerLender && <PowerLenderBadge small />}
         </div>
-        <div className="flex items-center justify-between mt-1.5">
-          <span className="text-brand" style={{ fontWeight: 600, fontSize: 14 }}>HK${price}<span className="text-[#6B7280]" style={{ fontWeight: 400, fontSize: 11 }}>{t("perDay")}</span></span>
-          <span className="flex items-center gap-0.5 text-[#6B7280]" style={{ fontSize: 11 }}><MapPin size={10} />{distance}</span>
+        <div className="flex items-center justify-between gap-2 mt-1.5">
+          <span className="text-brand shrink-0 whitespace-nowrap" style={{ fontWeight: 600, fontSize: 14 }}>HK${price}<span className="text-[#6B7280]" style={{ fontWeight: 400, fontSize: 11 }}>{t("perDay")}</span></span>
+          <span className="flex items-center gap-0.5 min-w-0 text-[#6B7280]" style={{ fontSize: 11 }} title={distance}><MapPin size={10} className="shrink-0" /><span className="truncate">{distance}</span></span>
         </div>
       </div>
     </div>

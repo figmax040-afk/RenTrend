@@ -177,7 +177,7 @@ export function Home() {
         <Section title={t("recentlyAdded")} onSeeAll={() => navigate("/browse")}>
           <div className="flex gap-3 overflow-x-auto pb-2">
             {listings.slice(2, 6).map((l) => (
-              <div key={String(l.id)} className="min-w-[160px] max-w-[180px]">
+              <div key={String(l.id)} className="w-[200px] shrink-0">
                 <ListingCard
                   id={l.id} image={l.image}
                   title={isZh ? zh(l.titleZh) : l.title}
