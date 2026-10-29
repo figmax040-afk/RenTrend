@@ -158,7 +158,7 @@ export function Browse() {
   function getDisplayDistance(l: UiListing): string {
     if (locationFilter && l.lat && l.lng) {
       const km = distanceKm(locationFilter.lat, locationFilter.lng, l.lat, l.lng);
-      return `${km.toFixed(1)} km away`;
+      return `${km.toFixed(1)} ${t("kmAway")}`;
     }
     return l.distance;
   }
@@ -251,10 +251,10 @@ export function Browse() {
       {showFilter && (
         <div className="bg-white rounded-xl border border-[#E5E7EB] p-4 mb-4 space-y-4">
           <div className="flex justify-between items-center">
-            <span className="text-sm" style={{ fontWeight: 500 }}>Filters</span>
+            <span className="text-sm" style={{ fontWeight: 500 }}>{t("filters")}</span>
             <div className="flex items-center gap-3">
               {activeFilterCount > 0 && (
-                <button onClick={clearAll} className="text-xs text-[#EF4444]">Clear all</button>
+                <button onClick={clearAll} className="text-xs text-[#EF4444]">{t("clearAll")}</button>
               )}
               <button onClick={() => setShowFilter(false)}><X size={16} className="text-[#6B7280]" /></button>
             </div>
@@ -262,7 +262,7 @@ export function Browse() {
 
           {/* Location search */}
           <div>
-            <label className="text-xs text-[#6B7280] block mb-2">Near location (within 3 km)</label>
+            <label className="text-xs text-[#6B7280] block mb-2">{t("nearLocation")}</label>
             <div className="relative">
               <MapPin size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#6B7280]" />
               <input
@@ -273,7 +273,7 @@ export function Browse() {
                   setLocationInputValue(e.target.value);
                   if (!e.target.value) setLocationFilter(null);
                 }}
-                placeholder="Search a location in Hong Kong..."
+                placeholder={t("searchLocationHK")}
                 className="w-full pl-8 pr-8 py-2 rounded-xl border border-[#E5E7EB] bg-white text-sm focus:outline-none focus:border-brand"
               />
               {locationFilter && (
@@ -286,13 +286,13 @@ export function Browse() {
               )}
             </div>
             {locationFilter && (
-              <p className="text-[10px] text-brand mt-1">Filtering near: {locationFilter.address}</p>
+              <p className="text-[10px] text-brand mt-1">{t("filteringNear")} {locationFilter.address}</p>
             )}
           </div>
 
           {/* Price */}
           <div>
-            <label className="text-xs text-[#6B7280]">Max price: HK${priceRange}/day</label>
+            <label className="text-xs text-[#6B7280]">{t("maxPrice")} HK${priceRange}{t("perDay")}</label>
             <input
               type="range" min={5} max={100} value={priceRange}
               onChange={(e) => setPriceRange(Number(e.target.value))}
@@ -322,7 +322,7 @@ export function Browse() {
 
           {/* Available only toggle */}
           <div className="flex items-center justify-between">
-            <span className="text-xs text-[#6B7280]">Available now only</span>
+            <span className="text-xs text-[#6B7280]">{t("availableNowOnly")}</span>
             <button
               onClick={() => setAvailableOnly(!availableOnly)}
               className={`w-10 h-5 rounded-full transition-colors relative ${availableOnly ? "bg-brand" : "bg-[#E5E7EB]"}`}

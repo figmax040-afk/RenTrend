@@ -7,6 +7,12 @@ import { loginPath } from "../../lib/authRedirect";
 
 declare global { interface Window { google: any; } }
 
+// Values are stored as-is; only the labels are translated.
+const RECYCLE_ITEM_TYPES: [string, string][] = [
+  ["Kettle", "itemKettle"], ["Fan", "itemFan"], ["Rice Cooker", "itemRiceCooker"],
+  ["Lamp", "itemLamp"], ["Fridge", "itemFridge"], ["Other", "itemOther"],
+];
+
 export function Recycle() {
   const navigate = useNavigate();
   const { t, isZh, zh } = useI18n();
@@ -153,8 +159,8 @@ export function Recycle() {
           <div>
             <label className="text-sm text-[#6B7280]">{t("itemType")}</label>
             <select value={itemType} onChange={(e) => setItemType(e.target.value)} className="w-full mt-1 px-4 py-2.5 rounded-xl border border-[#E5E7EB] bg-white text-sm">
-              <option value="">Select...</option>
-              <option>Kettle</option><option>Fan</option><option>Rice Cooker</option><option>Lamp</option><option>Fridge</option><option>Other</option>
+              <option value="">{t("selectPlaceholder")}</option>
+              {RECYCLE_ITEM_TYPES.map(([value, key]) => <option key={value} value={value}>{t(key)}</option>)}
             </select>
           </div>
           <div>

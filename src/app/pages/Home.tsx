@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
-import { Search, MapPin, ChefHat, Monitor, Sofa, Wind, MoreHorizontal, Package } from "lucide-react";
+import { Search, ChefHat, Monitor, Sofa, Wind, MoreHorizontal, Package } from "lucide-react";
 import { useI18n } from "../components/i18n";
 import { ListingCard } from "../components/ListingCard";
 import { BANNERS } from "../components/data";
@@ -90,10 +90,6 @@ export function Home() {
               {t("searchPlaceholder")}
             </div>
           </div>
-          <div className="flex items-center gap-1 px-3 py-2.5 rounded-xl bg-white border border-[#E5E7EB] text-xs text-[#6B7280]">
-            <MapPin size={12} />
-            <span>HKU</span>
-          </div>
         </div>
       </div>
 
@@ -106,7 +102,7 @@ export function Home() {
         <div className="absolute inset-0 bg-gradient-to-r from-brand/85 via-brand/45 to-transparent flex items-center pl-6">
           <div>
             <h2 className="text-white mb-1" style={{ fontSize: 20 }}>{t("heroTitle")}</h2>
-            <p className="text-white/80 text-sm">HKD · Hong Kong</p>
+            <p className="text-white/80 text-sm">{t("heroSub")}</p>
           </div>
         </div>
       </div>

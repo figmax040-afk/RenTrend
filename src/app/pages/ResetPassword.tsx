@@ -30,11 +30,11 @@ export function ResetPassword() {
   async function handleUpdate() {
     setError("");
     if (!password || password.length < 6) {
-      setError("Password must be at least 6 characters.");
+      setError(t("errPasswordLength"));
       return;
     }
     if (password !== confirm) {
-      setError("Passwords do not match.");
+      setError(t("errPasswordsMismatch"));
       return;
     }
     setLoading(true);
@@ -43,7 +43,7 @@ export function ResetPassword() {
     if (updateError) {
       setError(updateError.message);
     } else {
-      navigate("/login", { state: { successBanner: "Password updated successfully — please log in" } });
+      navigate("/login", { state: { successBanner: t("passwordUpdated") } });
     }
   }
 
@@ -52,20 +52,20 @@ export function ResetPassword() {
       <AuthHero />
 
       <div className="flex-1 flex flex-col px-6 max-w-md mx-auto w-full pt-8">
-        <h1 className="text-brand-ink mb-2" style={{ fontSize: 26 }}>Set new password</h1>
+        <h1 className="text-brand-ink mb-2" style={{ fontSize: 26 }}>{t("setNewPassword")}</h1>
 
         {status === "verifying" && (
-          <p className="text-[#6B7280] text-sm mt-4">Verifying reset link…</p>
+          <p className="text-[#6B7280] text-sm mt-4">{t("verifyingResetLink")}</p>
         )}
 
         {status === "error" && (
           <div className="mt-4 space-y-4">
             <div className="flex items-center gap-2 bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-xl">
               <AlertCircle size={16} />
-              This reset link has expired or is invalid. Please request a new one.
+              {t("resetLinkExpired")}
             </div>
             <Link to="/login" className="block text-center text-sm text-brand font-medium">
-              Back to Login
+              {t("backToLogin")}
             </Link>
           </div>
         )}

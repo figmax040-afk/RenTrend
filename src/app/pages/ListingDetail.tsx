@@ -109,8 +109,8 @@ export function ListingDetail() {
             description: data.description ?? "",
             descriptionZh: data.description_zh ?? data.description ?? "",
             owner: "—",
-            university: data.university ?? "—",
-            universityZh: data.university ?? "—",
+            university: data.university ?? "",
+            universityZh: data.university ?? "",
             memberSince: new Date(data.created_at).toLocaleDateString("en-US", { month: "short", year: "numeric" }),
             available: data.is_active && (data.approval_status ?? "approved") === "approved",
           });
@@ -186,7 +186,7 @@ export function ListingDetail() {
     );
   }
 
-  if (!listing) return <div className="p-8 text-center text-[#6B7280]">Not found</div>;
+  if (!listing) return <div className="p-8 text-center text-[#6B7280]">{t("notFound")}</div>;
 
   const isOwner = !!currentUserId && !!listing.owner_id && currentUserId === listing.owner_id;
 
@@ -206,7 +206,7 @@ export function ListingDetail() {
     const url = window.location.href;
     const title = isZh ? zh(listing.titleZh) : listing.title;
     if (navigator.share) {
-      await navigator.share({ title, text: `Check out this listing on Lendy: ${title}`, url });
+      await navigator.share({ title, text: `${t("shareText")} ${title}`, url });
     } else {
       await navigator.clipboard.writeText(url);
       setCopied(true);
@@ -296,8 +296,8 @@ export function ListingDetail() {
         <div className="flex items-center gap-1 mt-3 text-[#6B7280] text-sm">
           <MapPin size={14} />
           <span>
-            {isZh ? zh(listing.distanceZh) : listing.distance} ·{" "}
-            {isZh ? zh(listing.universityZh) : listing.university}
+            {isZh ? zh(listing.distanceZh) : listing.distance}
+            {listing.university && <> · {isZh ? zh(listing.universityZh) : listing.university}</>}
           </span>
         </div>
 
@@ -311,7 +311,7 @@ export function ListingDetail() {
             <div className="flex items-center gap-1">
               <Shield size={12} className="text-[#22C55E]" />
               <span className="text-xs text-[#22C55E]">
-                {t("verified")} · {isZh ? zh(listing.universityZh) : listing.university}
+                {t("verified")}{listing.university && <> · {isZh ? zh(listing.universityZh) : listing.university}</>}
               </span>
             </div>
             <span className="text-[10px] text-[#6B7280]">{t("memberSince")} {listing.memberSince}</span>
@@ -426,7 +426,7 @@ export function ListingDetail() {
       {/* ── Link copied toast ── */}
       {copied && (
         <div className="fixed bottom-20 left-1/2 -translate-x-1/2 bg-brand text-white text-sm px-4 py-2 rounded-xl shadow-lg z-50 whitespace-nowrap">
-          Link copied!
+          {t("linkCopied")}
         </div>
       )}
     </div>

@@ -296,7 +296,7 @@ export function RequestView() {
           </p>
           {listing && (
             <p className="text-sm text-brand" style={{ fontWeight: 500 }}>
-              HK${listing.price_per_day}/day
+              HK${listing.price_per_day}{t("perDay")}
             </p>
           )}
           {listing?.district && (

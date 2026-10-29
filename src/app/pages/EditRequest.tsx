@@ -163,7 +163,7 @@ export function EditRequest() {
           <div className="text-sm">
             <p style={{ fontWeight: 500 }}>{listing.title}</p>
             <p className="text-brand" style={{ fontWeight: 600 }}>
-              HK${listing.price_per_day}<span className="text-[#6B7280]" style={{ fontWeight: 400 }}>/day</span>
+              HK${listing.price_per_day}<span className="text-[#6B7280]" style={{ fontWeight: 400 }}>{t("perDay")}</span>
             </p>
           </div>
         </div>

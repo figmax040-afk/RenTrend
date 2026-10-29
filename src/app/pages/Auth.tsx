@@ -58,11 +58,11 @@ export function SignUp() {
           <div className="w-20 h-20 rounded-full bg-brand/10 flex items-center justify-center">
             <CheckCircle size={40} className="text-brand" />
           </div>
-          <h1 className="text-brand-ink" style={{ fontSize: 26 }}>Check your email</h1>
+          <h1 className="text-brand-ink" style={{ fontSize: 26 }}>{t("checkYourEmail")}</h1>
           <p className="text-[#6B7280] text-sm">
-            We sent a confirmation link to <span className="text-brand font-medium">{email}</span>. Click it to activate your account.
+            {t("confirmLinkSentPre")}<span className="text-brand font-medium">{email}</span>{t("confirmLinkSentPost")}
           </p>
-          <p className="text-[#9CA3AF] text-xs">Didn't receive it? Check your spam folder.</p>
+          <p className="text-[#9CA3AF] text-xs">{t("checkSpam")}</p>
           <button
             onClick={() => navigate(loginLink)}
             className="w-full py-3 bg-white text-brand rounded-xl border border-brand-border hover:bg-brand-soft transition-colors mt-2"

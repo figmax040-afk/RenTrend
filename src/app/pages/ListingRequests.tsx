@@ -198,7 +198,7 @@ export function ListingRequests() {
         />
         <div className="flex-1">
           <p className="text-sm" style={{ fontWeight: 500 }}>{listingTitle}</p>
-          <p className="text-xs text-brand" style={{ fontWeight: 500 }}>HK${listing.price_per_day}/day</p>
+          <p className="text-xs text-brand" style={{ fontWeight: 500 }}>HK${listing.price_per_day}{t("perDay")}</p>
           <span
             className="text-[10px] px-2 py-0.5 rounded-full mt-1 inline-block"
             style={{
