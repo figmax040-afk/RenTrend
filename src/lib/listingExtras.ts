@@ -1,5 +1,6 @@
 import { supabase } from "./supabase";
 import { isBoosted, isPowerLender } from "../demo/demo";
+import { fetchPublicProfiles } from "./publicProfiles";
 
 export type ListingExtras = {
   ratings: Record<string, { avg: number; count: number }>;
@@ -12,11 +13,9 @@ export async function fetchListingExtras(listings: { id: string | number; owner_
   const ownerIds = [...new Set(listings.map((l) => l.owner_id).filter((v): v is string => !!v))];
   if (ids.length === 0) return { ratings: {}, powerOwners: new Set() };
 
-  const [{ data: reviews }, { data: owners }] = await Promise.all([
+  const [{ data: reviews }, owners] = await Promise.all([
     supabase.from("reviews").select("listing_id, rating").in("listing_id", ids).eq("role", "renter"),
-    ownerIds.length > 0
-      ? supabase.from("profiles").select("*").in("id", ownerIds)
-      : Promise.resolve({ data: [] as Record<string, any>[] }),
+    fetchPublicProfiles(ownerIds),
   ]);
 
   const sums: Record<string, { total: number; count: number }> = {};
@@ -28,7 +27,7 @@ export async function fetchListingExtras(listings: { id: string | number; owner_
   }
   const ratings = Object.fromEntries(Object.entries(sums).map(([id, s]) => [id, { avg: s.total / s.count, count: s.count }]));
   const powerOwners = new Set(
-    (owners ?? []).filter((p) => isPowerLender(p.completed_rentals_as_lender, p.rating_as_lister)).map((p) => p.id as string)
+    Object.values(owners).filter((p) => isPowerLender(p.completed_rentals_as_lender, p.rating_as_lister)).map((p) => p.id)
   );
   return { ratings, powerOwners };
 }

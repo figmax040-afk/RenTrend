@@ -11,6 +11,7 @@ import { ListingDetailAd } from "../components/Ads";
 import { RentalTermsCard } from "../components/RentalTermsCard";
 import { FeaturedTag, PowerLenderBadge } from "../components/Badges";
 import { isBoosted, isPowerLender } from "../../demo/demo";
+import { fetchPublicProfiles } from "../../lib/publicProfiles";
 
 type NormalizedListing = {
   id: string | number;
@@ -33,7 +34,6 @@ type NormalizedListing = {
   owner: string;
   university: string;
   universityZh: string;
-  memberSince: string;
   available: boolean;
   featured: boolean;
 };
@@ -65,6 +65,8 @@ export function ListingDetail() {
   const [copied,    setCopied]    = useState(false);
   const [ownerName, setOwnerName] = useState<string>("—");
   const [ownerIsPower, setOwnerIsPower] = useState(false);
+  const [ownerAvatar, setOwnerAvatar] = useState<string | null>(null);
+  const [ownerMemberSince, setOwnerMemberSince] = useState<string | null>(null);
   const [realReviews, setRealReviews] = useState<Array<{
     id: string; author: string; rating: number; date: string; comment: string; listing_title?: string;
   }>>([]);
@@ -117,7 +119,6 @@ export function ListingDetail() {
             owner: "—",
             university: data.university ?? "",
             universityZh: data.university ?? "",
-            memberSince: new Date(data.created_at).toLocaleDateString("en-US", { month: "short", year: "numeric" }),
             available: data.is_active && (data.approval_status ?? "approved") === "approved",
             featured: isBoosted(data.boosted_until),
           });
@@ -133,14 +134,13 @@ export function ListingDetail() {
     if (!listing || !listing.owner_id) return;
 
     async function fetchOwnerReviews() {
-      // Fetch owner's display name
-      const { data: ownerProfile } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", listing!.owner_id!)
-        .maybeSingle();
-      const oName = ownerProfile?.name || (ownerProfile?.email ? ownerProfile.email.split("@")[0] : "—");
-      setOwnerName(oName);
+      // Owner's public profile (RLS hides other users' profiles rows, so go through the RPC)
+      const ownerProfile = (await fetchPublicProfiles([listing!.owner_id!]))[listing!.owner_id!];
+      setOwnerName(ownerProfile?.name || "—");
+      setOwnerAvatar(ownerProfile?.avatar_url ?? null);
+      setOwnerMemberSince(ownerProfile?.member_since
+        ? new Date(ownerProfile.member_since).toLocaleDateString("en-US", { month: "short", year: "numeric" })
+        : null);
       setOwnerIsPower(isPowerLender(ownerProfile?.completed_rentals_as_lender, ownerProfile?.rating_as_lister));
 
       // Fetch all reviews for this owner as a lister (renter reviews)
@@ -155,14 +155,8 @@ export function ListingDetail() {
       if (!revData || revData.length === 0) { setRealReviews([]); return; }
 
       // Fetch reviewer names
-      const reviewerIds = [...new Set(revData.map((r) => r.reviewer_id))];
-      const { data: profiles } = await supabase
-        .from("profiles")
-        .select("id, name, email")
-        .in("id", reviewerIds);
-      const profileMap = Object.fromEntries(
-        (profiles ?? []).map((p) => [p.id, p.name || (p.email ? p.email.split("@")[0] : "User")])
-      );
+      const reviewers = await fetchPublicProfiles(revData.map((r) => r.reviewer_id));
+      const profileMap = Object.fromEntries(Object.values(reviewers).map((p) => [p.id, p.name || "User"]));
 
       // Fetch listing titles for each review
       const listingIds = [...new Set(revData.map((r) => r.listing_id).filter(Boolean))];
@@ -316,9 +310,13 @@ export function ListingDetail() {
 
         {/* ── Owner card ── */}
         <div className="flex items-center gap-3 mt-4 p-3 rounded-xl bg-brand-soft border border-brand-border">
-          <div className="w-10 h-10 rounded-full bg-brand flex items-center justify-center text-white text-sm">
-            {ownerName[0]?.toUpperCase()}
-          </div>
+          {ownerAvatar ? (
+            <img src={ownerAvatar} alt={ownerName} className="w-10 h-10 rounded-full object-cover" />
+          ) : (
+            <div className="w-10 h-10 rounded-full bg-brand flex items-center justify-center text-white text-sm">
+              {ownerName[0]?.toUpperCase()}
+            </div>
+          )}
           <div className="flex-1">
             <div className="flex items-center gap-1.5 flex-wrap">
               <p className="text-sm text-[#1F2937]" style={{ fontWeight: 500 }}>{ownerName}</p>
@@ -330,7 +328,9 @@ export function ListingDetail() {
                 {t("verified")}{listing.university && <> · {isZh ? zh(listing.universityZh) : listing.university}</>}
               </span>
             </div>
-            <span className="text-[10px] text-[#6B7280]">{t("memberSince")} {listing.memberSince}</span>
+            {ownerMemberSince && (
+              <span className="text-[10px] text-[#6B7280]">{t("memberSince")} {ownerMemberSince}</span>
+            )}
           </div>
         </div>
 
