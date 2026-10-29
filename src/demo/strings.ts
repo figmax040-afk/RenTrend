@@ -155,7 +155,8 @@ export const demoStrings: Record<string, { en: string; zh: string }> = {
   plusWelcome: { en: "Welcome to Lendy Plus!", zh: "歡迎加入 Lendy Plus！" },
 
   // List item cap
-  listingsUsed: { en: "{used} of {cap} listings used", zh: "已使用 {used} / {cap} 個刊登" },
+  listingsFreePlan: { en: "listings on the free plan", zh: "免費方案刊登" },
+  goUnlimited: { en: "Go unlimited", zh: "升級無限刊登" },
   listingsUnlimited: { en: "Unlimited listings with Plus", zh: "Plus 會員無限刊登" },
   listingCapReached: { en: "You've reached the free plan limit", zh: "你已達免費計劃上限" },
   listingCapMsg: { en: "Free accounts can have {cap} active listings. Upgrade to Lendy Plus for unlimited listings, or mark one unavailable.", zh: "免費帳戶最多可有 {cap} 個上架物品。升級至 Lendy Plus 可無限刊登，或先把一件物品設為不可用。" },
