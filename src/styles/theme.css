@@ -143,6 +143,22 @@
     @apply bg-background text-foreground;
   }
 
+  /* iOS Safari gives native date inputs an intrinsic min-width that ignores
+     width: 100%, so two side-by-side date fields overflow on phones. */
+  input[type="date"] {
+    -webkit-appearance: none;
+    appearance: none;
+    display: block;
+    min-width: 0;
+    max-width: 100%;
+    min-height: 2.625rem;
+    text-align: left;
+  }
+
+  input[type="date"]::-webkit-date-and-time-value {
+    text-align: left;
+  }
+
   /**
   * Default typography styles for HTML elements (h1-h4, p, label, button, input).
   * These are in @layer base, so Tailwind utility classes (like text-sm, text-lg) automatically override them.
