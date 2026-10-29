@@ -1,5 +1,6 @@
 import { createBrowserRouter } from "react-router";
 import { Layout } from "./components/Layout";
+import { AdminGuard } from "./components/AdminGuard";
 import { Onboarding } from "./pages/Onboarding";
 import { SignUp, Login } from "./pages/Auth";
 import { VerifyEmail } from "./pages/VerifyEmail";
@@ -57,10 +58,15 @@ export const router = createBrowserRouter([
       { path: "/edit-profile", Component: EditProfile },
       { path: "/email-preferences", Component: EmailPreferences },
       { path: "/earnings", Component: Earnings },
-      { path: "/admin", Component: Admin },
-      { path: "/admin/listings", Component: AdminListings },
-      { path: "/admin/requests", Component: AdminRequests },
-      { path: "/admin/recycling", Component: AdminRecycling },
+      {
+        Component: AdminGuard,
+        children: [
+          { path: "/admin", Component: Admin },
+          { path: "/admin/listings", Component: AdminListings },
+          { path: "/admin/requests", Component: AdminRequests },
+          { path: "/admin/recycling", Component: AdminRecycling },
+        ],
+      },
       { path: "/chat/:requestId", Component: Chat },
     ],
   },

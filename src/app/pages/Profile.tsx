@@ -4,6 +4,7 @@ import { Shield, Edit, Bell, Mail, LogOut, Globe, ChevronRight, BarChart3, Star 
 import { useI18n, LANGS } from "../components/i18n";
 import { supabase } from "../../lib/supabase";
 import { loginPath } from "../../lib/authRedirect";
+import { useIsAdmin } from "../../lib/useIsAdmin";
 
 type ProfileRow = {
   name: string | null;
@@ -17,6 +18,7 @@ type ProfileRow = {
 export function Profile() {
   const navigate = useNavigate();
   const { t, lang, setLang, isZh, zh } = useI18n();
+  const isAdmin = useIsAdmin();
   const [email, setEmail] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [initials, setInitials] = useState("?");
@@ -142,7 +144,7 @@ export function Profile() {
       {/* Menu */}
       <div className="bg-white rounded-xl border border-[#E5E7EB] divide-y divide-[#E5E7EB]">
         <MenuItem icon={Edit} label={t("editProfile")} onClick={() => navigate("/edit-profile")} />
-        <MenuItem icon={BarChart3} label={t("admin")} onClick={() => navigate("/admin")} />
+        {isAdmin && <MenuItem icon={BarChart3} label={t("admin")} onClick={() => navigate("/admin")} />}
         <div className="flex items-center justify-between px-4 py-3">
           <div className="flex items-center gap-3">
             <Globe size={18} className="text-[#6B7280]" />
