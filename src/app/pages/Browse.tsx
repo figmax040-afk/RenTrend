@@ -379,7 +379,6 @@ export function Browse() {
                 id={l.id} image={l.image}
                 title={isZh ? zh(l.titleZh) : l.title}
                 price={l.price}
-                distance={getDisplayDistance(l)}
                 category={l.category}
                 available={l.available}
                 rating={extras.ratings[String(l.id)] ?? null}

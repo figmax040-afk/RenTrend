@@ -89,7 +89,6 @@ export function SavedListings() {
                 image={item.listings.image_url ?? listingPlaceholder}
                 title={isZh ? zh(item.listings.title) : item.listings.title}
                 price={item.listings.price_per_day}
-                distance={item.listings.district ?? "HK"}
                 category={item.listings.category}
                 available={item.listings.is_active}
               />

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router";
-import { Heart, MapPin, Star } from "lucide-react";
+import { Heart, Star } from "lucide-react";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
 import { useI18n } from "./i18n";
 import { FeaturedTag, PowerLenderBadge } from "./Badges";
@@ -18,7 +18,6 @@ interface ListingCardProps {
   image: string;
   title: string;
   price: number;
-  distance: string;
   category: string;
   available?: boolean;
   large?: boolean;
@@ -27,7 +26,7 @@ interface ListingCardProps {
   powerLender?: boolean;
 }
 
-export function ListingCard({ id, image, title, price, distance, category, available = true, large = false, rating, featured = false, powerLender = false }: ListingCardProps) {
+export function ListingCard({ id, image, title, price, category, available = true, large = false, rating, featured = false, powerLender = false }: ListingCardProps) {
   const navigate = useNavigate();
   const { t } = useI18n();
   const [liked, setLiked] = useState(false);
@@ -62,10 +61,7 @@ export function ListingCard({ id, image, title, price, distance, category, avail
           </span>
           {powerLender && <PowerLenderBadge small />}
         </div>
-        <div className="flex items-center justify-between gap-2 mt-1.5">
-          <span className="text-brand shrink-0 whitespace-nowrap" style={{ fontWeight: 600, fontSize: 14 }}>HK${price}<span className="text-[#6B7280]" style={{ fontWeight: 400, fontSize: 11 }}>{t("perDay")}</span></span>
-          <span className="flex items-center gap-0.5 min-w-0 text-[#6B7280]" style={{ fontSize: 11 }} title={distance}><MapPin size={10} className="shrink-0" /><span className="truncate">{distance}</span></span>
-        </div>
+        <p className="text-brand mt-1.5" style={{ fontWeight: 600, fontSize: 14 }}>HK${price}<span className="text-[#6B7280]" style={{ fontWeight: 400, fontSize: 11 }}>{t("perDay")}</span></p>
       </div>
     </div>
   );

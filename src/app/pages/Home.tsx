@@ -164,7 +164,6 @@ export function Home() {
                 key={String(l.id)} id={l.id} image={l.image}
                 title={isZh ? zh(l.titleZh) : l.title}
                 price={l.price}
-                distance={isZh ? zh(l.distanceZh) : l.distance}
                 category={isZh ? zh(l.categoryZh) : l.category}
                 available={l.available}
                 {...cardExtras(l)}
@@ -175,19 +174,16 @@ export function Home() {
 
         {/* Recently Added */}
         <Section title={t("recentlyAdded")} onSeeAll={() => navigate("/browse")}>
-          <div className="flex gap-3 overflow-x-auto pb-2">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {listings.slice(2, 6).map((l) => (
-              <div key={String(l.id)} className="w-[200px] shrink-0">
-                <ListingCard
-                  id={l.id} image={l.image}
-                  title={isZh ? zh(l.titleZh) : l.title}
-                  price={l.price}
-                  distance={isZh ? zh(l.distanceZh) : l.distance}
-                  category={isZh ? zh(l.categoryZh) : l.category}
-                  available={l.available}
-                  {...cardExtras(l)}
-                />
-              </div>
+              <ListingCard
+                key={String(l.id)} id={l.id} image={l.image}
+                title={isZh ? zh(l.titleZh) : l.title}
+                price={l.price}
+                category={isZh ? zh(l.categoryZh) : l.category}
+                available={l.available}
+                {...cardExtras(l)}
+              />
             ))}
           </div>
         </Section>
@@ -200,7 +196,6 @@ export function Home() {
                 key={String(l.id)} id={l.id} image={l.image}
                 title={isZh ? zh(l.titleZh) : l.title}
                 price={l.price}
-                distance={isZh ? zh(l.distanceZh) : l.distance}
                 category={isZh ? zh(l.categoryZh) : l.category}
                 available={l.available}
                 {...cardExtras(l)}
