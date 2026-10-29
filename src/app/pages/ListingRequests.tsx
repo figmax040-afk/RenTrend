@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router";
 import { ArrowLeft, ChevronRight } from "lucide-react";
 import { useI18n } from "../components/i18n";
+import { PICKUP_LABEL_KEY, pickupMethodOf } from "../../demo/demo";
 import { ImageWithFallback } from "../components/figma/ImageWithFallback";
 import { supabase } from "../../lib/supabase";
 import { loginPath } from "../../lib/authRedirect";
@@ -32,6 +33,7 @@ type Request = {
   message: string | null;
   status: string;
   pickup_preference: string | null;
+  pickup_method?: string | null;
   total_price: number | null;
   profiles: RenterProfile | null;
 };
@@ -300,9 +302,7 @@ export function ListingRequests() {
                     <p className="text-brand" style={{ fontWeight: 600 }}>HK${total}</p>
                     {req.pickup_preference && (
                       <p className="text-[10px] mt-0.5">
-                        {req.pickup_preference === "collect"
-                          ? t("renterCollects")
-                          : t("ownerDelivers")}
+                        {t(PICKUP_LABEL_KEY[pickupMethodOf(req)])}
                       </p>
                     )}
                   </div>

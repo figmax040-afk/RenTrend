@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
-import { Search, ChefHat, Monitor, Sofa, Wind, MoreHorizontal, Package } from "lucide-react";
+import { Search, ChefHat, Monitor, Sofa, Wind, Camera, MoreHorizontal, Package } from "lucide-react";
 import { useI18n } from "../components/i18n";
 import { ListingCard } from "../components/ListingCard";
 import { BANNERS } from "../components/data";
@@ -8,12 +8,16 @@ import { ImageWithFallback } from "../components/figma/ImageWithFallback";
 import { supabase } from "../../lib/supabase";
 import listingPlaceholder from "../../assets/listing-placeholder.svg";
 import { useAuth } from "../../lib/useAuth";
+import { fetchListingExtras, listingIsFeatured, type ListingExtras } from "../../lib/listingExtras";
+import { featuredFirst } from "../../demo/demo";
+import { HomeAdBanner } from "../components/Ads";
 
 const categories = [
   { key: "kitchen", icon: ChefHat },
   { key: "electronics", icon: Monitor },
   { key: "furniture", icon: Sofa },
   { key: "cooling", icon: Wind },
+  { key: "camera", icon: Camera },
   { key: "other", icon: MoreHorizontal },
 ];
 
@@ -28,6 +32,8 @@ type UiListing = {
   category: string;
   categoryZh: string;
   available: boolean;
+  owner_id: string | null;
+  featured: boolean;
 };
 
 function dbToUi(l: Record<string, any>): UiListing {
@@ -42,6 +48,8 @@ function dbToUi(l: Record<string, any>): UiListing {
     category: l.category,
     categoryZh: l.category,
     available: l.is_active,
+    owner_id: l.owner_id ?? null,
+    featured: listingIsFeatured(l),
   };
 }
 
@@ -51,13 +59,14 @@ export function Home() {
   const { user, loading: authLoading } = useAuth();
   const [listings, setListings] = useState<UiListing[]>([]);
   const [dataLoading, setDataLoading] = useState(true);
+  const [extras, setExtras] = useState<ListingExtras>({ ratings: {}, powerOwners: new Set() });
 
   useEffect(() => {
     if (authLoading) return;
 
     supabase
       .from("listings")
-      .select("id, title, title_zh, image_url, price_per_day, district, category, is_active")
+      .select("*")
       .eq("is_active", true)
       .eq("approval_status", "approved")
       .order("created_at", { ascending: false })
@@ -66,10 +75,18 @@ export function Home() {
           console.error("Home fetch error:", error);
         }
 
-        setListings((data ?? []).map(dbToUi));
+        const ui = featuredFirst((data ?? []).map(dbToUi));
+        setListings(ui);
         setDataLoading(false);
+        fetchListingExtras(ui).then(setExtras).catch((err) => console.error("Listing extras failed:", err));
       });
   }, [authLoading, user, navigate]);
+
+  const cardExtras = (l: UiListing) => ({
+    rating: extras.ratings[String(l.id)] ?? null,
+    featured: l.featured,
+    powerLender: !!l.owner_id && extras.powerOwners.has(l.owner_id),
+  });
 
   if (authLoading || dataLoading) {
     return (
@@ -106,6 +123,9 @@ export function Home() {
           </div>
         </div>
       </div>
+
+      {/* Sponsored banner (hidden for Plus members) */}
+      <HomeAdBanner />
 
       {/* Categories */}
       <div className="px-4 mt-6">
@@ -148,6 +168,7 @@ export function Home() {
                 distance={isZh ? zh(l.distanceZh) : l.distance}
                 category={isZh ? zh(l.categoryZh) : l.category}
                 available={l.available}
+                {...cardExtras(l)}
               />
             ))}
           </div>
@@ -165,6 +186,7 @@ export function Home() {
                   distance={isZh ? zh(l.distanceZh) : l.distance}
                   category={isZh ? zh(l.categoryZh) : l.category}
                   available={l.available}
+                  {...cardExtras(l)}
                 />
               </div>
             ))}
@@ -182,6 +204,7 @@ export function Home() {
                 distance={isZh ? zh(l.distanceZh) : l.distance}
                 category={isZh ? zh(l.categoryZh) : l.category}
                 available={l.available}
+                {...cardExtras(l)}
               />
             ))}
           </div>

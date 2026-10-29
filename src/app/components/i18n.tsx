@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react";
 import { Converter, CustomConverter } from "opencc-js/t2cn";
+import { demoStrings } from "../../demo/strings";
 
 // "zh" is Traditional Chinese (Hong Kong), "zh-CN" is Simplified Chinese (Mainland).
 // Simplified strings are derived from the Traditional ones at runtime, so only `zh` is stored below.
@@ -105,7 +106,7 @@ const translations: Record<string, { en: string; zh: string }> = {
   kitchen: { en: "Kitchen", zh: "廚房用具" },
   electronics: { en: "Electronics", zh: "電子用品" },
   furniture: { en: "Furniture", zh: "傢俱" },
-  camera: { en: "Camera", zh: "相機設備" }, // retired category; kept so older listings still get a label
+  camera: { en: "Camera", zh: "相機設備" },
   cooling: { en: "Cooling", zh: "冷暖設備" },
   other: { en: "Other", zh: "其他物品" },
   // Listing detail
@@ -142,7 +143,6 @@ const translations: Record<string, { en: string; zh: string }> = {
   requestSentMsg: { en: "You'll receive an email when they respond — usually within 24 hours", zh: "對方回覆時你會收到電郵通知 — 通常24小時內" },
   viewMyRequests: { en: "View My Requests", zh: "查看我的請求" },
   backToBrowse: { en: "Back to Browse", zh: "返回瀏覽" },
-  disclaimer: { en: "This is a manual agreement. Payment and deposit are handled at pickup.", zh: "這是人工協議。付款和按金在取貨時處理。" },
   // Create listing
   createListing: { en: "Create Listing", zh: "刊登你的物品" },
   details: { en: "Details", zh: "詳情" },
@@ -367,6 +367,7 @@ const translations: Record<string, { en: string; zh: string }> = {
   resetLinkExpired: { en: "This reset link has expired or is invalid. Please request a new one.", zh: "此重設連結已過期或無效，請重新申請。" },
   errPasswordsMismatch: { en: "Passwords do not match.", zh: "兩次輸入的密碼不一致。" },
   errLoadRequests: { en: "Failed to load requests.", zh: "載入請求時出錯。" },
+  ...demoStrings,
 };
 
 interface I18nContextType {

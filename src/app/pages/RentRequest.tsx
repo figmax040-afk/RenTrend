@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router";
-import { ArrowLeft, CheckCircle } from "lucide-react";
+import { ArrowLeft, CheckCircle, Users, Lock, Truck, ShieldCheck } from "lucide-react";
 import { useI18n } from "../components/i18n";
 import { IMAGES } from "../components/data";
 import { ImageWithFallback } from "../components/figma/ImageWithFallback";
@@ -10,6 +10,23 @@ import { APP_URL } from "../../lib/appUrl";
 import { sendEmail } from "../../lib/sendEmail";
 import { calculateOptimalPrice } from "../../lib/pricing";
 import { todayHK } from "../../lib/dates";
+import { LockerPicker } from "../components/Lockers";
+import { RentalTermsCard } from "../components/RentalTermsCard";
+import { pickupFee, type PickupMethod } from "../../demo/demo";
+import { fill } from "../../demo/strings";
+import { useDemoProfile } from "../../demo/useDemoProfile";
+
+const PICKUP_OPTIONS: { key: PickupMethod; icon: typeof Users; label: string; hint: string }[] = [
+  { key: "meetup", icon: Users, label: "pickupMeetup", hint: "pickupMeetupHint" },
+  { key: "locker", icon: Lock, label: "pickupLocker", hint: "pickupLockerHint" },
+  { key: "delivery", icon: Truck, label: "pickupDelivery", hint: "pickupDeliveryHint" },
+];
+
+function addDays(date: string, n: number) {
+  const d = new Date(`${date}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + n);
+  return d.toISOString().slice(0, 10);
+}
 
 type ListingSummary = {
   id: string | number;
@@ -34,7 +51,9 @@ export function RentRequest() {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [msg, setMsg] = useState("");
-  const [pickup, setPickup] = useState<"collect" | "deliver">("collect");
+  const [pickup, setPickup] = useState<PickupMethod>("meetup");
+  const [lockerId, setLockerId] = useState<string | null>(null);
+  const { profile } = useDemoProfile();
   const [agreed, setAgreed] = useState(false);
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
@@ -83,6 +102,7 @@ export function RentRequest() {
 
   async function handleSubmit() {
     if (!listing || !startDate || !endDate || !agreed || blocked) return;
+    if (pickup === "locker" && !lockerId) return;
     // Guard against double taps before React re-renders the disabled button
     if (submittingRef.current) return;
     submittingRef.current = true;
@@ -116,14 +136,15 @@ export function RentRequest() {
       listing.priceMonthly
     );
 
-    const { error } = await supabase.from("requests").insert({
+    const base = {
       listing_id: listing.id,
       renter_id: user.id,
       start_date: startDate,
       end_date: endDate,
       total_price: breakdown.total,
       message: msg || null,
-      pickup_preference: pickup,
+      // Older screens read collect/deliver; pickup_method has the full choice
+      pickup_preference: pickup === "delivery" ? "deliver" : "collect",
       status: "pending",
       breakdown_json: {
         months: breakdown.months,
@@ -134,7 +155,14 @@ export function RentRequest() {
         priceWeek: listing.priceWeekly,
         priceDay: listing.price,
       },
+    };
+    let { error } = await supabase.from("requests").insert({
+      ...base,
+      pickup_method: pickup,
+      locker_id: pickup === "locker" ? lockerId : null,
     });
+    // Demo migration not run yet: still send the request without the new columns
+    if (error?.code === "PGRST204") ({ error } = await supabase.from("requests").insert(base));
 
     if (error) {
       setSubmitError(error.message);
@@ -185,7 +213,8 @@ export function RentRequest() {
     ? calculateOptimalPrice(totalDays, listing.price, listing.priceWeekly, listing.priceMonthly)
     : null;
 
-  const grandTotal = breakdown ? breakdown.total + listing.deposit : 0;
+  const fee = pickupFee(pickup, profile.isPlus);
+  const grandTotal = breakdown ? breakdown.total + listing.deposit + fee.charged : 0;
 
   if (blocked) {
     return (
@@ -266,7 +295,12 @@ export function RentRequest() {
                 type="date"
                 value={startDate}
                 min={today}
-                onChange={(e) => { setStartDate(e.target.value); setEndDate(""); }}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  setStartDate(v);
+                  // Default to the 1-day minimum so the price shows straight away
+                  setEndDate(v ? addDays(v, 1) : "");
+                }}
                 className="w-full mt-1 px-4 py-2.5 rounded-xl border border-[#E5E7EB] bg-white text-sm"
               />
             </div>
@@ -275,39 +309,60 @@ export function RentRequest() {
               <input
                 type="date"
                 value={endDate}
-                min={startDate || today}
+                min={startDate ? addDays(startDate, 1) : addDays(today, 1)}
                 onChange={(e) => setEndDate(e.target.value)}
                 className="w-full mt-1 px-4 py-2.5 rounded-xl border border-[#E5E7EB] bg-white text-sm"
               />
             </div>
           </div>
 
-          {/* Smart price breakdown */}
+          <p className="text-[11px] text-[#9CA3AF] -mt-2">{t("minOneDay")}</p>
+
+          {/* Smart price breakdown — updates live as the dates change */}
           {breakdown && (
             <div className="p-3 rounded-xl bg-white border border-[#E5E7EB] text-sm space-y-1.5">
+              <div className="flex justify-between text-[#1F2937]" style={{ fontWeight: 500 }}>
+                <span>{t("totalDaysLabel")}</span>
+                <span>
+                  {[
+                    breakdown.months > 0 && fill(t("monthsN"), { n: breakdown.months }),
+                    breakdown.weeks > 0 && fill(t("weeksN"), { n: breakdown.weeks }),
+                    breakdown.days > 0 && fill(t("daysN"), { n: breakdown.days }),
+                  ].filter(Boolean).join(" + ")}
+                  {(breakdown.months > 0 || breakdown.weeks > 0) && <span className="text-[#9CA3AF]"> ({fill(t("daysN"), { n: totalDays })})</span>}
+                </span>
+              </div>
               {breakdown.months > 0 && (
                 <div className="flex justify-between text-[#6B7280]">
-                  <span>{breakdown.months} month{breakdown.months > 1 ? "s" : ""} × HK${listing.priceMonthly}</span>
+                  <span>{fill(t("monthsN"), { n: breakdown.months })} × HK${listing.priceMonthly}</span>
                   <span>HK${breakdown.months * (listing.priceMonthly ?? 0)}</span>
                 </div>
               )}
               {breakdown.weeks > 0 && (
                 <div className="flex justify-between text-[#6B7280]">
-                  <span>{breakdown.weeks} week{breakdown.weeks > 1 ? "s" : ""} × HK${listing.priceWeekly}</span>
+                  <span>{fill(t("weeksN"), { n: breakdown.weeks })} × HK${listing.priceWeekly}</span>
                   <span>HK${breakdown.weeks * (listing.priceWeekly ?? 0)}</span>
                 </div>
               )}
               {breakdown.days > 0 && (
                 <div className="flex justify-between text-[#6B7280]">
-                  <span>{breakdown.days} day{breakdown.days > 1 ? "s" : ""} × HK${listing.price}</span>
+                  <span>{fill(t("daysN"), { n: breakdown.days })} × HK${listing.price}</span>
                   <span>HK${breakdown.days * listing.price}</span>
                 </div>
               )}
               <div className="border-t border-[#E5E7EB] pt-1.5 space-y-1">
                 <div className="flex justify-between text-[#6B7280]">
-                  <span>{t("deposit")}</span>
+                  <span>{t("refundableDeposit")}</span>
                   <span>HK${listing.deposit}</span>
                 </div>
+                {fee.base > 0 && (
+                  <div className="flex justify-between text-[#6B7280]">
+                    <span>{t(pickup === "delivery" ? "deliveryFee" : "lockerFee")}</span>
+                    <span>
+                      {fee.charged === 0 ? <><s className="text-[#9CA3AF]">HK${fee.base}</s> <span className="text-[#15803D]">{t("free")}</span></> : `HK$${fee.base}`}
+                    </span>
+                  </div>
+                )}
                 <div className="flex justify-between" style={{ fontWeight: 600 }}>
                   <span>{t("total")}</span>
                   <span className="text-brand">HK${grandTotal}</span>
@@ -327,24 +382,43 @@ export function RentRequest() {
             />
           </div>
 
-          {/* Pickup preference */}
+          {/* Pickup method */}
           <div>
-            <label className="text-sm text-[#6B7280]">{t("pickupPref")}</label>
-            <div className="flex gap-2 mt-2">
-              {(["collect", "deliver"] as const).map((p) => (
-                <button
-                  key={p}
-                  onClick={() => setPickup(p)}
-                  className={`flex-1 py-2.5 rounded-xl text-sm border transition-colors ${pickup === p ? "bg-brand text-white border-brand" : "bg-white text-[#6B7280] border-[#E5E7EB]"}`}
-                >
-                  {p === "collect" ? t("iCanCollect") : t("canYouDeliver")}
-                </button>
-              ))}
+            <label className="text-sm text-[#6B7280]">{t("pickupMethod")}</label>
+            <div className="grid grid-cols-3 gap-2 mt-2">
+              {PICKUP_OPTIONS.map((o) => {
+                const f = pickupFee(o.key, profile.isPlus);
+                return (
+                  <button
+                    key={o.key}
+                    onClick={() => setPickup(o.key)}
+                    className={`flex flex-col items-center gap-1 py-2.5 px-1 rounded-xl text-sm border transition-colors ${pickup === o.key ? "bg-brand text-white border-brand" : "bg-white text-[#6B7280] border-[#E5E7EB]"}`}
+                  >
+                    <o.icon size={18} />
+                    <span>{t(o.label)}</span>
+                    <span className="text-[10px]">
+                      {f.base === 0 ? t("free") : f.charged === 0
+                        ? <><s className="opacity-70">HK${f.base}</s> {t("free")}</>
+                        : `HK$${f.base}`}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
+            <p className="text-xs text-[#6B7280] mt-2">{t(PICKUP_OPTIONS.find((o) => o.key === pickup)!.hint)}</p>
+            {pickup !== "meetup" && !profile.isPlus && (
+              <button onClick={() => navigate("/plus")} className="text-xs text-brand mt-1">{t("freeWithPlus")} →</button>
+            )}
+            {pickup === "locker" && <LockerPicker value={lockerId} onChange={setLockerId} />}
+            {pickup === "locker" && !lockerId && <p className="text-xs text-[#B45309] mt-1">{t("lockerRequired")}</p>}
           </div>
 
-          {/* Disclaimer & terms */}
-          <p className="text-xs text-[#F4A261] bg-[#F4A261]/10 p-3 rounded-xl">{t("disclaimer")}</p>
+          {/* How payment works (replaces the old pay-at-pickup disclaimer) */}
+          <p className="text-xs text-brand bg-brand-soft border border-brand-border p-3 rounded-xl flex gap-2">
+            <ShieldCheck size={16} className="shrink-0" />
+            <span>{t("payAfterAccept")}</span>
+          </p>
+          <RentalTermsCard />
           <label className="flex items-start gap-2 text-sm text-[#6B7280]">
             <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} className="mt-0.5 accent-brand" />
             {t("agreeTerms")}
@@ -363,10 +437,10 @@ export function RentRequest() {
 
           <button
             onClick={handleSubmit}
-            disabled={!startDate || !endDate || !agreed || sending}
+            disabled={!startDate || !endDate || !agreed || sending || (pickup === "locker" && !lockerId)}
             className="w-full py-3 bg-brand text-white rounded-xl disabled:opacity-40"
           >
-            {sending ? "Sending..." : t("sendRequest")}
+            {sending ? t("sending") : t("sendRequest")}
           </button>
         </div>
       </div>

@@ -1,14 +1,16 @@
 import { useState } from "react";
 import { useNavigate } from "react-router";
-import { Heart, MapPin } from "lucide-react";
+import { Heart, MapPin, Star } from "lucide-react";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
 import { useI18n } from "./i18n";
+import { FeaturedTag, PowerLenderBadge } from "./Badges";
 
 const categoryKeyMap: Record<string, string> = {
   kitchen: "kitchen",
   electronics: "electronics",
   furniture: "furniture",
   cooling: "cooling",
+  camera: "camera",
   other: "other",
 };
 
@@ -21,9 +23,12 @@ interface ListingCardProps {
   category: string;
   available?: boolean;
   large?: boolean;
+  rating?: { avg: number; count: number } | null;
+  featured?: boolean;
+  powerLender?: boolean;
 }
 
-export function ListingCard({ id, image, title, price, distance, category, available = true, large = false }: ListingCardProps) {
+export function ListingCard({ id, image, title, price, distance, category, available = true, large = false, rating, featured = false, powerLender = false }: ListingCardProps) {
   const navigate = useNavigate();
   const { t } = useI18n();
   const [liked, setLiked] = useState(false);
@@ -41,13 +46,23 @@ export function ListingCard({ id, image, title, price, distance, category, avail
         >
           <Heart size={14} className={liked ? "fill-red-500 text-red-500" : "text-[#6B7280]"} />
         </button>
-        {available && (
-          <span className="absolute top-2 left-2 bg-[#22C55E] text-white text-[10px] px-2 py-0.5 rounded-full">{t("available")}</span>
-        )}
+        <div className="absolute top-2 left-2 flex flex-col items-start gap-1">
+          {featured && <FeaturedTag />}
+          {available && (
+            <span className="bg-[#22C55E] text-white text-[10px] px-2 py-0.5 rounded-full">{t("available")}</span>
+          )}
+        </div>
       </div>
       <div className="p-3">
         <p className="text-sm text-[#6B7280] mb-0.5">{categoryLabel}</p>
         <h4 className="text-sm truncate" style={{ fontWeight: 500 }}>{title}</h4>
+        <div className="flex items-center gap-1.5 mt-0.5 min-h-[18px]">
+          <span className="flex items-center gap-0.5 text-[11px] text-[#6B7280]">
+            <Star size={11} className="text-[#F59E0B] fill-[#F59E0B]" />
+            {rating && rating.count > 0 ? <>{rating.avg.toFixed(1)} <span className="text-[#9CA3AF]">({rating.count})</span></> : t("newListing")}
+          </span>
+          {powerLender && <PowerLenderBadge small />}
+        </div>
         <div className="flex items-center justify-between mt-1.5">
           <span className="text-brand" style={{ fontWeight: 600, fontSize: 14 }}>HK${price}<span className="text-[#6B7280]" style={{ fontWeight: 400, fontSize: 11 }}>{t("perDay")}</span></span>
           <span className="flex items-center gap-0.5 text-[#6B7280]" style={{ fontSize: 11 }}><MapPin size={10} />{distance}</span>
