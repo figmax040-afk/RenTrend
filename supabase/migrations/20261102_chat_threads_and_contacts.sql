@@ -65,7 +65,17 @@ create policy "Participants can read their threads" on public.chat_threads
   for select to authenticated using (auth.uid() in (renter_id, owner_id));
 -- No insert/update policies: threads are only created through get_or_create_chat_thread().
 
--- Messages can now belong to a thread instead of a request.
+-- Messages. Created here if the project never had the table; otherwise threads are added to it.
+create table if not exists public.messages (
+  id uuid primary key default gen_random_uuid(),
+  request_id uuid references public.requests(id) on delete cascade,
+  thread_id uuid references public.chat_threads(id) on delete cascade,
+  sender_id uuid not null references auth.users(id) on delete cascade,
+  content text not null check (length(trim(content)) > 0),
+  created_at timestamptz not null default now(),
+  read_at timestamptz
+);
+alter table public.messages enable row level security;
 alter table public.messages add column if not exists thread_id uuid references public.chat_threads(id) on delete cascade;
 alter table public.messages alter column request_id drop not null;
 create index if not exists messages_thread_id_idx on public.messages (thread_id, created_at);
