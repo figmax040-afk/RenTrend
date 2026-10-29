@@ -10,7 +10,6 @@ const categoryKeyMap: Record<string, string> = {
   electronics: "electronics",
   furniture: "furniture",
   cooling: "cooling",
-  camera: "camera",
   other: "other",
 };
 

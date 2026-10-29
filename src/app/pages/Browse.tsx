@@ -13,7 +13,7 @@ import { SponsoredListingCard, useAdSet } from "../components/Ads";
 
 declare global { interface Window { google: any; } }
 
-const categoryKeys = ["kitchen", "electronics", "furniture", "cooling", "camera", "other"];
+const categoryKeys = ["kitchen", "electronics", "furniture", "cooling", "other"];
 // A sponsored card follows every this many listings
 const AD_EVERY = 6;
 const conditionKeys = CONDITION_KEYS;
