@@ -190,14 +190,18 @@ export function CreateListing() {
               <Crown size={13} />{t("listingsUnlimited")}
             </p>
           ) : (
-            <div className="mb-4">
-              <div className="flex items-center justify-between text-xs text-[#6B7280] mb-1">
-                <span>{fill(t("listingsUsed"), { used: Math.min(activeCount, FREE_LISTING_CAP), cap: FREE_LISTING_CAP })}</span>
-                {!atCap && <button onClick={() => navigate("/plus")} className="text-brand">{t("listingsUnlimited")} →</button>}
-              </div>
-              <div className="h-1.5 rounded-full bg-[#E5E7EB] overflow-hidden">
-                <div className={`h-full ${atCap ? "bg-[#F4A261]" : "bg-brand"}`} style={{ width: `${Math.min(100, (activeCount / FREE_LISTING_CAP) * 100)}%` }} />
-              </div>
+            <div className="mb-4 flex items-center justify-between gap-3 bg-white border border-[#E5E7EB] rounded-xl px-3 py-2">
+              <span className="flex items-center gap-2 text-xs text-[#6B7280]">
+                <span className={`px-2 py-0.5 rounded-full text-[11px] ${atCap ? "bg-[#FEF3E8] text-[#C2410C]" : "bg-brand-soft text-brand"}`} style={{ fontWeight: 600 }}>
+                  {Math.min(activeCount, FREE_LISTING_CAP)}/{FREE_LISTING_CAP}
+                </span>
+                {t("listingsFreePlan")}
+              </span>
+              {!atCap && (
+                <button onClick={() => navigate("/plus")} className="flex items-center gap-1 text-xs text-brand shrink-0">
+                  <Crown size={12} />{t("goUnlimited")} →
+                </button>
+              )}
             </div>
           )
         )}
