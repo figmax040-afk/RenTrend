@@ -239,7 +239,7 @@ export function MyListingsContent() {
                         )}
                       </div>
                     </div>
-                    <p className="text-xs text-brand" style={{ fontWeight: 500 }}>HK${listing.price_per_day}/day</p>
+                    <p className="text-xs text-brand" style={{ fontWeight: 500 }}>HK${listing.price_per_day}{t("perDay")}</p>
                     <div className="flex items-center gap-2 mt-1">
                       <span
                         className="text-[10px] px-2 py-0.5 rounded-full"

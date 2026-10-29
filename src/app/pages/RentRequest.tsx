@@ -71,8 +71,8 @@ export function RentRequest() {
           priceWeekly: data.price_weekly ?? null,
           priceMonthly: data.price_monthly ?? null,
           deposit: data.deposit ?? 0,
-          university: data.university ?? "—",
-          universityZh: data.university ?? "—",
+          university: data.university ?? "",
+          universityZh: data.university ?? "",
         });
       }
       setLoading(false);
@@ -229,8 +229,8 @@ export function RentRequest() {
           <ImageWithFallback src={listing.image} alt="" className="w-16 h-16 rounded-lg object-cover" />
           <div className="text-sm">
             <p style={{ fontWeight: 500 }}>{isZh ? zh(listing.titleZh) : listing.title}</p>
-            <p className="text-[#6B7280] text-xs">{isZh ? zh(listing.universityZh) : listing.university}</p>
-            <p className="text-brand" style={{ fontWeight: 600 }}>HK${listing.price}<span className="text-[#6B7280]" style={{ fontWeight: 400 }}>/day</span></p>
+            {listing.university && <p className="text-[#6B7280] text-xs">{isZh ? zh(listing.universityZh) : listing.university}</p>}
+            <p className="text-brand" style={{ fontWeight: 600 }}>HK${listing.price}<span className="text-[#6B7280]" style={{ fontWeight: 400 }}>{t("perDay")}</span></p>
           </div>
         </div>
 

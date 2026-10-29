@@ -3,9 +3,11 @@ import { useNavigate, useSearchParams, useLocation } from "react-router";
 import { CheckCircle, AlertCircle, Loader2, MailCheck } from "lucide-react";
 import { supabase } from "../../lib/supabase";
 import { AuthHero } from "../components/AuthHero";
+import { useI18n } from "../components/i18n";
 
 export function VerifyEmail() {
   const navigate = useNavigate();
+  const { t } = useI18n();
   const location = useLocation();
   const [searchParams] = useSearchParams();
   const [status, setStatus] = useState<"verifying" | "success" | "error" | "check-email">("verifying");
@@ -39,7 +41,7 @@ export function VerifyEmail() {
         {status === "verifying" && (
           <>
             <Loader2 size={40} className="text-brand animate-spin" />
-            <p className="text-[#6B7280] text-sm">Verifying your email…</p>
+            <p className="text-[#6B7280] text-sm">{t("verifyingEmail")}</p>
           </>
         )}
 
@@ -48,12 +50,12 @@ export function VerifyEmail() {
             <div className="w-20 h-20 rounded-full bg-brand/10 flex items-center justify-center">
               <CheckCircle size={40} className="text-brand" />
             </div>
-            <h1 className="text-brand-ink text-center" style={{ fontSize: 26 }}>Email verified!</h1>
+            <h1 className="text-brand-ink text-center" style={{ fontSize: 26 }}>{t("emailVerified")}</h1>
             <button
               onClick={() => navigate("/home")}
               className="w-full py-3 bg-brand text-white rounded-xl hover:bg-brand-hover transition-colors"
             >
-              Go to Home
+              {t("goToHome")}
             </button>
           </>
         )}
@@ -64,13 +66,13 @@ export function VerifyEmail() {
               <AlertCircle size={40} className="text-red-500" />
             </div>
             <p className="text-[#1F2937] text-sm text-center">
-              This verification link has expired or has already been used.
+              {t("verifyLinkExpired")}
             </p>
             <button
               onClick={() => navigate("/signup")}
               className="w-full py-3 bg-white text-brand rounded-xl border border-brand-border hover:bg-brand-soft transition-colors"
             >
-              Back to Sign Up
+              {t("backToSignUp")}
             </button>
           </>
         )}
@@ -80,18 +82,18 @@ export function VerifyEmail() {
             <div className="w-20 h-20 rounded-full bg-brand/10 flex items-center justify-center">
               <MailCheck size={40} className="text-brand" />
             </div>
-            <h1 className="text-brand-ink text-center" style={{ fontSize: 26 }}>Check your email</h1>
+            <h1 className="text-brand-ink text-center" style={{ fontSize: 26 }}>{t("checkYourEmail")}</h1>
             <p className="text-[#6B7280] text-sm text-center">
               {stateEmail
-                ? `We sent a confirmation link to ${stateEmail}. Click it to activate your account.`
-                : "Please check your email for a verification link and click it to activate your account."}
+                ? `${t("confirmLinkSentPre")}${stateEmail}${t("confirmLinkSentPost")}`
+                : t("verifyEmailMsg")}
             </p>
-            <p className="text-[#9CA3AF] text-xs text-center">Didn't receive it? Check your spam folder.</p>
+            <p className="text-[#9CA3AF] text-xs text-center">{t("checkSpam")}</p>
             <button
               onClick={() => navigate("/login")}
               className="w-full py-3 bg-white text-brand rounded-xl border border-brand-border hover:bg-brand-soft transition-colors"
             >
-              Back to Login
+              {t("backToLogin")}
             </button>
           </>
         )}

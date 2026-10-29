@@ -77,7 +77,7 @@ export function Admin() {
         onClick={() => navigate("/admin/approvals")}
         className="w-full py-3 bg-white border border-[#E5E7EB] rounded-xl text-sm text-brand hover:border-brand transition-colors"
       >
-        View {stats.pendingApprovals} pending approval{stats.pendingApprovals !== 1 ? "s" : ""} →
+        {t("viewPendingApprovals").replace("{n}", String(stats.pendingApprovals))} →
       </button>
     </div>
   );

@@ -400,7 +400,7 @@ export function RequestDetail() {
         <div className="flex-1">
           <p className="text-xs text-[#6B7280] mb-0.5">{isZh ? zh("租用物品") : "Item requested"}</p>
           <p className="text-sm" style={{ fontWeight: 500 }}>{listingTitle}</p>
-          <p className="text-xs text-brand" style={{ fontWeight: 500 }}>HK${listing.price_per_day}/day</p>
+          <p className="text-xs text-brand" style={{ fontWeight: 500 }}>HK${listing.price_per_day}{t("perDay")}</p>
         </div>
       </div>
 

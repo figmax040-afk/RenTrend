@@ -19,10 +19,11 @@ const catIcons = [
 const stepKeys = ["details", "pricing", "availability", "review"];
 const conditions = CONDITION_KEYS;
 
+const OTHER_BRAND = "Other / Unlisted brand";
 const BRANDS = [
   "Philips", "Panasonic", "Sony", "Samsung", "LG", "Xiaomi", "Dyson",
   "Tefal", "Midea", "Cornell", "Sharp", "IKEA", "Canon", "Nikon",
-  "Fujifilm", "GoPro", "Honeywell", "Mistral", "Other / Unlisted brand",
+  "Fujifilm", "GoPro", "Honeywell", "Mistral", OTHER_BRAND,
 ];
 
 export function EditListing() {
@@ -96,7 +97,7 @@ export function EditListing() {
       if (BRANDS.includes(existingBrand)) {
         setBrand(existingBrand);
       } else if (existingBrand) {
-        setBrand("Other / Unlisted brand");
+        setBrand(OTHER_BRAND);
         setCustomBrand(existingBrand);
       }
 
@@ -196,7 +197,7 @@ export function EditListing() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setSaving(false); navigate(loginPath()); return; }
 
-    const finalBrand = brand === "Other / Unlisted brand" ? customBrand : brand;
+    const finalBrand = brand === OTHER_BRAND ? customBrand : brand;
     const urls = imageUrls.filter((u): u is string => u !== null);
 
     const { error } = await supabase
@@ -306,14 +307,14 @@ export function EditListing() {
               className="w-full px-4 py-2.5 rounded-xl border border-[#E5E7EB] bg-white text-sm focus:outline-none focus:border-brand" />
 
             <div>
-              <label className="text-sm text-[#6B7280]">{t("brand")} <span className="text-[#9CA3AF]">(optional)</span></label>
+              <label className="text-sm text-[#6B7280]">{t("brand")} <span className="text-[#9CA3AF]">{t("optional")}</span></label>
               <select value={brand} onChange={(e) => { setBrand(e.target.value); setCustomBrand(""); }}
                 className="w-full mt-1 px-4 py-2.5 rounded-xl border border-[#E5E7EB] bg-white text-sm focus:outline-none focus:border-brand">
-                <option value="">Select brand</option>
-                {BRANDS.map((b) => <option key={b}>{b}</option>)}
+                <option value="">{t("selectBrand")}</option>
+                {BRANDS.map((b) => <option key={b} value={b}>{b === OTHER_BRAND ? t("otherBrand") : b}</option>)}
               </select>
-              {brand === "Other / Unlisted brand" && (
-                <input value={customBrand} onChange={(e) => setCustomBrand(e.target.value)} placeholder="Type brand name"
+              {brand === OTHER_BRAND && (
+                <input value={customBrand} onChange={(e) => setCustomBrand(e.target.value)} placeholder={t("typeBrandName")}
                   className="w-full mt-2 px-4 py-2.5 rounded-xl border border-[#E5E7EB] bg-white text-sm focus:outline-none focus:border-brand" />
               )}
             </div>
@@ -344,9 +345,9 @@ export function EditListing() {
               {cond === "forParts" && (
                 <div className="mt-2">
                   <textarea value={damagedParts} onChange={(e) => setDamagedParts(e.target.value)}
-                    placeholder="e.g. The motor works but the heating element is broken" rows={2}
+                    placeholder={t("damagedPartsPlaceholder")} rows={2}
                     className="w-full px-4 py-2.5 rounded-xl border border-[#E5E7EB] bg-white text-sm resize-none focus:outline-none focus:border-brand" />
-                  <p className="text-[10px] text-[#6B7280] mt-0.5">Describe the damaged or non-working parts</p>
+                  <p className="text-[10px] text-[#6B7280] mt-0.5">{t("damagedPartsHint")}</p>
                 </div>
               )}
             </div>
@@ -397,7 +398,7 @@ export function EditListing() {
               <label className="text-sm text-[#6B7280]">{t("location")}</label>
               <input ref={locationInputRef} type="text" value={location}
                 onChange={(e) => { setLocation(e.target.value); setLocationLat(null); setLocationLng(null); }}
-                placeholder="Search for a location in Hong Kong..."
+                placeholder={t("searchLocationHK")}
                 className="w-full mt-1 px-4 py-2.5 rounded-xl border border-[#E5E7EB] bg-white text-sm focus:outline-none focus:border-brand" />
             </div>
             <button onClick={() => setStep(3)} className="w-full py-3 bg-brand text-white rounded-xl">{t("next")}</button>
@@ -416,12 +417,12 @@ export function EditListing() {
                 </div>
               )}
               <p style={{ fontWeight: 500 }}>{title}</p>
-              {(brand === "Other / Unlisted brand" ? customBrand : brand) && (
-                <p className="text-[#6B7280]">{t("brand")}: {brand === "Other / Unlisted brand" ? customBrand : brand}</p>
+              {(brand === OTHER_BRAND ? customBrand : brand) && (
+                <p className="text-[#6B7280]">{t("brand")}: {brand === OTHER_BRAND ? customBrand : brand}</p>
               )}
               <p className="text-[#6B7280]">{t(cat)} · {t(cond)}</p>
-              {cond === "forParts" && damagedParts && <p className="text-[#6B7280] text-xs">Damaged: {damagedParts}</p>}
-              <p className="text-brand" style={{ fontWeight: 600 }}>HK${daily}/day · HK${weekly}/week · HK${monthly}/month</p>
+              {cond === "forParts" && damagedParts && <p className="text-[#6B7280] text-xs">{t("damagedLabel")}: {damagedParts}</p>}
+              <p className="text-brand" style={{ fontWeight: 600 }}>HK${daily}{t("perDay")} · HK${weekly}{t("perWeek")} · HK${monthly}{t("perMonth")}</p>
               <p className="text-[#6B7280]">{t("deposit")}: HK${deposit}</p>
               <p className="text-[#6B7280]">{location}</p>
               {desc && <p className="text-[#6B7280]">{desc}</p>}

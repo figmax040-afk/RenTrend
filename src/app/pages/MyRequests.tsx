@@ -114,7 +114,7 @@ export function MyRequestsContent() {
 
         setRequests(enriched);
       } catch (err: any) {
-        setError(err.message || "Failed to load requests.");
+        setError(err.message || t("errLoadRequests"));
       } finally {
         setLoading(false);
       }

@@ -42,14 +42,14 @@ export function ListingCard({ id, image, title, price, distance, category, avail
           <Heart size={14} className={liked ? "fill-red-500 text-red-500" : "text-[#6B7280]"} />
         </button>
         {available && (
-          <span className="absolute top-2 left-2 bg-[#22C55E] text-white text-[10px] px-2 py-0.5 rounded-full">Available</span>
+          <span className="absolute top-2 left-2 bg-[#22C55E] text-white text-[10px] px-2 py-0.5 rounded-full">{t("available")}</span>
         )}
       </div>
       <div className="p-3">
         <p className="text-sm text-[#6B7280] mb-0.5">{categoryLabel}</p>
         <h4 className="text-sm truncate" style={{ fontWeight: 500 }}>{title}</h4>
         <div className="flex items-center justify-between mt-1.5">
-          <span className="text-brand" style={{ fontWeight: 600, fontSize: 14 }}>HK${price}<span className="text-[#6B7280]" style={{ fontWeight: 400, fontSize: 11 }}>/day</span></span>
+          <span className="text-brand" style={{ fontWeight: 600, fontSize: 14 }}>HK${price}<span className="text-[#6B7280]" style={{ fontWeight: 400, fontSize: 11 }}>{t("perDay")}</span></span>
           <span className="flex items-center gap-0.5 text-[#6B7280]" style={{ fontSize: 11 }}><MapPin size={10} />{distance}</span>
         </div>
       </div>
