@@ -248,7 +248,7 @@ function Recorder({ title, onCancel, onSave }: { title: string; onCancel: () => 
   const ss = String(elapsed % 60).padStart(2, "0");
 
   return (
-    <div className="fixed inset-0 bg-black/60 z-50 flex items-end md:items-center justify-center p-4">
+    <div className="fixed inset-0 bg-black/60 z-[60] flex items-end md:items-center justify-center p-4">
       <div className="bg-white rounded-2xl w-full max-w-md p-4 space-y-3">
         <div className="flex items-center justify-between">
           <p className="text-[#1F2937]" style={{ fontWeight: 600 }}>{title}</p>

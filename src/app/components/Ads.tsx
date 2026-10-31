@@ -26,7 +26,7 @@ function SponsoredTag({ light }: { light?: boolean }) {
 function AdInfo({ ad, onClose }: { ad: Ad; onClose: () => void }) {
   const { t, isZh, zh } = useI18n();
   return (
-    <div className="fixed inset-0 bg-black/40 z-50 flex items-end md:items-center justify-center p-4" onClick={onClose}>
+    <div className="fixed inset-0 bg-black/40 z-[60] flex items-end md:items-center justify-center p-4" onClick={onClose}>
       <div className="bg-white rounded-2xl w-full max-w-md p-5 space-y-3" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between">
           <SponsoredTag />
