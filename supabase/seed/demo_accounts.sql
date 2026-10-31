@@ -10,7 +10,7 @@ update public.profiles p set
 from auth.users u
 where u.id = p.id and u.email = 'LENDER_EMAIL_HERE';
 
--- Renter: starts as a new user (newUser ad set, HKUFRESH valid on the first rental).
+-- Renter: starts as a new user (newUser ad set; HKUFRESH works on any rental).
 -- To show the frequentRenter ad set instead, set this to 3.
 update public.profiles p set completed_rentals_as_renter = 0, plan = 'free'
 from auth.users u
