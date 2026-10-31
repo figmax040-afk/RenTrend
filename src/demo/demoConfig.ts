@@ -55,7 +55,7 @@ export const LOCKERS: Locker[] = [
 export type PromoCode = { code: string; amount: number; firstRentalOnly: boolean; label: Copy };
 
 export const PROMO_CODES: PromoCode[] = [
-  { code: "HKUFRESH", amount: 20, firstRentalOnly: true, label: { en: "HK$20 off your first rental", zh: "首次租用減 HK$20" } },
+  { code: "HKUFRESH", amount: 20, firstRentalOnly: false, label: { en: "HK$20 off your rental", zh: "租用減 HK$20" } },
 ];
 
 // Referral codes look like LENDY-ABCD1234; a friend's code works as a promo on their first rental.
